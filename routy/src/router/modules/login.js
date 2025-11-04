@@ -1,0 +1,22 @@
+export default [
+    {
+        path: "/login",
+        name: "Login",
+        component: () => import("@/views/userauth/Login.vue"),
+    },
+    {
+        path: "/signup",
+        name: "Signup",
+        component: () => import("@/views/userauth/Signup.vue"),
+    },
+    {
+        path: "/find-email",
+        name: "FindEmail",
+        component: () => import("@/views/userauth/FindEmail.vue"),
+    },
+    {
+        path: "/find-password",
+        name: "FindPassword",
+        component: () => import("@/views/userauth/FindPassword.vue"),
+    },
+];
