@@ -1,7 +1,7 @@
 ---
 name: Deploy
 about: 배포 관련 작업 또는 환경 세팅 이슈
-title: "[Deploy]: 배포 제목을 작성하세요"
+title: "[Deploy]: 배포이슈 제목을 작성하세요"
 labels: deploy
 assignees: ''
 
