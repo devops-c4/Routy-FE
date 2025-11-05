@@ -47,6 +47,7 @@
 </template>
 
 <script setup>
+import '@/assets/css/draw.css'
 import '@/assets/css/step-common.css'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
