@@ -14,7 +14,7 @@
 
     <div class="stats">
       <span>❤️ {{ likes }}</span>
-      <span>👁️ {{ views }}</span>
+      <span><img src="../assets/images/icons/eye.svg"></img>{{ views }}</span>
       <span>🔗 {{ shares }}</span>
     </div>
   </div>
