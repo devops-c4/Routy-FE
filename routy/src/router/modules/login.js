@@ -24,5 +24,9 @@ export default [
         path: "/change-password",
         name: "ChangePassword",
         component: () => import("@/views/userauth/ChangePassword.vue")
+    },{
+            path: '/login/success',
+            name: 'loginSuccess',
+            component: () => import("@/views/userauth/LoginSuccess.vue")
     }
 ];

@@ -5,7 +5,7 @@
       <div class="left-section">
         <!-- 로고 -->
         <div class="logo-section">
-          <img class="logo-img" src="../assets/images/icons/logo.png" alt="logo" />
+          <img class="logo-img" src="/images/icons/logo.png" alt="logo" />
         </div>
 
         <!-- 로고 옆 텍스트 메뉴 -->
@@ -30,7 +30,7 @@ import { useRouter, useRoute } from "vue-router";
 const router = useRouter()
 
 const moveToRegister = () => {
-  router.push('/register')
+  router.push('/signup')
 }
 
 const moveToLogin = () => {

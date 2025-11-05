@@ -1,14 +1,20 @@
-import { createRouter, createWebHistory } from "vue-router";
-import loginRoutes from "./modules/login.js"; // login.js 모듈 import
+import { createRouter, createWebHistory } from 'vue-router'
+import Home from '@/views/Home.vue'
+import Draw from "@/views/Draw.vue";     // 여행 루트 그리기 페이지
+import Browse from "@/views/Browse.vue"; // 여행 루트 둘러보기 페이지
+import Login from './modules/login';
+
 
 const routes = [
-  ...loginRoutes, // 로그인 관련 라우트 추가
-
-];
+    ...Login,
+    { path: '/', name: 'home', component: Home },
+    { path: "/browse", name: "browse", component: Browse },
+    { path: "/draw", name: "draw", component: Draw },
+]
 
 const router = createRouter({
-    history: createWebHistory(import.meta.env.BASE_URL),
-    routes,
-});
+    history: createWebHistory(),
+    routes
+})
 
-export default router;
+export default router

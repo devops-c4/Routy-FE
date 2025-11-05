@@ -27,7 +27,7 @@
           <label class="remember">
             <input type="checkbox" /> 로그인 유지
           </label>
-          <a href="/findpassword" class="forgot-password">비밀번호 찾기</a>
+          <a href="/find-password" class="forgot-password">비밀번호 찾기</a>
         </div>
 
         <!-- 로그인 버튼 -->
