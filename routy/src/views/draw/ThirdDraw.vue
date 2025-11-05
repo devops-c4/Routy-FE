@@ -56,10 +56,7 @@ const router = useRouter()
 const themes = [
   { icon: '🍽️', name: '맛집' },
   { icon: '☕', name: '카페' },
-  { icon: '🏛️', name: '관광지' },
-  { icon: '🌳', name: '자연' },
-  { icon: '🎡', name: '놀이' },
-  { icon: '🏖️', name: '휴양' },
+  { icon: '🏛️', name: '관광지' }
 ]
 
 const selectedThemes = ref([])
