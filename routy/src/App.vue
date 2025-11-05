@@ -11,6 +11,6 @@
 <style>
 #app {
   font-family: 'Noto Sans KR', sans-serif;
-  padding: 20px;
+
 }
 </style>
