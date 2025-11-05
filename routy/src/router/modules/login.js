@@ -1,3 +1,5 @@
+import path from "node:path";
+
 export default [
     {
         path: "/login",
@@ -18,5 +20,9 @@ export default [
         path: "/find-password",
         name: "FindPassword",
         component: () => import("@/views/userauth/FindPassword.vue"),
-    },
+    },{
+        path: "/change-password",
+        name: "ChangePassword",
+        component: () => import("@/views/userauth/ChangePassword.vue")
+    }
 ];
