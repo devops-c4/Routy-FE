@@ -13,7 +13,7 @@
       <!-- 계정 이메일 -->
       <div class="email-box">
         <label>계정 이메일</label>
-        <div class="email-value">indy032229@gmail.com</div>
+        <div class="email-value">example@gmail.com</div>
       </div>
 
       <!-- 새 비밀번호 -->
@@ -44,7 +44,7 @@
 </template>
 
 <script setup>
-import Header from '../Header.vue';
+import Header from '@/components/Header.vue';
 </script>
 
 <style scoped>
@@ -175,7 +175,7 @@ import Header from '../Header.vue';
   top: 14px;
   width: 20px;
   height: 20px;
-  background-image: url('/images/icons/eye.svg'); /* 👈 이미지 경로 */
+  background-image: url('../../assets/images/icons/eye.svg'); /* 👈 이미지 경로 */
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;

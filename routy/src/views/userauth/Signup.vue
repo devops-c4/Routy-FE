@@ -16,7 +16,7 @@
         <!-- 이름 -->
         <div class="form-group">
           <label>사용자 이름 *</label>
-          <input type="text" placeholder="이름을 입력하세요" v-model="nickname"/>
+          <input type="text" placeholder="이름을 입력하세요" v-model="username"/>
         </div>
 
         <!-- 이메일 -->
@@ -32,7 +32,7 @@
         <div class="form-group">
           <label>인증번호</label>
           <div class="verify-row">
-            <input type="text" placeholder="인증번호 6자리" v-model="valifyNum"/>
+            <input type="text" placeholder="인증번호 6자리" v-model="varifyNum"/>
             <button class="resend-btn" @click="validationNum">재전송</button>
           </div>
           <small>이메일로 전송된 인증번호를 입력해주세요</small>
@@ -54,6 +54,12 @@
           <input type="number" placeholder="나이" v-model="age"/>
         </div>
 
+        <!-- 전화번호 -->
+        <div class="form-group">
+          <label>전화번호</label>
+          <input type="text" placeholder="전화번호" v-model="phone"/>
+        </div>
+
         <!-- 비밀번호 -->
         <div class="form-group">
           <label>비밀번호 *</label>
@@ -68,12 +74,12 @@
 
         <!-- 약관 동의 -->
         <div class="agree-section">
-          <input type="checkbox" id="agree" />
+          <input type="checkbox" id="agree" v-model="agreeCheck" />
           <label for="agree">이용약관 및 개인정보처리방침에 동의합니다</label>
         </div>
 
         <!-- 회원가입 버튼 -->
-        <button class="signup-btn" @="register">회원가입</button>
+        <button class="signup-btn" @click="register">회원가입</button>
 
         <!-- 로그인 링크 -->
         <div class="login-link">
@@ -87,17 +93,19 @@
 
 <script setup>
 import { ref } from 'vue';
-import Header from './Header.vue';
+import Header from '@/components/Header.vue';
 import axios from 'axios';
 
 const email = ref("");
-const nickname = ref("")
-const varifyNum = ref(0)
-const varifyNumCheck = ref(0)
-const gender = ref("남")
-const age = ref(20)
+const username = ref("")
+const varifyNum = ref()
+const varifyNumCheck = ref()
+const gender = ref("")
+const phone = ref("")
+const age = ref()
 const password = ref("")
 const passwordCheck = ref("")
+const agreeCheck = ref(false)
 
 const validationNum = async () => {
 
@@ -119,7 +127,7 @@ const validationNum = async () => {
 }
 
 const register = async () => {
-  if(nickname.value == ""){
+  if(username.value == ""){
     alert("사용자 이름을 입력해주세요")
     return;
   }
@@ -130,17 +138,33 @@ const register = async () => {
   }
 
   if(varifyNum.value != varifyNumCheck.value){
+    console.log("password = ", varifyNum.value)
+    console.log("passwordCheck = ", varifyNumCheck.value)
     alert("인증번호를 제대로 입력해주세요");
     return;
   }
   
-  var data = {
-    userNickname: nickname.value,
-    userEmail: email.value,
-    userPassword: password.value
+  if(!agreeCheck.value){
+    alert("이용약관을 확인해주세요");
+    return;
   }
 
-  await axios.post('http//localhost:8080/user/register')
+  var data = {
+    username: username.value,
+    email: email.value,
+    password: password.value,
+    age: age.value,
+    phone: phone.value,
+    gender: gender.value,
+    role: "ROLE_일반회원",
+    isDeleted: 0
+  }
+
+  await axios.post('http://localhost:8080/user/register',data).then(
+    (res) => {
+      console.log(res)
+    }
+  )
 }
 
 </script>
