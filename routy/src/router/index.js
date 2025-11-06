@@ -5,10 +5,12 @@ import Browse from "@/views/Browse.vue"; // 여행 루트 둘러보기 페이지
 import Login from './modules/login';
 import Draw from './modules/draw.js';
 import MyPage from './modules/mypage';
+import info from './modules/info'
 
 const routes = [
     ...Login,
     ...Draw,
+    ...info,
     ...MyPage,
     { path: '/', name: 'home', component: Home },
     { path: "/browse", name: "browse", component: Browse }
