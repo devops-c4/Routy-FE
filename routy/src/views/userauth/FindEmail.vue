@@ -1,7 +1,7 @@
 <template>
   <div class="find-email-container">
     <!-- 헤더 -->
-    <Header />
+    <!-- <Header /> -->
 
     <!-- 본문 -->
     <div class="content">
