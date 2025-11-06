@@ -1,9 +1,5 @@
 <template>
   <div class="signup-container">
-    <!-- 상단 네비게이션 -->
-    
-    <Header/>
-
     <!-- 메인 콘텐츠 -->
     <div class="main-content">
       <div class="welcome-section">
