@@ -15,11 +15,6 @@
         </div>
 
         <div class="input-group">
-          <label>비밀번호</label>
-          <input type="password" placeholder="새 비밀번호를 입력하세요" />
-        </div>
-
-        <div class="input-group">
           <label>나이</label>
           <input type="number" placeholder="나이를 입력하세요" />
         </div>
@@ -29,7 +24,6 @@
           <input type="tel" placeholder="010-1234-5678" />
         </div>
 
-        <!-- ✅ 이미지 업로드 -->
         <div class="image-upload">
           <label>프로필 이미지</label>
 
@@ -63,7 +57,6 @@
               </div>
             </div>
 
-            <!-- ✅ 이미지 있을 때 X버튼 (박스 오른쪽 위 바깥쪽) -->
             <button
               v-if="previewImage"
               class="remove-btn"
@@ -98,7 +91,7 @@ const triggerFileInput = () => {
 // 파일 선택 처리
 const handleFileChange = (e) => {
   const file = e.target.files[0];
-  if (file && file.size < 5 * 1024 * 1024) {
+  if (file && file.size <= 5 * 1024 * 1024 && ["image/jpeg", "image/png"].includes(file.type)) {
     const reader = new FileReader();
     reader.onload = () => {
       previewImage.value = reader.result;
@@ -112,7 +105,7 @@ const handleFileChange = (e) => {
 // 드래그앤드롭 처리
 const handleDrop = (e) => {
   const file = e.dataTransfer.files[0];
-  if (file && file.size < 5 * 1024 * 1024) {
+  if (file && file.size <= 5 * 1024 * 1024 && ["image/jpeg", "image/png"].includes(file.type)) {
     const reader = new FileReader();
     reader.onload = () => {
       previewImage.value = reader.result;
@@ -123,11 +116,10 @@ const handleDrop = (e) => {
   }
 };
 
-// ✅ 이미지 제거
 const removeImage = () => {
   previewImage.value = null;
   if (fileInput.value) {
-    fileInput.value.value = ""; // input 초기화
+    fileInput.value.value = ""; 
   }
 };
 </script>
@@ -206,7 +198,6 @@ const removeImage = () => {
   display: inline-block;
 }
 
-/* ✅ X 버튼이 upload 박스 오른쪽 위에 떠 있게 감싸주는 래퍼 */
 .upload-wrapper {
   position: relative;
   display: inline-block;
@@ -297,7 +288,6 @@ const removeImage = () => {
   border: none;
 }
 
-/* ✅ 이미지 제거 버튼 (박스 우측 위 바깥쪽) */
 .remove-btn {
   position: absolute;
   top: -10px;
