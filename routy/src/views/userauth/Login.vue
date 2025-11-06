@@ -6,7 +6,6 @@
         <h1>로그인</h1>
         <p>TravelPlan에 다시 오신 것을 환영합니다</p>
       </div>
-
       <div class="form-container">
         <!-- 이메일 -->
         <div class="form-group">

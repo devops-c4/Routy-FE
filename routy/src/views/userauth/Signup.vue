@@ -1,6 +1,5 @@
 <template>
   <div class="signup-container">
-
     <!-- 메인 콘텐츠 -->
     <div class="main-content">
       <div class="welcome-section">
