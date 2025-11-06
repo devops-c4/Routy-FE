@@ -1,7 +1,5 @@
 <template>
   <div class="login-container">
-    <Header />
-
     <!-- 메인 콘텐츠 -->
     <div class="main-content">
       <div class="welcome-section">
@@ -27,7 +25,7 @@
           <label class="remember">
             <input type="checkbox" /> 로그인 유지
           </label>
-          <a href="/findpassword" class="forgot-password">비밀번호 찾기</a>
+          <a href="/find-password" class="forgot-password">비밀번호 찾기</a>
         </div>
 
         <!-- 로그인 버튼 -->
@@ -38,15 +36,15 @@
         <!-- 소셜 로그인 -->
         <div class="social-login">
           <button class="google-btn" @click="login('google')">
-            <img src="/images/icons/google.svg" alt="Google" class="social-icon" />
+            <img src="../../assets/images/icons/google.svg" alt="Google" class="social-icon" />
             구글로 로그인
           </button>
           <button class="naver-btn" @click="login('naver')">
-            <img src="/images/icons/naver.svg" alt="Naver" class="social-icon" />
+            <img src="../../assets/images/icons/naver.svg" alt="Naver" class="social-icon" />
             네이버로 로그인
           </button>
           <button class="kakao-btn" @click="login('kakao')">
-            <img src="/images/icons/kakao.svg" alt="Kakao" class="social-icon" />
+            <img src="../../assets/images/icons/kakao.svg" alt="Kakao" class="social-icon" />
             카카오로 로그인
           </button>
         </div>
@@ -62,11 +60,10 @@
 </template>
 
 <script setup>
+import Header from "@/components/Header.vue";
 import { useRouter, useRoute } from "vue-router";
 
 const router = useRouter()
-
-import Header from '../Header.vue';
 
 function login(provider) {
   // 백엔드 Spring Boot가 제공하는 OAuth2 엔드포인트로 이동

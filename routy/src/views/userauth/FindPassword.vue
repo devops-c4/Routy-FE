@@ -1,6 +1,5 @@
 <template>
   <div class="find-password-page">
-    <Header />
     <div class="container">
       <!-- 제목 -->
       <div class="title-section">
@@ -37,7 +36,7 @@
 </template>
 
 <script setup>
-import Header from '../Header.vue';
+import Header from '@/components/Header.vue';
 </script>
 
 <style scoped>

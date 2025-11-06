@@ -4,14 +4,16 @@
       <!-- 왼쪽 섹션 -->
       <div class="left-section">
         <!-- 로고 -->
-        <div class="logo-section" @click="moveToHome">
+        <div class="logo-section">
+          <router-link to="/" class="logo-link">
           <img class="logo-img" src="/images/icons/logo.png" alt="logo" />
+          </router-link>
         </div>
 
         <!-- 로고 옆 텍스트 메뉴 -->
         <div class="route-section">
-          <span class="route-item" @click="moveToDraw">여행 루트 그리기</span>
-          <span class="route-item" @click="moveToBrowse">여행 루트 둘러보기</span>
+          <span class="route-item">여행 루트 그리기</span>
+          <span class="route-item">여행 루트 둘러보기</span>
         </div>
       </div>
 
@@ -28,11 +30,14 @@
 import { useRouter, useRoute } from "vue-router";
 
 const router = useRouter()
-const moveToHome = () => router.push("/");
-const moveToDraw = () => router.push("/draw");
-const moveToBrowse = () => router.push("/browse");
-const moveToRegister = () => router.push('/register');
-const moveToLogin = () => router.push('/login');
+
+const moveToRegister = () => {
+  router.push('/signup')
+}
+
+const moveToLogin = () => {
+    router.push('/login')
+}
 </script>
 
 <style scoped>
