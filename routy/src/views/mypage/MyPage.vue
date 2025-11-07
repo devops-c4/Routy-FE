@@ -1,17 +1,7 @@
 <script setup>
-<<<<<<< HEAD
 import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
-=======
-import { ref, computed } from 'vue'
 
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
-function goToTravelDetail(scheduleId) {
-  router.push(`/mypage/travel/${scheduleId}`)
-}
->>>>>>> 9ae43b7544f029e2e938033a05a61b5a3cc78724
 
 /* ====== 로그인 유저 (일단 하드코딩) ====== */
 const userNo = 3
@@ -108,28 +98,7 @@ watch([year, month], () => {
   fetchMyPage()
 })
 
-<<<<<<< HEAD
 /* ====== 기존 화면에서 쓰던 계산들 다시 정의 ====== */
-=======
-/* ===================== 내 일정 ===================== */
-const mySchedules = ref([
-  {
-    id: 1, title: '부산 미식 투어',  color: 'red',   theme: '미식',
-    region: '부산', 
-    startDate: '2024-11-20', endDate: '2024-11-22', duration: '2박 3일',
-  },
-  {
-    id: 2, title: '제주도 힐링 여행', color: 'blue',  theme: '힐링',
-    region: '제주도',
-    startDate: '2024-12-15', endDate: '2024-12-18', duration: '3박 4일',
-  },
-  {
-    id: 3, title: '강릉 겨울 바다',  color: 'green', theme: '힐링',
-    region: '강릉', 
-    startDate: '2024-12-25', endDate: '2024-12-26', duration: '1박 2일',
-  },
-])
->>>>>>> 9ae43b7544f029e2e938033a05a61b5a3cc78724
 
 const travelRecords = computed(() => {
   // 너가 화면에서 딱 3개 카드 뿌리는 부분
@@ -300,13 +269,7 @@ function formatDateRange(start, end) {
         <header class="card__title">내 일정</header>
 
         <ul class="todo">
-            <li
-              v-for="s in viewSchedules"
-              :key="s.id"
-              class="todo__item"
-              :data-color="s.color"
-              @click="goToTravelDetail(s.id)"
-            >
+          <li v-for="s in viewSchedules" :key="s.id" class="todo__item" :data-color="s.color">
             <div class="left">
               <div class="pill" :class="s.color">
                 <span v-if="s.theme==='힐링'">🌴</span>
@@ -321,6 +284,12 @@ function formatDateRange(start, end) {
               <div class="meta-row">
                 <div class="meta"><i>📍</i>{{ s.region }}</div>
                 <div class="meta">
+                  <i>
+                    <span v-if="s.transportation==='비행기'">✈️</span>
+                    <span v-else-if="s.transportation==='KTX'">🚄</span>
+                    <span v-else-if="s.transportation==='버스'">🚌</span>
+                    <span v-else>🚗</span>
+                  </i>
                   {{ s.transportation }}
                 </div>
                 <div class="meta"><i>🗓️</i>{{ formatDateRange(s.startDate, s.endDate) }}</div>
@@ -480,8 +449,6 @@ function formatDateRange(start, end) {
 }
 .todo__item[data-color="red"]   { background:linear-gradient(90deg, rgba(255,240,240,.9) 0%, #ffffff 100%); }
 .todo__item[data-color="green"] { background:linear-gradient(90deg, rgba(237,249,245,.9) 0%, #ffffff 100%); }
-.todo__item { cursor: pointer; transition: transform 0.15s ease; }
-.todo__item:hover { transform: translateY(-2px); }
 
 .left{ display:flex; flex-direction:column; gap:8px; }
 .tt{ font-weight:700; font-size:16px; }
