@@ -1,312 +1,287 @@
 <template>
-  <!-- 반투명 배경 -->
-  <div class="modal-backdrop" @click.self="$emit('close')">
-    <div class="modal">
-      <!-- 상단 헤더 -->
-      <header class="modal-header">
-        <h2>{{ travelTitle }}</h2>
-        <button class="close-btn" @click="$emit('close')">×</button>
-      </header>
+  <div class="overlay" @click.self="closeModal">
+    <div class="review-modal">
+      <!-- 헤더 -->
+      <div class="modal-header">
+        <h2>{{ travel.title }}</h2>
+        <button class="close-btn" @click="closeModal">×</button>
+      </div>
 
-      <!-- 작성자 정보 -->
-      <section class="review-user">
-        <div class="avatar">여</div>
-        <div class="info">
-          <p class="name">여행러버</p>
-          <p class="date">2025. 11. 4.</p>
+      <!-- 작성자 / 날짜 -->
+      <div class="writer-info">
+        <div class="profile">{{ userInitial }}</div>
+        <div class="writer-text">
+          <p class="name">{{ writer }}</p>
         </div>
-      </section>
+      </div>
 
-      <!-- 리뷰 본문 -->
-      <section class="review-content">
+      <!-- 리뷰 작성 -->
+      <div class="section">
         <label>리뷰 작성</label>
-        <textarea
-          placeholder="여행에 대한 전반적인 후기를 작성해주세요"
-          v-model="reviewText"
-        ></textarea>
-      </section>
+        <textarea v-model="review" placeholder="여행에 대한 간략한 후기를 작성해주세요"></textarea>
+      </div>
 
       <!-- 사진 추가 -->
-      <section class="photo-upload">
+      <div class="section">
         <div class="photo-header">
-          <label>사진 추가 (최대 8장)</label>
-          <span>{{ images.length }}/8</span>
+          <span>사진 추가 (최대 8장)</span>
+          <span>{{ photos.length }}/8</span>
         </div>
-        <div class="photo-box" @click="selectPhotos">
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            ref="fileInput"
-            @change="handleFiles"
-            style="display: none"
-          />
-          <p>여행 사진을 추가해주세요</p>
-          <small>최대 8장까지 업로드 가능합니다</small>
-        </div>
-        <div class="photo-preview" v-if="images.length">
-          <img v-for="(img, idx) in images" :key="idx" :src="img" />
-        </div>
-      </section>
-
-      <!-- 상세 일정 -->
-      <section class="day-section">
-        <div class="day-header">
-          <label>상세 일정</label>
-          <button class="btn-outline-blue" @click="addDay">Day 추가</button>
-        </div>
-
-        <div v-for="(day, idx) in days" :key="idx" class="day-card">
-          <div class="day-title">
-            <div class="day-circle">{{ idx + 1 }}</div>
-            <h4>Day {{ idx + 1 }}</h4>
+        <input type="file" multiple accept="image/*" @change="onFileChange" />
+        <div class="photo-preview">
+          <div v-if="!photos.length" class="photo-placeholder">
+            <p>여행 사진을 추가해주세요</p>
+            <small>최대 8장까지 업로드 가능합니다</small>
           </div>
-
-          <div class="form-group">
-            <label>날짜</label>
-            <input type="date" v-model="day.date" />
-          </div>
-
-          <div class="form-group">
-            <label>내용</label>
-            <textarea
-              placeholder="이 날 무엇을 했는지 작성해주세요"
-              v-model="day.content"
-            ></textarea>
+          <div v-else class="photo-list">
+            <img v-for="(img, i) in photos" :key="i" :src="img" />
           </div>
         </div>
-      </section>
+      </div>
 
-      <!-- 공개 범위 -->
-      <section class="public-range">
-        <label>공개 범위</label>
-        <select v-model="visibility">
-          <option>전체 공개</option>
-          <option>친구 공개</option>
-          <option>비공개</option>
-        </select>
-      </section>
+      <!-- 별점 평가 -->
+      <div class="section">
+        <label>별점 평가 (10점 만점)</label>
+        <div class="stars">
+          <span
+            v-for="i in 10"
+            :key="i"
+            class="star"
+            :class="{ active: i <= rating }"
+            @click="setRating(i)"
+          >★</span>
+          <span class="score">/ 10점</span>
+        </div>
+      </div>
 
-      <!-- 하단 버튼 -->
-      <footer class="footer">
-        <button class="btn-outline-gray" @click="$emit('close')">닫기</button>
-        <button class="btn-blue" @click="submitReview">리뷰 등록하기</button>
-      </footer>
+      <!-- 버튼 영역 -->
+      <div class="modal-footer">
+        <button class="btn-cancel" @click="closeModal">닫기</button>
+        <button class="btn-submit" :disabled="!review" @click="submitReview">
+          리뷰 등록하기
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
-const props = defineProps({
-  travelTitle: {
-    type: String,
-    default: '제주도 힐링 여행',
-  },
+const emit = defineEmits(['close'])
+
+const travel = ref({
+  title: '제주도 힐링 여행',
 })
 
-const reviewText = ref('')
-const images = ref([])
-const days = ref([{ date: '', content: '' }])
-const visibility = ref('전체 공개')
-const fileInput = ref(null)
+const writer = '여행러버'
+const userInitial = writer.charAt(0)
 
-const selectPhotos = () => fileInput.value.click()
-const handleFiles = e => {
-  const files = Array.from(e.target.files)
-  const urls = files.slice(0, 8 - images.value.length).map(f => URL.createObjectURL(f))
-  images.value.push(...urls)
+const review = ref('')
+const photos = ref([])
+const rating = ref(0)
+
+function closeModal() {
+  emit('close')   
 }
 
-const addDay = () => days.value.push({ date: '', content: '' })
-
-const submitReview = () => {
-  alert('리뷰가 등록되었습니다!')
+function setRating(i) {
+  rating.value = i
 }
+
+function onFileChange(e) {
+  const files = Array.from(e.target.files).slice(0, 8)
+  photos.value = []
+  files.forEach((file) => {
+    const reader = new FileReader()
+    reader.onload = (ev) => photos.value.push(ev.target.result)
+    reader.readAsDataURL(file)
+  })
+}
+
+function submitReview() {
+  alert(`리뷰 등록 완료!\n별점: ${rating.value}점`)
+}
+
 </script>
 
 <style scoped>
-/* 배경 */
-.modal-backdrop {
+/* ====== 전체 레이아웃 ====== */
+.overlay {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 50;
 }
 
-/* 모달 */
-.modal {
-  width: 520px;
-  max-height: 90vh;
-  overflow-y: auto;
+.review-modal {
+  width: 480px;
   background: white;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px -4px rgba(0,0,0,0.1);
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  padding: 20px;
   position: relative;
+  max-height: 85vh;
+  overflow-y: auto
 }
 
-/* 헤더 */
+/* ====== 헤더 ====== */
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 0.8px solid rgba(0,0,0,0.1);
-  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 12px;
 }
-.modal-header h2 { font-size: 18px; font-weight: 700; color: #0a0a0a; }
+.modal-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+}
 .close-btn {
-  background: none;
   border: none;
+  background: none;
   font-size: 20px;
-  color: #0a0a0a;
   cursor: pointer;
 }
 
-/* 작성자 */
-.review-user {
+/* ====== 작성자 정보 ====== */
+.writer-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  margin-top: 20px;
 }
-.avatar {
+.profile {
   width: 40px;
   height: 40px;
-  background: linear-gradient(180deg, #60A5FA 0%, #3B82F6 100%);
-  color: white;
-  font-weight: 600;
+  background: linear-gradient(180deg, #60A5FA, #3B82F6);
   border-radius: 50%;
+  color: #fff;
+  font-weight: bold;
   display: flex;
   justify-content: center;
   align-items: center;
 }
-.info p { margin: 0; font-size: 14px; }
-.info .date { color: #6A7282; font-size: 12px; }
-
-/* 리뷰 본문 */
-.review-content textarea {
-  width: 100%;
-  min-height: 100px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: #f3f3f5;
-  border: none;
-  resize: none;
+.writer-text {
+  margin-left: 10px;
+}
+.writer-text .name {
   font-size: 14px;
+  font-weight: 500;
+}
+.writer-text .date {
+  font-size: 12px;
+  color: #888;
 }
 
-/* 사진 추가 */
-.photo-upload { display: flex; flex-direction: column; gap: 8px; }
+/* ====== 공통 섹션 ====== */
+.section {
+  margin-top: 20px;
+}
+.section label {
+  font-size: 14px;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* ====== 텍스트박스 ====== */
+textarea {
+  width: 100%;
+  height: 100px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  padding: 10px;
+  resize: none;
+  font-family: inherit;
+}
+
+/* ====== 사진 업로드 ====== */
 .photo-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 14px;
 }
-.photo-box {
-  border: 1.6px dashed #d1d5dc;
-  border-radius: 10px;
-  padding: 24px;
-  text-align: center;
-  cursor: pointer;
-  color: #6A7282;
+input[type="file"] {
+  display: block;
+  margin-top: 8px;
 }
 .photo-preview {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.photo-preview img {
-  width: 70px;
-  height: 70px;
-  border-radius: 8px;
-  object-fit: cover;
-}
-
-/* 일정 */
-.day-section { display: flex; flex-direction: column; gap: 16px; }
-.day-header { display: flex; justify-content: space-between; align-items: center; }
-.day-card {
-  border: 0.8px solid rgba(0,0,0,0.1);
+  margin-top: 10px;
+  border: 1px solid #ccc;
   border-radius: 10px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.day-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.day-circle {
-  width: 32px;
-  height: 32px;
-  background: #3b82f6;
-  border-radius: 50%;
-  color: white;
+  height: 160px;
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-direction: column;
 }
-.form-group label { font-size: 14px; }
-.form-group input, .form-group textarea {
-  width: 100%;
+.photo-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.photo-list img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
   border-radius: 8px;
-  border: 1px solid rgba(0,0,0,0.1);
-  padding: 8px;
-  font-size: 14px;
 }
-.form-group textarea {
-  background: #f3f3f5;
-  resize: none;
+.photo-placeholder p {
+  color: #666;
+}
+.photo-placeholder small {
+  color: #aaa;
 }
 
-/* 공개 범위 */
-.public-range {
+/* ====== 별점 평가 ====== */
+.stars {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  border-top: 0.8px solid rgba(0,0,0,0.1);
-  padding-top: 12px;
+  gap: 4px;
 }
-.public-range select {
-  background: #f3f3f5;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 12px;
+.star {
+  font-size: 24px;
+  cursor: pointer;
+  color: #ccc;
+}
+.star.active {
+  color: #facc15;
+}
+.score {
   font-size: 14px;
+  color: #666;
+  margin-left: 8px;
 }
 
-/* 하단 버튼 */
-.footer {
+/* ====== 버튼 ====== */
+.modal-footer {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  border-top: 0.8px solid rgba(0,0,0,0.1);
-  padding-top: 12px;
+  gap: 10px;
+  margin-top: 24px;
 }
-.btn-outline-gray {
+.btn-cancel,
+.btn-submit {
   flex: 1;
-  background: white;
-  border: 0.8px solid #d1d5dc;
+  height: 36px;
   border-radius: 8px;
   font-size: 14px;
-  padding: 8px 0;
+  cursor: pointer;
 }
-.btn-blue {
-  flex: 1;
-  background: #3b82f6;
+.btn-cancel {
+  background: #fff;
+  border: 1px solid #ccc;
+}
+.btn-submit {
+  background: #3B82F6;
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  padding: 8px 0;
+}
+.btn-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
