@@ -1,59 +1,118 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import axios from 'axios'
 
-import { useRouter } from 'vue-router'
 
-const router = useRouter()
-function goToTravelDetail(scheduleId) {
-  router.push(`/mypage/travel/${scheduleId}`)
+/* ====== 로그인 유저 (일단 하드코딩) ====== */
+const userNo = 3
+
+/* ====== 달력 상태 ====== */
+const now = new Date()
+const year  = ref(now.getFullYear())
+const month = ref(now.getMonth()) // JS는 0부터라서 11이면 12월
+
+/* ====== 백엔드에서 오는 데이터 담을 곳 ====== */
+const profile = ref(null)
+const calendarPlans = ref([])        // 백엔드 calendar.plans
+const upcomingPlans = ref([])        // 백엔드 upcomingPlans
+const travelHistory = ref([])        // 백엔드 travelHistory
+const bookmarksRaw = ref([])         // 백엔드 bookmarks
+
+const loading = ref(false)
+const error = ref(null)
+
+/* ====== 유틸 ====== */
+const pad2   = n => String(n).padStart(2, '0')
+const ymd    = (y,m,d) => `${y}-${pad2(m+1)}-${pad2(d)}`
+const daysIn = (y,m) => new Date(y, m+1, 0).getDate()
+const startDow = (y,m) => new Date(y, m, 1).getDay()
+
+/* ====== 백엔드 호출 ====== */
+const fetchMyPage = async () => {
+  loading.value = true
+  error.value = null
+  try {
+    const res = await axios.get('/api/mypage', {
+      params: {
+        userNo,
+        year: year.value,
+        month: month.value + 1, // 백엔드는 1~12
+      },
+    })
+    const data = res.data
+
+    // 1) 프로필
+    profile.value = {
+      avatarText: data.profile?.username
+        ? data.profile.username[0]
+        : '유',
+      nickname: data.profile?.username ?? '사용자',
+      bio: '', // 칭호 키워드, 일단 비어있는값(회의해보고 아예 뺄지 정하기)
+      reviewCount: data.profile?.totalReviewCount ?? 0,
+      likesCount: data.profile?.totalLikeReceived ?? 0,
+      bookmarkCount: data.profile?.totalBookmarkCount ?? 0,
+      tripCount: data.profile?.totalPlanCount ?? 0,
+    }
+
+    // 2) 달력
+    calendarPlans.value = data.calendar?.plans ?? []
+
+    // 3) 내 일정 (백엔드 -> 프론트 구조로 변환)
+    upcomingPlans.value = (data.upcomingPlans ?? []).map(p => {
+      // 백에서 날짜가 "2025-03-05" 이런 포맷이니까 그대로 씀
+      return {
+        id: p.planId,
+        title: p.title,
+        color: 'blue',         // 색상은 여기서 임의로, 필요하면 regionName별로 다르게
+        theme: '일정',         // 원래 너가 쓰던 필드 맞춰주려고
+        region: p.regionName,
+        transportation: '',    // 백에는 이동수단 없으니까 빈값
+        startDate: p.startDate,
+        endDate: p.endDate,
+        duration: p.durationLabel, // 서비스에서 넣어줬던 "n일 일정"이 여기에 옴
+        status: p.status,
+      }
+    })
+
+    // 4) 여행 기록
+    travelHistory.value = data.travelHistory ?? []
+
+    // 5) 북마크
+    bookmarksRaw.value = data.bookmarks ?? []
+
+  } catch (e) {
+    console.error(e)
+    error.value = '데이터를 불러오지 못했어요.'
+  } finally {
+    loading.value = false
+  }
 }
 
-/* ===================== 프로필 ===================== */
-const profile = ref({
-  avatarText: '여',
-  nickname: '여행러버',
-  bio: '여행을 사랑하는 사람',
-  reviewCount: 24,
-  likesCount: 156,
-  bookmarkCount: 8,
+/* 첫 진입 시 호출 */
+onMounted(() => {
+  fetchMyPage()
 })
 
-/* 여행 기록(썸네일 3개) – 개수로 "여행 횟수" 계산 */
-const travelRecords = ref([
-  { id: 1, title: '설렘 호수길', desc: '가을 감성 드라이브' },
-  { id: 2, title: '하늘 계단',  desc: '일몰이 미쳤다' },
-  { id: 3, title: '파도 춤추는 곳', desc: '조용한 서핑 포인트' },
-])
-const tripCount = computed(() => travelRecords.value.length)
+/* 달이 바뀔 때마다 다시 호출 */
+watch([year, month], () => {
+  fetchMyPage()
+})
 
-/* ===================== 내 일정 ===================== */
-const mySchedules = ref([
-  {
-    id: 1, title: '부산 미식 투어',  color: 'red',   theme: '미식',
-    region: '부산', 
-    startDate: '2024-11-20', endDate: '2024-11-22', duration: '2박 3일',
-  },
-  {
-    id: 2, title: '제주도 힐링 여행', color: 'blue',  theme: '힐링',
-    region: '제주도',
-    startDate: '2024-12-15', endDate: '2024-12-18', duration: '3박 4일',
-  },
-  {
-    id: 3, title: '강릉 겨울 바다',  color: 'green', theme: '힐링',
-    region: '강릉', 
-    startDate: '2024-12-25', endDate: '2024-12-26', duration: '1박 2일',
-  },
-])
+/* ====== 기존 화면에서 쓰던 계산들 다시 정의 ====== */
 
-/* ===================== 북마크 더미 데이터 ===================== */
-const bookmarks = ref([
-  { id:1, title:'속초 맛집 리스트', type:'맛집',   count:12 },
-  { id:2, title:'제주 숨은 명소',   type:'여행지', count:8  },
-  { id:3, title:'서울 카페 투어',   type:'카페',   count:15 },
-  { id:4, title:'경주 역사 탐방',   type:'여행지', count:6  },
-])
+const travelRecords = computed(() => {
+  // 너가 화면에서 딱 3개 카드 뿌리는 부분
+  return (travelHistory.value ?? []).map((r, idx) => ({
+    id: r.planId,
+    title: r.title,
+    desc: `${r.startTime} ~ ${r.endTime}`,
+    thumbnailUrl: r.thumbnailUrl,
+  }))
+})
 
-/* ===================== 유틸/계산 ===================== */
+const tripCount = computed(() => profile.value?.tripCount ?? 0)
+
+/* 내 일정의 상태 표시 */
 function dday(dateStr) {
   const today = new Date(); today.setHours(0,0,0,0)
   const target = new Date(dateStr); target.setHours(0,0,0,0)
@@ -61,55 +120,67 @@ function dday(dateStr) {
   if (diff > 7)  return { text: '준비', cls: 'plan' }
   if (diff > 0)  return { text: `D-${diff}`, cls: 'warn' }
   if (diff === 0) return { text: '오늘', cls: 'ok' }
-  return { text: '완료', cls: 'done' }  // 완료는 중립 톤
+  return { text: '완료', cls: 'done' }
 }
 
 const viewSchedules = computed(() =>
-  mySchedules.value.map(s => {
+  upcomingPlans.value.map(s => {
     const { text, cls } = dday(s.startDate)
     return { ...s, stateText: text, stateClass: cls }
   })
 )
 
+/* "다가오는 여행 n건" 카운트 */
 const upcomingCount = computed(() => {
   const today = new Date(); today.setHours(0,0,0,0)
-  return mySchedules.value.filter(s => {
+  return upcomingPlans.value.filter(s => {
     const start = new Date(s.startDate); start.setHours(0,0,0,0)
     return start >= today
   }).length
 })
 
-/* ===================== 달력 ===================== */
-const year  = ref(2024)
-const month = ref(11) // 12월(0-index)
-
-const pad2   = n => String(n).padStart(2, '0')
-const ymd    = (y,m,d) => `${y}-${pad2(m+1)}-${pad2(d)}`
-const daysIn = (y,m) => new Date(y, m+1, 0).getDate()
-const startDow = (y,m) => new Date(y, m, 1).getDay()
-
+/* 달력 라벨 & 날짜 */
 const blanks = computed(() => Array.from({ length: startDow(year.value, month.value) }, (_, i) => i))
 const days   = computed(() => Array.from({ length: daysIn(year.value, month.value) }, (_, i) => i+1))
 const monthLabel = computed(() => `${year.value}년 ${month.value+1}월`)
 
-function prevMonth(){ month.value === 0  ? (year.value--, month.value = 11) : month.value-- }
-function nextMonth(){ month.value === 11 ? (year.value++, month.value = 0 ) : month.value++ }
-
-/* 날짜별 색상 맵 */
+/* 달력 색칠: 백엔드에서 온 plan들의 날짜 범위만큼 칠해줌 */
 const dateColorMap = computed(() => {
   const map = {}
-  for (const s of mySchedules.value) {
-    const start = new Date(s.startDate)
-    const end   = new Date(s.endDate)
+  const plans = calendarPlans.value ?? []
+  plans.forEach((p, idx) => {
+    const colorList = ['blue','red','green','blue','red']
+    const color = colorList[idx % colorList.length]
+
+    const start = new Date(p.startDate)
+    const end   = new Date(p.endDate)
     start.setHours(0,0,0,0); end.setHours(0,0,0,0)
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const key = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`
-      map[key] = s.color
+      map[key] = color
     }
-  }
-  return map
+  })
+    return map
 })
 
+function prevMonth(){ 
+  month.value === 0  ? (year.value--, month.value = 11) : month.value-- 
+}
+function nextMonth(){ 
+  month.value === 11 ? (year.value++, month.value = 0 ) : month.value++ 
+}
+
+/* 북마크 카드용 변환 */
+const bookmarks = computed(() =>
+  (bookmarksRaw.value ?? []).map(b => ({
+    id: b.bookmarkId,
+    title: b.planTitle,
+    type: '여행일정',
+    count: b.bookmarkCount ?? 0,
+  }))
+)
+
+/* 날짜 포맷 기존 함수 유지 */
 function formatDateRange(start, end) {
   const s = new Date(start), e = new Date(end)
   return `${s.getFullYear()}.${pad2(s.getMonth()+1)}.${pad2(s.getDate())} - ${pad2(e.getMonth()+1)}.${pad2(e.getDate())}`
@@ -117,13 +188,11 @@ function formatDateRange(start, end) {
 </script>
 
 <template>
-  <!-- 전역 헤더 -->
-  <Header />
 
   <!-- 페이지 래퍼 -->
   <div class="page-wrap">
     <!-- 프로필 바(가로 전체) -->
-    <section class="card profile-card">
+    <section class="card profile-card"  v-if="profile">
       <div class="avatar">{{ profile.avatarText }}</div>
 
       <div class="pinfo">
@@ -200,13 +269,7 @@ function formatDateRange(start, end) {
         <header class="card__title">내 일정</header>
 
         <ul class="todo">
-            <li
-              v-for="s in viewSchedules"
-              :key="s.id"
-              class="todo__item"
-              :data-color="s.color"
-              @click="goToTravelDetail(s.id)"
-            >
+          <li v-for="s in viewSchedules" :key="s.id" class="todo__item" :data-color="s.color">
             <div class="left">
               <div class="pill" :class="s.color">
                 <span v-if="s.theme==='힐링'">🌴</span>
@@ -221,6 +284,12 @@ function formatDateRange(start, end) {
               <div class="meta-row">
                 <div class="meta"><i>📍</i>{{ s.region }}</div>
                 <div class="meta">
+                  <i>
+                    <span v-if="s.transportation==='비행기'">✈️</span>
+                    <span v-else-if="s.transportation==='KTX'">🚄</span>
+                    <span v-else-if="s.transportation==='버스'">🚌</span>
+                    <span v-else>🚗</span>
+                  </i>
                   {{ s.transportation }}
                 </div>
                 <div class="meta"><i>🗓️</i>{{ formatDateRange(s.startDate, s.endDate) }}</div>
@@ -380,8 +449,6 @@ function formatDateRange(start, end) {
 }
 .todo__item[data-color="red"]   { background:linear-gradient(90deg, rgba(255,240,240,.9) 0%, #ffffff 100%); }
 .todo__item[data-color="green"] { background:linear-gradient(90deg, rgba(237,249,245,.9) 0%, #ffffff 100%); }
-.todo__item { cursor: pointer; transition: transform 0.15s ease; }
-.todo__item:hover { transform: translateY(-2px); }
 
 .left{ display:flex; flex-direction:column; gap:8px; }
 .tt{ font-weight:700; font-size:16px; }
