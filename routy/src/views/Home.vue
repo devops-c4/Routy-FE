@@ -1,7 +1,5 @@
 <template>
   <div class="main-container">
-    <Header />
-
     <!-- 메인 섹션 -->
     <main class="main-section">
       <!-- 메인 로고 -->
@@ -35,6 +33,10 @@
 <script setup>
 import Header from "@/components/Header.vue";
 import mainLogo from '/images/icons/main-logo.png'
+<<<<<<< HEAD
+=======
+import "@/assets/css/home.css"; 
+>>>>>>> 9ae43b7544f029e2e938033a05a61b5a3cc78724
 </script>
 
 <style scoped>

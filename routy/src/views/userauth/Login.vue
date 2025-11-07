@@ -1,14 +1,11 @@
 <template>
   <div class="login-container">
-    <Header />
-
     <!-- 메인 콘텐츠 -->
     <div class="main-content">
       <div class="welcome-section">
         <h1>로그인</h1>
         <p>TravelPlan에 다시 오신 것을 환영합니다</p>
       </div>
-
       <div class="form-container">
         <!-- 이메일 -->
         <div class="form-group">
@@ -27,7 +24,12 @@
           <label class="remember">
             <input type="checkbox" /> 로그인 유지
           </label>
-          <a href="/find-password" class="forgot-password">비밀번호 찾기</a>
+
+          <div class="find-links">
+            <a href="/find-email" class="forgot-email">이메일 찾기</a>
+            <span class="divider">|</span>
+            <a href="/find-password" class="forgot-password">비밀번호 찾기</a>
+          </div>
         </div>
 
         <!-- 로그인 버튼 -->
@@ -54,7 +56,7 @@
         <!-- 회원가입 링크 -->
         <div class="signup-link">
           <span>아직 계정이 없으신가요?</span>
-          <a href="/register">회원가입</a>
+          <a href="/signup">회원가입</a>
         </div>
       </div>
     </div>
@@ -229,5 +231,22 @@ function login(provider) {
 .signup-link a {
   color: #155dfc;
   text-decoration: none;
+}
+
+.find-links {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* 이메일/비밀번호 사이 여백 */
+  color: #155dfc;
+  font-size: 14px;
+}
+
+.find-links a {
+  color: #155dfc;
+  text-decoration: none;
+}
+
+.divider {
+  color: #d1d5dc; /* 구분선 색상 (회색) */
 }
 </style>

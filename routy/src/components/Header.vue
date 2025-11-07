@@ -4,8 +4,10 @@
       <!-- 왼쪽 섹션 -->
       <div class="left-section">
         <!-- 로고 -->
-        <div class="logo-section" @click="moveToHome">
+        <div class="logo-section">
+          <router-link to="/" class="logo-link">
           <img class="logo-img" src="/images/icons/logo.png" alt="logo" />
+          </router-link>
         </div>
 
         <!-- 로고 옆 텍스트 메뉴 -->
@@ -28,6 +30,7 @@
 import { useRouter, useRoute } from "vue-router";
 
 const router = useRouter()
+
 const moveToHome = () => router.push("/");
 const moveToDraw = () => router.push('/draw/first');
 const moveToBrowse = () => router.push("/browse");

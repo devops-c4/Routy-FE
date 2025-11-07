@@ -1,9 +1,5 @@
 <template>
   <div class="signup-container">
-    <!-- 상단 네비게이션 -->
-    
-    <Header/>
-
     <!-- 메인 콘텐츠 -->
     <div class="main-content">
       <div class="welcome-section">
@@ -33,9 +29,14 @@
           <label>인증번호</label>
           <div class="verify-row">
             <input type="text" placeholder="인증번호 6자리" v-model="varifyNum"/>
+
+            <div v-if="timerDisplay" class="timer-display">
+                <span :class="{ expired: timer <= 0 }">{{ timerDisplay }}</span>
+            </div>
+
             <button class="resend-btn" @click="validationNum">재전송</button>
           </div>
-          <small>이메일로 전송된 인증번호를 입력해주세요</small>
+          <small>이메일로 전송된 인증번호를 입력해주세요</small>  
         </div>
 
         <!-- 성별 -->
@@ -107,6 +108,39 @@ const password = ref("")
 const passwordCheck = ref("")
 const agreeCheck = ref(false)
 
+// 🔹 타이머 관련 변수
+const timer = ref(0)              // 남은 시간 (초)
+const timerDisplay = ref("")      // "02:59" 형식으로 표시
+let timerInterval = null          // setInterval을 저장할 변수
+
+
+// 타이머 포맷 함수
+const formatTime = (seconds) => {
+  const min = Math.floor(seconds / 60);
+  const sec = seconds % 60;
+  return `${min.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+};
+
+// 타이머 시작
+const startTimer = () => {
+  timer.value = 180; // 3분 = 180초
+  timerDisplay.value = formatTime(timer.value);
+
+  if (timerInterval) clearInterval(timerInterval);
+
+  timerInterval = setInterval(() => {
+    timer.value--;
+    timerDisplay.value = formatTime(timer.value);
+
+    if (timer.value <= 0) {
+      clearInterval(timerInterval);
+      timerDisplay.value = "00:00";
+      varifyNumCheck.value = ""; // 인증번호 무효화
+      alert("인증번호가 만료되었습니다. 재전송해주세요.");
+    }
+  }, 1000);
+};
+
 const validationNum = async () => {
 
   if (!email.value.trim()) {
@@ -122,6 +156,7 @@ const validationNum = async () => {
       console.log(res.data)
       varifyNumCheck.value = res.data
       alert("인증번호가 발송되었습니다.")
+      startTimer();
     }
   )
 }
@@ -132,14 +167,12 @@ const register = async () => {
     return;
   }
 
-  if(password.value != passwordCheck.value){
+  if(password.value == "" || password.value != passwordCheck.value){
     alert("비밀번호를 확인해주세요");
     return;
   }
 
-  if(varifyNum.value != varifyNumCheck.value){
-    console.log("password = ", varifyNum.value)
-    console.log("passwordCheck = ", varifyNumCheck.value)
+  if(varifyNum.value == null || varifyNum.value != varifyNumCheck.value){
     alert("인증번호를 제대로 입력해주세요");
     return;
   }
@@ -156,13 +189,16 @@ const register = async () => {
     age: age.value,
     phone: phone.value,
     gender: gender.value,
-    role: "ROLE_일반회원",
+    role: "ROLE_USER",
     isDeleted: 0
   }
 
   await axios.post('http://localhost:8080/user/register',data).then(
     (res) => {
       console.log(res)
+      alert(res.data)
+      router.push('/login');
+      return;
     }
   )
 }
@@ -275,7 +311,9 @@ const register = async () => {
 .email-row,
 .verify-row {
   display: flex;
+  align-items: center;
   gap: 8px;
+  position: relative; /* 타이머의 기준 */
 }
 
 .email-row input,
@@ -371,5 +409,21 @@ small {
 .logo-image {
   width: 200px;
   height: 80px;
+}
+
+.timer-display {
+  position: absolute;
+  right: 16px; /* 버튼 위치에 맞게 */
+  top: -10px; /* 버튼 위로 살짝 띄움 */
+  font-size: 13px;
+  color: #4a5565;
+  transform: translateY(-50%); /* 위치 균형 조정 */
+  pointer-events: none; /* 클릭 방지 */
+  padding-bottom: 10px;
+}
+
+.timer-display .expired {
+  color: red;
+  font-weight: 600;
 }
 </style>
