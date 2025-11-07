@@ -26,9 +26,9 @@
           </label>
 
           <div class="find-links">
-            <a href="/find-email" class="forgot-email">이메일 찾기</a>
+            <router-link to="/find-email" class="forgot-email">이메일 찾기</router-link>
             <span class="divider">|</span>
-            <a href="/find-password" class="forgot-password">비밀번호 찾기</a>
+            <router-link to="/find-password" class="forgot-password">비밀번호 찾기</router-link>
           </div>
         </div>
 
