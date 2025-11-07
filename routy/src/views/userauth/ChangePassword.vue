@@ -36,13 +36,13 @@
       <button class="change-btn">비밀번호 변경</button>
 
       <hr class="divider" />
-      <div class="back-to-login">로그인으로 돌아가기</div>
+      <router-link to="/login" class="back-to-login">로그인</router-link>
     </main>
   </div>
 </template>
 
 <script setup>
-import Header from '@/components/Header.vue';
+
 </script>
 
 <style scoped>
@@ -211,5 +211,6 @@ import Header from '@/components/Header.vue';
   font-size: 14px;
   color: #4A5565;
   cursor: pointer;
+  text-decoration: none;
 }
 </style>

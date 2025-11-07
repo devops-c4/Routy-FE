@@ -35,13 +35,13 @@
       <button class="confirm-btn" @click="checkVarifyNum">확인</button>
 
       <!-- 로그인 링크 -->
-      <a href="/login" class="login-link">로그인</a>
+      <router-link to="/login" class="login-link">로그인</router-link>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onUnmounted } from 'vue';
 import Header from '@/components/Header.vue';
 import axios from 'axios';
 import { useRouter } from "vue-router";
@@ -83,6 +83,13 @@ const startTimer = () => {
 };
 
 
+onUnmounted(() => {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+});
+
 const validationNum = async () => {
 
   if (!email.value.trim()) {
@@ -96,6 +103,10 @@ const validationNum = async () => {
   await axios.post('http://localhost:8080/validation/sendmail',data).then(
     (res) => {
       console.log(res.data)
+      if(res.data == 0){
+        alert("이메일이 올바르지 않습니다.");
+        return;
+      }
       varifyNumCheck.value = res.data
       alert("인증번호가 발송되었습니다.")
       startTimer();

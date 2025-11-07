@@ -25,9 +25,9 @@
           <div class="divider"></div>
 
           <div class="links">
-            <a href="/login" class="link">로그인</a>
+            <router-link to="/login" class="link">로그인</router-link>
             <div class="link-divider"></div>
-            <a href="/find-password" class="link">비밀번호 찾기</a>
+            <router-link to="/find-password" class="link">비밀번호 찾기</router-link>
           </div>
         </div>
       </div>
@@ -78,7 +78,7 @@ const findEmail = async () => {
   overflow: hidden;
 }
 
-/* ✅ 헤더 고정 */
+/* 헤더 고정 */
 .header-bar {
   width: 100%;
   height: 60px;
