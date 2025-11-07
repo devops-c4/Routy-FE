@@ -1,10 +1,16 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router' 
+import TravelReviewModal from '@/views/mypage/TravelReviewModal.vue'
+const showReviewModal = ref(false)
 
 // 현재 라우트 정보
 const route = useRoute()
+const router = useRouter() 
 const travelId = Number(route.params.id)
+function goToEditPage() {
+  router.push(`/mypage/travel/${travelId}/edit`)
+}
 
 // 더미 여행 데이터 (추후 백엔드 연동 예정)
 const allTravels = ref([
@@ -131,7 +137,12 @@ function shownPlans(day) {
         <p>{{ travel.startDate }} - {{ travel.endDate }}</p>
       </div>
       <div class="header-right">
-        <button class="btn btn-outline-blue">수정</button>
+        <button
+          class="btn btn-outline-blue"
+          @click="goToEditPage"
+        >
+          수정
+        </button>
         <button class="btn btn-outline-red">삭제</button>
       </div>
     </header>
@@ -159,7 +170,12 @@ function shownPlans(day) {
       </div>
       <div class="info-footer">
         <p>{{ travel.startDate }} ~ {{ travel.endDate }}</p>
-        <button class="btn btn-green">리뷰 작성하기</button>
+        <button
+          class="btn btn-green"
+          @click="showReviewModal = true"
+        >
+          리뷰 작성하기
+        </button>
       </div>
     </section>
 
@@ -213,6 +229,10 @@ function shownPlans(day) {
       </div>
     </section>
   </div>
+  <TravelReviewModal
+  v-if="showReviewModal"
+  @close="showReviewModal = false"
+  />
 </template>
 
 <style scoped>
