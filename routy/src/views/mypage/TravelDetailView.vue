@@ -133,16 +133,14 @@ function shownPlans(day) {
     <!-- 상단 헤더 -->
     <header class="header">
       <div class="header-left">
-        <h1>{{ travel.title }}</h1>
-        <p>{{ travel.startDate }} - {{ travel.endDate }}</p>
+        <button class="back-btn" @click="router.push('/mypage')">←</button>
+        <div class="title-block">
+          <h1>{{ travel.title }}</h1>
+          <p>{{ travel.startDate }} - {{ travel.endDate }}</p>
+        </div>
       </div>
       <div class="header-right">
-        <button
-          class="btn btn-outline-blue"
-          @click="goToEditPage"
-        >
-          수정
-        </button>
+        <button class="btn btn-outline-blue" @click="goToEditPage">수정</button>
         <button class="btn btn-outline-red">삭제</button>
       </div>
     </header>
@@ -264,8 +262,10 @@ function shownPlans(day) {
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
   margin-bottom: 12px; /* ✅ 기존 여백 줄이기 */
 }
-.header-left h1 { font-size: 18px; color: #101828; margin: 0; }
-.header-left p { font-size: 14px; color: #6a7282; margin: 2px 0 0; }
+.header-left {
+  display: flex;
+  align-items: center;
+}
 .header-right { display: flex; gap: 8px; }
 
 /* 버튼 */
@@ -367,4 +367,35 @@ function shownPlans(day) {
   justify-content: center;
   margin-top: 8px;
 }
+.back-btn {
+  border: none;
+  background: none;
+  font-size: 20px;
+  color: #3b82f6;
+  cursor: pointer;
+  transition: 0.2s;
+  flex-shrink: 0; 
+}
+.back-btn:hover {
+  color: #2563eb;
+}
+/* 제목/날짜 블록 */
+.title-block {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-left: 10px; /* ✅ 버튼과 제목 사이 여백 */
+}
+.title-block h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #101828;
+  margin: 0;
+}
+.title-block p {
+  font-size: 14px;
+  color: #6a7282;
+  margin: 2px 0 0;
+}
+
 </style>
