@@ -22,18 +22,19 @@
         <!-- 본문: 왼쪽(지역 선택) + 오른쪽(지도 영역) -->
         <div class="card-body">
           <div class="left-column">
-            <h4 class="section-title">지역 선택</h4>
-            <div class="city-grid">
-              <div
-                v-for="(city, i) in cities"
-                :key="i"
-                class="city-card"
-                :class="{ selected: selectedCity === city }"
-                @click="selectCity(city)"
-              >
-                {{ city }}
-              </div>
-            </div>
+      <h4 class="section-title">지역 선택</h4>
+<div class="city-grid">
+  <div
+    v-for="(region, i) in regions"
+    :key="region.regionId"
+    class="city-card"
+    :class="{ selected: selectedCity && selectedCity.regionId === region.regionId }"
+    @click="selectCity(region)"
+  >
+    <div class="city-name">{{ region.regionName }}</div>
+  </div>
+</div>
+
           </div>
 
           <div class="right-column">
@@ -59,25 +60,50 @@ import "@/assets/css/draw.css";
 import "@/assets/css/step-common.css";
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import axios from "axios";
 
 const router = useRouter();
 const route = useRoute();
-const cities = [
-  "서울", "부산", "제주도", "강릉", "경주", "여수", "전주", "속초", "대구", "인천", "대전", "광주",
-];
+
+// 기존 하드코딩된 cities 제거
+const regions = ref([]);  // DB에서 불러올 리스트
 const selectedCity = ref(null);
 
-// Home에서 넘어온 도시 자동 선택
-onMounted(() => {
+// DB에서 지역 목록 불러오기
+const loadRegions = async () => {
+  try {
+    const res = await axios.get("/api/regions");
+    regions.value = res.data;  // [{ regionId, regionName, theme, regionDesc }, ...]
+    console.log("지역 목록 불러오기 성공:", res.data);
+  } catch (err) {
+    console.error("지역 목록 불러오기 실패:", err);
+  }
+};
+
+// 자동 선택 (쿼리 파라미터로 city 전달 시)
+onMounted(async () => {
+  await loadRegions();
+
   if (route.query.city) {
-    const matched = cities.find(c => route.query.city.includes(c));
+    const matched = regions.value.find(r => route.query.city.includes(r.regionName));
     if (matched) selectedCity.value = matched;
   }
 });
 
-const selectCity = (city) => (selectedCity.value = city);
-const goNext = () => router.push("/draw/second");
+// 선택 시
+const selectCity = (region) => {
+  selectedCity.value = region;
+};
+
+// 다음 단계로 이동
+const goNext = () => {
+  router.push({
+    path: "/draw/second",
+    query: { regionId: selectedCity.value.regionId, regionName: selectedCity.value.regionName }
+  });
+};
 </script>
+
 
 
 <style scoped>
