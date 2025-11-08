@@ -237,9 +237,8 @@ function socialLogin(provider) {
 }
 
 .login-btn {
-  padding: 13px 40px;
+  height: 48px;
   width: 100%;
-  max-width: 400px;
   background: #155dfc;
   color: white;
   border-radius: 26px;
@@ -294,7 +293,7 @@ function socialLogin(provider) {
 .google-btn {
   background: white;
   color: #101828;
-  border: 0.73px solid #d1d5dc;
+  border: 1px solid #d1d5dc;
 }
 .naver-btn {
   background: #03c75a;
