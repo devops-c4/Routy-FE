@@ -92,13 +92,22 @@ const goSearch = (city) => {
   padding: 8px 12px;
 }
 
+.search-input {
+  flex: 1; /* 남은 공간 전부 차지 */
+  min-width: 0; /* flex 아이템이 축소될 수 있게 */
+}
+
 .search-input input {
   width: 100%;
   border: none;
   outline: none;
   font-size: 18px;
-  color: #99a1af;
+  color: #101828; /* 입력 텍스트 진한 색으로 */
   padding: 12px 16px;
+}
+
+.search-input input::placeholder {
+  color: #99a1af; /* placeholder만 회색 */
 }
 
 .search-btn {
@@ -110,6 +119,12 @@ const goSearch = (city) => {
   border-radius: 9999px;
   padding: 14px 40px;
   cursor: pointer;
+  flex-shrink: 0; /* ✅ 버튼이 줄어들지 않게 */
+  transition: 0.2s;
+}
+
+.search-btn:hover {
+  background: #1348d4;
 }
 
 /* 인기 여행지 */
@@ -135,7 +150,9 @@ const goSearch = (city) => {
   padding: 8px 16px;
   color: #0a0a0a;
   cursor: pointer;
+  transition: 0.2s;
 }
+
 .tag:hover {
   background: #eff6ff;
   border-color: #155dfc;
