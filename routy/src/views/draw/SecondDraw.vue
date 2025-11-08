@@ -44,25 +44,78 @@
 import '@/assets/css/draw.css'
 import '@/assets/css/step-common.css';
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
+import axios from 'axios';
 
 const router = useRouter();
+const route = useRoute();
+
 const startDate = ref('');
 const endDate = ref('');
 
-const goPrev = () => router.push('/draw/first');
-const goNext = () => router.push('/draw/third');
+// 1단계에서 넘어온 지역 정보
+const regionId = route.query.regionId;
+const regionName = route.query.regionName;
 
+// 이전 단계 이동
+const goPrev = () => router.push('/draw/first');
+
+// 다음 단계 (일정 생성 후 이동)
+const goNext = async () => {
+  if (!startDate.value || !endDate.value) {
+    alert("시작일과 종료일을 모두 선택해주세요!");
+    return;
+  }
+
+  try {
+    const payload = {
+      planTitle: `${regionName} 여행 일정`,
+      startDate: startDate.value,
+      endDate: endDate.value,
+      regionId: regionId,
+      userId: 1
+    };
+
+    const res = await axios.post('/api/plans', payload);
+const planId = res.data.planId;
+await axios.post(`/api/plans/${planId}/durations`, { totalDays: totalDays.value });
+router.push({ path: '/draw/third', query: { planId, totalDays: totalDays.value } });
+    console.log("일정 생성 성공:", res.data);
+
+    // 추후 수정
+    // alert("여행 일정이 등록되었습니다!");
+
+    // planId와 totalDays 둘 다 전달
+    router.push({
+      path: '/draw/third',
+      query: { 
+        planId: res.data.planId,
+        totalDays: totalDays.value
+      }
+    });
+
+  } catch (err) {
+    console.error("일정 생성 실패:", err);
+    alert("일정 저장 중 오류가 발생했습니다!");
+  }
+};
+
+
+// 기간 텍스트
 const formattedPeriod = computed(() => {
+  if (!startDate.value || !endDate.value) return '';
   const s = new Date(startDate.value), e = new Date(endDate.value);
   return `${s.getMonth() + 1}월 ${s.getDate()}일 - ${e.getMonth() + 1}월 ${e.getDate()}일`;
 });
 
+// 총 일수 계산
 const totalDays = computed(() => {
+  if (!startDate.value || !endDate.value) return 0;
   const diff = new Date(endDate.value) - new Date(startDate.value);
   return Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
 });
 </script>
+
 
 <style scoped>
 .card {
