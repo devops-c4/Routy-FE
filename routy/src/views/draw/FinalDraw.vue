@@ -458,6 +458,24 @@ const addHotel = (hotel) => {
     placesByDay.value[day].push({ ...hotel, isHotel: true });
   }
   alert(`${hotel.title}이(가) ${day}일차 일정에 추가되었습니다!`);
+
+  // 지도에 호텔 마커 표시
+  if (map) {
+    const pos = new kakao.maps.LatLng(hotel.latitude, hotel.longitude);
+    const hotelMarker = new kakao.maps.Marker({
+      position: pos,
+      map: map,
+      image: new kakao.maps.MarkerImage(
+        "https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png", // 별모양 마커
+        new kakao.maps.Size(24, 35)
+      ),
+      title: hotel.title,
+    });
+
+    // 지도 중심 이동
+    map.panTo(pos);
+    console.log(`호텔 마커 추가: ${hotel.title}`);
+  }
 };
 const focusHotelOnMap = (hotel) => {
   if (!hotelMap) return;
