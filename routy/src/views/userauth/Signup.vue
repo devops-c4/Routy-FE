@@ -183,7 +183,7 @@
 <script setup>
 import { ref, onUnmounted } from 'vue';
 import axios from 'axios';
-import { useRouter } from "vue-router";
+import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
@@ -295,14 +295,21 @@ const register = async () => {
     isDeleted: 0
   }
 
-  await axios.post('http://localhost:8080/user/register',data).then(
-    (res) => {
-      console.log(res)
-      alert(res.data.message)
-      router.push('/login');
-      return;
+  try {
+    const res = await axios.post('http://localhost:8080/user/register', data);
+    
+    // 백엔드에서 보낸 message 필드 사용
+    alert(res.data.message);
+    router.push('/login');
+  } catch (error) {
+    // 에러 처리 추가
+    console.error("회원가입 오류:", error);
+    if (error.response) {
+      alert(error.response.data.message || "회원가입에 실패했습니다.");
+    } else {
+      alert("서버와 연결할 수 없습니다.");
     }
-  )
+  }
 }
 
 </script>

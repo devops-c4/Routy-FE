@@ -7,6 +7,6 @@ const route = useRoute();
 const token = route.query.token;
 if (token) {
   sessionStorage.setItem("token", token);
-  router.push("/main"); // 메인 페이지로 이동
+  router.push("/"); // 메인 페이지로 이동
 }
 </script>

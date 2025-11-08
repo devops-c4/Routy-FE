@@ -5,9 +5,7 @@
       <div class="left-section">
         <!-- 로고 -->
         <div class="logo-section">
-          <router-link to="/" class="logo-link">
-          <img class="logo-img" src="/images/icons/logo.png" alt="logo" />
-          </router-link>
+          <img class="logo-img" src="/images/icons/logo.png" alt="logo" @click="moveToHome"/>
         </div>
 
         <!-- 로고 옆 텍스트 메뉴 -->
@@ -18,25 +16,76 @@
         </div>
       </div>
 
-      <!-- 오른쪽 메뉴 -->
+      <!-- 오른쪽 메뉴 - 로그인 상태에 따라 분기 -->
       <div class="menu-section">
-        <span class="menu-item" @click="moveToRegister">회원가입</span>
-        <span class="menu-item" @click="moveToLogin">로그인</span>
+        <!-- 로그인 전 -->
+        <template v-if="!isLoggedIn">
+          <span class="menu-item" @click="moveToRegister">회원가입</span>
+          <span class="menu-item" @click="moveToLogin">로그인</span>
+        </template>
+        
+        <!-- 로그인 후 -->
+        <template v-else>
+          <span class="menu-item" @click="moveToMyPage">마이페이지</span>
+          <span class="menu-item" @click="handleLogout">로그아웃</span>
+        </template>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { useRouter, useRoute } from "vue-router";
+import { ref, onMounted, onUnmounted } from 'vue';
+import { useRouter } from "vue-router";
+import { logout, getLocalAuthStatus } from '@/api/auth';
 
-const router = useRouter()
+const router = useRouter();
+const isLoggedIn = ref(false);
+const LOGIN_STATUS_KEY = 'routy:isLoggedIn';
 
+// 로그인 상태 확인 (localStorage 기반)
+const checkAuthStatus = () => {
+  isLoggedIn.value = getLocalAuthStatus();
+};
+
+// CustomEvent 리스너
+const handleLoginStatusChange = (event) => {
+  isLoggedIn.value = event.detail.loggedIn;
+};
+
+// 컴포넌트 마운트 시 로그인 상태 확인 및 이벤트 리스너 등록
+onMounted(() => {
+  checkAuthStatus();
+  window.addEventListener('login-status-changed', handleLoginStatusChange);
+});
+
+// 컴포넌트 언마운트 시 이벤트 리스너 제거
+onUnmounted(() => {
+  window.removeEventListener('login-status-changed', handleLoginStatusChange);
+});
+
+// 네비게이션 함수들
 const moveToHome = () => router.push("/");
 const moveToDraw = () => router.push('/draw/first');
 const moveToBrowse = () => router.push("/browse");
 const moveToRegister = () => router.push('/signup');
 const moveToLogin = () => router.push('/login');
+const moveToMyPage = () => router.push('/mypage');
+
+// 로그아웃 처리
+const handleLogout = async () => {
+  try {
+    // API 호출하여 백엔드 쿠키 삭제
+    await logout();
+    
+    // 홈으로 이동
+    router.push('/');
+  } catch (error) {
+    console.error('로그아웃 처리 중 오류:', error);
+    // 에러가 발생해도 홈으로 이동
+    router.push('/');
+  }
+};
 const moveToChatBot = () => router.push('/chatbot');
 </script>
 
@@ -67,8 +116,9 @@ const moveToChatBot = () => router.push('/chatbot');
 
 /* 로고 */
 .logo-img {
-  width: 80px;
-  height: 80px;
+  width: 95px;
+  height: 90px;
+  cursor: pointer;
 }
 
 /* 로고 옆 메뉴 (텍스트) */

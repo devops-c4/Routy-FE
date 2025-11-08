@@ -1,5 +1,6 @@
 import MyPage from '@/views/mypage/MyPage.vue';
 import TravelDetailView from '@/views/mypage/TravelDetailView.vue'
+import TravelEditView from '@/views/mypage/TravelEditView.vue'
 
 export default [
   {
@@ -12,5 +13,11 @@ export default [
     name: 'travelDetail',
     component: TravelDetailView,
     props: true,                   
+  },
+    {
+    path: '/mypage/travel/:id/edit', 
+    name: 'travelEdit',
+    component: TravelEditView,
+    props: true,
   },
 ];
