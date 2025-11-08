@@ -119,7 +119,7 @@ const goSearch = (city) => {
   border-radius: 9999px;
   padding: 14px 40px;
   cursor: pointer;
-  flex-shrink: 0; /* ✅ 버튼이 줄어들지 않게 */
+  flex-shrink: 0; /* 버튼이 줄어들지 않게 */
   transition: 0.2s;
 }
 
