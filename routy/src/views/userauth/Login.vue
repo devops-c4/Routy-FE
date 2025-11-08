@@ -78,7 +78,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from "vue-router";
-import axios from 'axios';
+import { login } from '@/api/auth';
 
 const router = useRouter();
 
@@ -87,7 +87,6 @@ const email = ref("");
 const password = ref("");
 const rememberMe = ref(false);
 const isLoading = ref(false);
-const LOGIN_STATUS_KEY = 'routy:isLoggedIn';
 
 // 일반 로그인
 const handleLogin = async () => {
@@ -104,26 +103,11 @@ const handleLogin = async () => {
 
   isLoading.value = true;
 
-  // 로그인 데이터
-  const loginData = {
-    email: email.value,
-    password: password.value
-  };
-
   try {
-    console.log("🔵 로그인 요청 시작:", loginData.email);
+    console.log("🔵 로그인 요청 시작:", email.value);
     
-    // HttpOnly 쿠키 방식 로그인 요청 -> 백엔드에서는 쿠키에 토큰을 저장 -> 브라우저는 자동으로 쿠키에 있는 토큰을 기반으로 요청
-    const response = await axios.post(
-      'http://localhost:8080/login', 
-      loginData,
-      {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        withCredentials: true
-      }
-    );
+    // auth.js의 login 함수 사용
+    const response = await login(email.value, password.value);
 
     console.log("🟢 로그인 응답 상태:", response.status);
 
@@ -132,11 +116,7 @@ const handleLogin = async () => {
       console.log("✅ 로그인 성공!");
       alert("로그인에 성공했습니다!");
       
-      // ⭐⭐⭐ 헤더 업데이트를 위한 이벤트 발생
-      window.localStorage?.setItem(LOGIN_STATUS_KEY, 'true');
-      window.dispatchEvent(new CustomEvent('login-status-changed', { detail: { loggedIn: true } }));
-      
-      // 메인 페이지로 이동
+      // 메인 페이지로 이동 (auth.js에서 이미 이벤트 발생)
       await router.push("/");
       console.log("✅ 라우터 이동 완료");
     } else {
@@ -296,6 +276,7 @@ function socialLogin(provider) {
   border: none;
   cursor: pointer;
   transition: opacity 0.3s;
+  border: 0.5px solid rgb(231, 220, 220);
 }
 .social-login button:hover {
   opacity: 0.9;
