@@ -7,14 +7,6 @@
         <button class="close-btn" @click="closeModal">×</button>
       </div>
 
-      <!-- 작성자 / 날짜 -->
-      <div class="writer-info">
-        <div class="profile">{{ userInitial }}</div>
-        <div class="writer-text">
-          <p class="name">{{ writer }}</p>
-        </div>
-      </div>
-
       <!-- 리뷰 작성 -->
       <div class="section">
         <label>리뷰 작성</label>
@@ -41,16 +33,18 @@
 
       <!-- 별점 평가 -->
       <div class="section">
-        <label>별점 평가 (10점 만점)</label>
+        <label>별점 평가 (5점 만점)</label>
         <div class="stars">
           <span
-            v-for="i in 10"
+            v-for="i in 5"
             :key="i"
             class="star"
-            :class="{ active: i <= rating }"
-            @click="setRating(i)"
+            @mousemove="handleStarHover($event, i)"
+            @mouseleave="hoverRating = 0"
+            @click="confirmRating(i)"
+            :style="getStarStyle(i)"
           >★</span>
-          <span class="score">/ 10점</span>
+          <span class="score">{{ displayRating.toFixed(1) }}/5점</span>
         </div>
       </div>
 
@@ -74,21 +68,44 @@ const travel = ref({
   title: '제주도 힐링 여행',
 })
 
-const writer = '여행러버'
-const userInitial = writer.charAt(0)
-
 const review = ref('')
 const photos = ref([])
 const rating = ref(0)
+const hoverRating = ref(0)
 
-function closeModal() {
-  emit('close')   
+const displayRating = computed(() => hoverRating.value || rating.value)
+
+/* ✅ 별 위 마우스 움직임 감지 (정확한 반점 계산) */
+function handleStarHover(e, index) {
+  const rect = e.target.getBoundingClientRect()
+  const offsetX = e.clientX - rect.left
+  const ratio = offsetX / rect.width
+  const value = index - 1 + (ratio <= 0.5 ? 0.5 : 1) // 0.5 또는 1점 단위
+  hoverRating.value = Math.min(5, Math.max(0.5, value))
 }
 
-function setRating(i) {
-  rating.value = i
+/* ✅ 클릭 시 확정 */
+function confirmRating() {
+  rating.value = hoverRating.value
 }
 
+/* ✅ 별의 색상 채우기 */
+function getStarStyle(index) {
+  const filled = displayRating.value - (index - 1)
+  let gradient = ''
+  if (filled >= 1) gradient = '#facc15'
+  else if (filled > 0) {
+    gradient = `linear-gradient(90deg, #facc15 ${filled * 100}%, #d1d5db ${filled * 100}%)`
+  } else gradient = '#d1d5db'
+
+  return {
+    background: gradient,
+    WebkitBackgroundClip: 'text',
+    color: 'transparent',
+  }
+}
+
+/* ====== 사진 업로드 ====== */
 function onFileChange(e) {
   const files = Array.from(e.target.files).slice(0, 8)
   photos.value = []
@@ -99,10 +116,13 @@ function onFileChange(e) {
   })
 }
 
-function submitReview() {
-  alert(`리뷰 등록 완료!\n별점: ${rating.value}점`)
+/* ====== 닫기 & 등록 ====== */
+function closeModal() {
+  emit('close')
 }
-
+function submitReview() {
+  alert(`리뷰 등록 완료!\n별점: ${rating.value.toFixed(1)}점`)
+}
 </script>
 
 <style scoped>
@@ -117,14 +137,14 @@ function submitReview() {
 }
 
 .review-modal {
-  width: 480px;
+  width: 460px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.15);
   padding: 20px;
   position: relative;
   max-height: 85vh;
-  overflow-y: auto
+  overflow-y: auto;
 }
 
 /* ====== 헤더 ====== */
@@ -144,35 +164,6 @@ function submitReview() {
   background: none;
   font-size: 20px;
   cursor: pointer;
-}
-
-/* ====== 작성자 정보 ====== */
-.writer-info {
-  display: flex;
-  align-items: center;
-  margin-top: 20px;
-}
-.profile {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(180deg, #60A5FA, #3B82F6);
-  border-radius: 50%;
-  color: #fff;
-  font-weight: bold;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.writer-text {
-  margin-left: 10px;
-}
-.writer-text .name {
-  font-size: 14px;
-  font-weight: 500;
-}
-.writer-text .date {
-  font-size: 12px;
-  color: #888;
 }
 
 /* ====== 공통 섹션 ====== */
@@ -242,19 +233,21 @@ input[type="file"] {
   display: flex;
   align-items: center;
   gap: 4px;
+  font-size: 26px;
+  cursor: pointer;
+  user-select: none;
 }
 .star {
-  font-size: 24px;
-  cursor: pointer;
-  color: #ccc;
+  transition: transform 0.15s ease;
 }
-.star.active {
-  color: #facc15;
+.star:hover {
+  transform: scale(1.1);
 }
 .score {
-  font-size: 14px;
-  color: #666;
   margin-left: 8px;
+  font-size: 14px;
+  color: #555;
+  font-weight: 500;
 }
 
 /* ====== 버튼 ====== */

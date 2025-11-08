@@ -43,16 +43,18 @@ const fetchMyPage = async () => {
 
     // 1) 프로필
     profile.value = {
+      profileImage: data.profile?.profileImage ?? '', 
       avatarText: data.profile?.username
         ? data.profile.username[0]
         : '유',
       nickname: data.profile?.username ?? '사용자',
-      bio: '', // 칭호 키워드, 일단 비어있는값(회의해보고 아예 뺄지 정하기)
+      bio: '', // 칭호 키워드, 일단 비어있는값
       reviewCount: data.profile?.totalReviewCount ?? 0,
       likesCount: data.profile?.totalLikeReceived ?? 0,
       bookmarkCount: data.profile?.totalBookmarkCount ?? 0,
       tripCount: data.profile?.totalPlanCount ?? 0,
     }
+
 
     // 2) 달력
     calendarPlans.value = data.calendar?.plans ?? []
@@ -188,12 +190,20 @@ function formatDateRange(start, end) {
 </script>
 
 <template>
-
   <!-- 페이지 래퍼 -->
   <div class="page-wrap">
-    <!-- 프로필 바(가로 전체) -->
+    <div class="content-wrapper">
+      <!-- 프로필 바(가로 전체) -->
     <section class="card profile-card"  v-if="profile">
-      <div class="avatar">{{ profile.avatarText }}</div>
+    <div class="avatar">
+      <img
+        v-if="profile.profileImage"
+        :src="profile.profileImage"
+        alt="프로필 이미지"
+        class="avatar-img"
+      />
+      <span v-else>{{ profile.avatarText }}</span>
+    </div>
 
       <div class="pinfo">
         <div class="nickname">{{ profile.nickname }}</div>
@@ -336,6 +346,7 @@ function formatDateRange(start, end) {
         <button class="btn mini" type="button">더 보기 ({{ Math.max(0, bookmarks.length-4) }}개 남음)</button>
       </div>
     </section>
+    </div>
   </div>
 </template>
 
@@ -352,12 +363,24 @@ function formatDateRange(start, end) {
 </style>
 
 <style scoped>
-/* 래퍼: 중앙 정렬 & 패딩 */
-.page-wrap{
-  max-width:1120px;
-  margin:24px auto 80px;
-  padding:0 16px;
+/* 전체 배경 (페이지 전체 적용) */
+.page-wrap {
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(148deg, #eff6ff 0%, white 50%, #f0fdf4 100%);
+  display: flex;
+  justify-content: center;
+  padding: 60px 0 100px;
 }
+
+/* 중앙 콘텐츠 영역 */
+.page-wrap > .content-wrapper {
+  width: 1120px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-section);
+}
+
 
 /* 카드 공통 */
 .card{
@@ -373,14 +396,27 @@ function formatDateRange(start, end) {
 
 /* 프로필 바 */
 .profile-card{
-  display:flex; align-items:center; gap:16px; padding:16px;
+  display:flex; align-items:center; gap:20px; padding:16px;
   background:linear-gradient(90deg,#ffffff 30%,#f7fbff 100%);
 }
-.avatar{
-  width:64px; height:64px; border-radius:50%;
-  display:grid; place-items:center; color:#fff;
-  font-weight:700; font-size:24px; background:#3B82F6;
+.avatar {
+  width: 96px;   
+  height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;    
 }
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .pinfo{ display:flex; flex-direction:column; gap:6px; }
 .nickname{ font-size:18px; font-weight:700; }
 .bio{ color:#667085; font-size:13px; }
