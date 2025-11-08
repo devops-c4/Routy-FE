@@ -1,7 +1,15 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
+import { useRouter } from 'vue-router'
 
+// 여행 기록에서 상세 페이지로 넘어갈때 사용되는 함수
+function goToPlanDetail(planId) {
+  router.push(`/mypage/travel/${planId}`)
+}
+
+const recordLimit = ref(3)    // 한 페이지당 갯수
+const isExpanded = ref(false) // '접기' 기능
 
 /* ====== 로그인 유저 (일단 하드코딩) ====== */
 const userNo = 3
@@ -20,6 +28,7 @@ const bookmarksRaw = ref([])         // 백엔드 bookmarks
 
 const loading = ref(false)
 const error = ref(null)
+const router = useRouter()
 
 /* ====== 유틸 ====== */
 const pad2   = n => String(n).padStart(2, '0')
@@ -102,35 +111,49 @@ watch([year, month], () => {
 
 /* ====== 기존 화면에서 쓰던 계산들 다시 정의 ====== */
 
+// === 내 일정과 여행기록 자동 분리 ===
 const travelRecords = computed(() => {
-  // 너가 화면에서 딱 3개 카드 뿌리는 부분
-  return (travelHistory.value ?? []).map((r, idx) => ({
-    id: r.planId,
-    title: r.title,
-    desc: `${r.startTime} ~ ${r.endTime}`,
-    thumbnailUrl: r.thumbnailUrl,
-  }))
+  return upcomingPlans.value
+    .map(s => {
+      const { text, cls } = dday(s.startDate, s.endDate)
+      return { ...s, stateText: text, stateClass: cls }
+    })
+    .filter(s => s.stateText === '완료')
+    .map(s => ({
+      id: s.id,
+      title: s.title,
+      desc: `${s.startDate} ~ ${s.endDate}`,
+      thumbnailUrl: s.thumbnailUrl ?? '',
+    }))
 })
 
 const tripCount = computed(() => profile.value?.tripCount ?? 0)
 
 /* 내 일정의 상태 표시 */
-function dday(dateStr) {
+function dday(startStr, endStr) {
   const today = new Date(); today.setHours(0,0,0,0)
-  const target = new Date(dateStr); target.setHours(0,0,0,0)
-  const diff = Math.ceil((target - today) / (1000*60*60*24))
-  if (diff > 7)  return { text: '준비', cls: 'plan' }
-  if (diff > 0)  return { text: `D-${diff}`, cls: 'warn' }
-  if (diff === 0) return { text: '오늘', cls: 'ok' }
-  return { text: '완료', cls: 'done' }
+  const start = new Date(startStr); start.setHours(0,0,0,0)
+  const end = new Date(endStr); end.setHours(0,0,0,0)
+
+  if (today < start) {
+    const diff = Math.ceil((start - today) / (1000*60*60*24))
+    return { text: `D-${diff}`, cls: 'warn' }   // 아직 시작 전
+  } else if (today >= start && today <= end) {
+    return { text: '진행중', cls: 'ok' }        // 여행 중
+  } else {
+    return { text: '완료', cls: 'done' }        // 이미 끝남
+  }
 }
 
-const viewSchedules = computed(() =>
-  upcomingPlans.value.map(s => {
-    const { text, cls } = dday(s.startDate)
-    return { ...s, stateText: text, stateClass: cls }
-  })
-)
+const viewSchedules = computed(() => {
+  return upcomingPlans.value
+    .map(s => {
+      const { text, cls } = dday(s.startDate, s.endDate)
+      return { ...s, stateText: text, stateClass: cls }
+    })
+    .filter(s => s.stateText !== '완료')  
+})
+
 
 /* "다가오는 여행 n건" 카운트 */
 const upcomingCount = computed(() => {
@@ -149,20 +172,30 @@ const monthLabel = computed(() => `${year.value}년 ${month.value+1}월`)
 /* 달력 색칠: 백엔드에서 온 plan들의 날짜 범위만큼 칠해줌 */
 const dateColorMap = computed(() => {
   const map = {}
-  const plans = calendarPlans.value ?? []
-  plans.forEach((p, idx) => {
-    const colorList = ['blue','red','green','blue','red']
-    const color = colorList[idx % colorList.length]
+  const plans = upcomingPlans.value ?? []
 
-    const start = new Date(p.startDate)
-    const end   = new Date(p.endDate)
-    start.setHours(0,0,0,0); end.setHours(0,0,0,0)
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const key = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`
-      map[key] = color
-    }
-  })
-    return map
+  plans
+    .map(s => {
+      const { text, cls } = dday(s.startDate, s.endDate)
+      return { ...s, stateText: text, stateClass: cls }
+    })
+    // ✅ 완료된 일정은 달력에 표시 안 함
+    .filter(s => s.stateText !== '완료')
+    .forEach((p, idx) => {
+      const colorList = ['blue', 'red', 'green', 'blue', 'red']
+      const color = colorList[idx % colorList.length]
+
+      const start = new Date(p.startDate)
+      const end = new Date(p.endDate)
+      start.setHours(0, 0, 0, 0)
+      end.setHours(0, 0, 0, 0)
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const key = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+        map[key] = color
+      }
+    })
+
+  return map
 })
 
 function prevMonth(){ 
@@ -187,6 +220,41 @@ function formatDateRange(start, end) {
   const s = new Date(start), e = new Date(end)
   return `${s.getFullYear()}.${pad2(s.getMonth()+1)}.${pad2(s.getDate())} - ${pad2(e.getMonth()+1)}.${pad2(e.getDate())}`
 }
+
+// === 내 일정 페이지네이션 ===
+const page = ref(1)
+const perPage = 3
+
+const pagedSchedules = computed(() => {
+  const start = (page.value - 1) * perPage
+  return viewSchedules.value.slice(start, start + perPage)
+})
+
+const totalPages = computed(() => Math.ceil(viewSchedules.value.length / perPage))
+
+function nextPage() {
+  if (page.value < totalPages.value) page.value++
+}
+
+function prevPage() {
+  if (page.value > 1) page.value--
+}
+
+// 여행 기록 '더 보기' 기능
+const limitedTravelRecords = computed(() => {
+  return isExpanded.value
+    ? travelRecords.value // 전체 보기
+    : travelRecords.value.slice(0, recordLimit.value)
+})
+function showMoreRecords() {
+  recordLimit.value += 3
+}
+
+function toggleRecords() {
+  isExpanded.value = !isExpanded.value
+
+}
+
 </script>
 
 <template>
@@ -279,7 +347,14 @@ function formatDateRange(start, end) {
         <header class="card__title">내 일정</header>
 
         <ul class="todo">
-          <li v-for="s in viewSchedules" :key="s.id" class="todo__item" :data-color="s.color">
+          <li
+            v-for="s in pagedSchedules"
+            :key="s.id"
+            class="todo__item"
+            :data-color="s.color"
+            @click="goToPlanDetail(s.id)"
+            style="cursor: pointer;"
+          >
             <div class="left">
               <div class="pill" :class="s.color">
                 <span v-if="s.theme==='힐링'">🌴</span>
@@ -294,12 +369,6 @@ function formatDateRange(start, end) {
               <div class="meta-row">
                 <div class="meta"><i>📍</i>{{ s.region }}</div>
                 <div class="meta">
-                  <i>
-                    <span v-if="s.transportation==='비행기'">✈️</span>
-                    <span v-else-if="s.transportation==='KTX'">🚄</span>
-                    <span v-else-if="s.transportation==='버스'">🚌</span>
-                    <span v-else>🚗</span>
-                  </i>
                   {{ s.transportation }}
                 </div>
                 <div class="meta"><i>🗓️</i>{{ formatDateRange(s.startDate, s.endDate) }}</div>
@@ -311,23 +380,38 @@ function formatDateRange(start, end) {
             </div>
           </li>
         </ul>
+        <div class="pagination">
+          <button class="btn mini" type="button" @click="prevPage" :disabled="page===1">이전</button>
+          <span class="page-info">{{ page }} / {{ totalPages }}</span>
+          <button class="btn mini" type="button" @click="nextPage" :disabled="page===totalPages">다음</button>
+        </div>
       </article>
     </section>
 
     <!-- 여행 기록 (3열) -->
     <section class="card block">
       <header class="block__title">여행 기록</header>
+
       <div class="thumb-row">
-        <div v-for="r in travelRecords" :key="r.id" class="thumb bluegrad">
+        <div
+          v-for="r in limitedTravelRecords"
+          :key="r.id"
+          class="thumb bluegrad cursor-pointer hover:opacity-90 transition"
+          @click="goToPlanDetail(r.id)"
+        >
           <span class="pin">📍</span>
           <b>{{ r.title }}</b>
           <small>{{ r.desc }}</small>
         </div>
       </div>
-      <div class="block__footer">
-        <button class="btn mini" type="button">더 보기</button>
+
+      <div class="block__footer" v-if="travelRecords.length > 3">
+        <button class="btn mini" type="button" @click="toggleRecords">
+          {{ isExpanded ? '접기' : '더 보기' }}
+        </button>
       </div>
     </section>
+
 
     <!-- 북마크 -->
     <section class="card bookmarks section">
@@ -348,6 +432,8 @@ function formatDateRange(start, end) {
     </section>
     </div>
   </div>
+
+  
 </template>
 
 <style>
@@ -550,6 +636,28 @@ function formatDateRange(start, end) {
 }
 .bm-title{ font-weight:700; color:#0F172A; margin:4px 0 4px; }
 .bm-type{ font-size:12px; color:#6B7280; }
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.page-info {
+  font-size: 14px;
+  color: #555;
+}
+
+.thumb {
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.thumb:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
 
 /* 반응형 레이아웃 */
 @media (max-width: 900px){

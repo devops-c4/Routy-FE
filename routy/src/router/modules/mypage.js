@@ -20,4 +20,9 @@ export default [
     component: TravelEditView,
     props: true,
   },
+  {
+  path: '/mypage/travel/:id',
+  name: 'TravelDetail',
+  component: () => import('@/views/mypage/TravelDetailView.vue'),
+},
 ];
