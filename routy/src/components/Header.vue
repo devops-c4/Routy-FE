@@ -26,7 +26,7 @@
         <!-- 로그인 후 -->
         <template v-else>
           <span class="menu-item" @click="moveToMyPage">마이페이지</span>
-          <span class="menu-item" @click="handleLogout">로그아웃</span>
+          <span class="menu-item" @click="showLogoutConfirm">로그아웃</span>
         </template>
       </div>
     </div>
@@ -75,6 +75,13 @@ const moveToBrowse = () => router.push("/browse");
 const moveToRegister = () => router.push('/signup');
 const moveToLogin = () => router.push('/login');
 const moveToMyPage = () => router.push('/mypage');
+
+// 로그아웃 확인창 표시
+const showLogoutConfirm = () => {
+  if (confirm('로그아웃 하시겠습니까?')) {
+    handleLogout();
+  }
+};
 
 // 로그아웃 처리
 const handleLogout = async () => {
