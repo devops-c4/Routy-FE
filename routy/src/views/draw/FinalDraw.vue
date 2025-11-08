@@ -8,7 +8,7 @@
       </header>
 
       <div class="main-layout">
-        <!-- 왼쪽 사이드바 -->
+        <!-- 왼쪽 패널 -->
         <aside class="left-panel">
           <div class="left-actions">
             <div class="action-row">
@@ -22,12 +22,23 @@
             <span>시작 시간:</span>
             <strong>09:00</strong>
           </div>
+
           <div class="info-box gray">
             뭐든 맘껏 돌아보고 맘껏 드셔봐요~
           </div>
 
-          <div class="empty-guide">
+          <div class="empty-guide" v-if="selectedPlaces.length === 0">
             오른쪽에서 장소를 추가해주세요
+          </div>
+
+          <div v-else class="selected-list">
+            <div
+              v-for="(p, i) in selectedPlaces"
+              :key="i"
+              class="selected-item"
+            >
+              {{ i + 1 }}. {{ p.title }}
+            </div>
           </div>
 
           <div class="day-control">
@@ -58,21 +69,43 @@
             </div>
 
             <div class="map-canvas">
-              <!-- 예시: 장소 마커 -->
-              <div v-for="(marker, i) in markers" :key="i" class="marker" :style="marker.style">
+              <div
+                v-for="(marker, i) in markers"
+                :key="i"
+                class="marker"
+                :style="marker.style"
+              >
                 {{ marker.icon }}
               </div>
             </div>
           </div>
         </section>
 
-        <!-- 오른쪽 검색/리스트 -->
+        <!-- 오른쪽 패널 -->
         <aside class="right-panel">
           <div class="search-header">검색</div>
           <div class="filter-bar">
-            <button class="filter-btn active">맛집</button>
-            <button class="filter-btn">카페</button>
-            <button class="filter-btn">관광지</button>
+            <button
+              class="filter-btn"
+              :class="{ active: currentType === 'restaurants' }"
+              @click="loadPlaces('restaurants')"
+            >
+              맛집
+            </button>
+            <button
+              class="filter-btn"
+              :class="{ active: currentType === 'cafes' }"
+              @click="loadPlaces('cafes')"
+            >
+              카페
+            </button>
+            <button
+              class="filter-btn"
+              :class="{ active: currentType === 'attractions' }"
+              @click="loadPlaces('attractions')"
+            >
+              관광지
+            </button>
           </div>
 
           <div class="place-list">
@@ -82,68 +115,108 @@
               class="place-card"
             >
               <div class="place-info">
-                <div class="place-name">{{ p.name }}</div>
-                <div class="place-address">{{ p.address }}</div>
+                <div class="place-name">{{ p.title }}</div>
+                <div class="place-address">{{ p.addressName }}</div>
                 <div class="place-meta">
-                  <span>★ {{ p.rating }}</span>
-                  <span>🚗 약 {{ p.time }}</span>
+                  <span>{{ p.categoryGroupName }}</span>
+                  <a
+                    :href="p.placeUrl"
+                    target="_blank"
+                    style="color:#155DFC; text-decoration:none;"
+                  >지도보기</a>
                 </div>
               </div>
-              <button class="add-btn">추가</button>
+              <button class="add-btn" @click="addPlace(p)">추가</button>
             </div>
           </div>
 
           <div class="save-section">
-            <button class="save-btn">일정 저장</button>
+            <button class="save-btn" @click="savePlaces">일정 저장</button>
           </div>
         </aside>
-      </div>
-
-      <!-- 숙소 모달 -->
-      <div v-if="showModal" class="modal-overlay">
-        <div class="modal">
-          <div class="modal-header">
-            <h3>숙소를 먼저 도착하시나요?</h3>
-            <p>첫날 일정에 숙소를 포함하시겠습니까?</p>
-          </div>
-          <div class="modal-actions">
-            <button class="modal-btn cancel" @click="showModal = false">아니요</button>
-            <button class="modal-btn confirm" @click="confirmStay">예</button>
-          </div>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import '@/assets/css/draw.css'
-import '@/assets/css/step-common.css'
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import axios from "axios";
+import { ref } from "vue";
+import { useRouter } from "vue-router";
 
-const router = useRouter()
-const showModal = ref(true)
+const router = useRouter();
+const currentType = ref("restaurants");
+const lat = 37.5665; // 예시 (서울 시청)
+const lng = 126.9780;
+const planId = 1; // 실제로는 선택된 일정 id를 주입받도록 변경
+const places = ref([]);
+const selectedPlaces = ref([]);
+const markers = ref([]);
 
-const goPrev = () => router.push('/draw/third')
-const confirmStay = () => {
-  showModal.value = false
-  alert('숙소가 첫 일정에 포함되었습니다!')
-}
+// 🔹 Kakao API 데이터 불러오기
+const loadPlaces = async (type) => {
+  currentType.value = type;
+  try {
+    const res = await axios.get(`/api/kakao/${type}`, {
+      params: { lat, lng },
+    });
+    const kakaoPlaces = res.data.documents || [];
 
-// 나중에 수정
-const markers = [
-  { icon: '🍽️', style: { top: '20%', left: '15%' } },
-  { icon: '☕', style: { top: '40%', left: '50%' } },
-  { icon: '🏛️', style: { top: '60%', left: '30%' } },
-]
+    // Vue 표시용 데이터 매핑
+    places.value = kakaoPlaces.map((place, index) => ({
+      travelOrder: index + 1,
+      estimatedTravelTime: 0,
+      title: place.place_name,
+      latitude: parseFloat(place.y),
+      longitude: parseFloat(place.x),
+      categoryCode: place.category_group_code,
+      categoryGroupName: place.category_group_name,
+      addressName: place.road_address_name || place.address_name,
+      placeUrl: place.place_url,
+      description: place.category_name,
+      imagePath: null,
+      runTime: "-",
+      planId: planId,
+    }));
 
-const places = [
-  { name: '올레국수', address: '제주시 관덕로 14길 17', rating: 4.7, time: '45분' },
-  { name: '흑돼지 맛집', address: '애월읍 하귀2리 56', rating: 4.8, time: '60분' },
-  { name: '해녀의 집', address: '구좌읍 해녀박물관길 26', rating: 4.6, time: '60분' },
-]
+    // 마커 표시
+    markers.value = places.value.map((p, i) => ({
+      icon:
+        type === "restaurants"
+          ? "🍽️"
+          : type === "cafes"
+          ? "☕"
+          : "🏛️",
+      style: { top: `${20 + i * 10}%`, left: `${15 + i * 10}%` },
+    }));
+  } catch (err) {
+    console.error("장소 불러오기 실패:", err);
+  }
+};
+
+// 🔹 장소 추가 (사용자가 선택)
+const addPlace = (p) => {
+  if (!selectedPlaces.value.find((x) => x.title === p.title)) {
+    selectedPlaces.value.push(p);
+  }
+};
+
+// 🔹 DB 저장 요청
+const savePlaces = async () => {
+  try {
+    await Promise.all(selectedPlaces.value.map((p) => axios.post("/api/places", p)));
+    alert("✅ 일정이 성공적으로 저장되었습니다!");
+    selectedPlaces.value = [];
+  } catch (err) {
+    console.error("일정 저장 실패:", err);
+    alert("❌ 저장 실패! 콘솔 로그를 확인해주세요.");
+  }
+};
+
+// 페이지 초기 로드 시 맛집 카테고리 자동 표시
+loadPlaces("restaurants");
 </script>
+
 
 <style scoped>
 .full-layout {

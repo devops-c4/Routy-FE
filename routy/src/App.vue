@@ -15,6 +15,6 @@ import Footer from '@/components/Footer.vue'
 <style>
 #app {
   font-family: 'Noto Sans KR', sans-serif;
-
+  background: linear-gradient(135deg, #EFF6FF 0%, white 50%, #F0FDF4 100%);
 }
 </style>

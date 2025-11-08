@@ -6,7 +6,6 @@
   display: flex;
   justify-content: center;   /* 수평 중앙 */
   align-items: flex-start;
-  background: linear-gradient(135deg, #EFF6FF 0%, white 50%, #F0FDF4 100%);
   padding: 40px 16px;        /* 가로 패딩은 고정(px)로 */
 }
 

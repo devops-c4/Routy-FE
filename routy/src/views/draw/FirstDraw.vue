@@ -55,19 +55,30 @@
 </template>
 
 <script setup>
-import '@/assets/css/draw.css'
-import '@/assets/css/step-common.css';
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import "@/assets/css/draw.css";
+import "@/assets/css/step-common.css";
+import { ref, onMounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
 
 const router = useRouter();
-// 나중에 수정
-const cities = ['서울','부산','제주도','강릉','경주','여수','전주','속초','대구','인천','대전','광주'];
+const route = useRoute();
+const cities = [
+  "서울", "부산", "제주도", "강릉", "경주", "여수", "전주", "속초", "대구", "인천", "대전", "광주",
+];
 const selectedCity = ref(null);
 
+// Home에서 넘어온 도시 자동 선택
+onMounted(() => {
+  if (route.query.city) {
+    const matched = cities.find(c => route.query.city.includes(c));
+    if (matched) selectedCity.value = matched;
+  }
+});
+
 const selectCity = (city) => (selectedCity.value = city);
-const goNext = () => router.push('/draw/second');
+const goNext = () => router.push("/draw/second");
 </script>
+
 
 <style scoped>
 /* 카드 헤더 */

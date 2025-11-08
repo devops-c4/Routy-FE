@@ -11,7 +11,14 @@ export default defineConfig({
     vueDevTools(),
   ],
   server: {
-    port: 5173
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080', //백엔드 주소
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   resolve: {
     alias: {
