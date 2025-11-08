@@ -10,8 +10,18 @@ export default defineConfig({
     vue(),
     vueDevTools(),
   ],
+  define: {
+    global: {},
+  },
   server: {
-    port: 5173
+    port: 5173,
+    proxy: {
+      '/ws': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        ws: true, // 👈 WebSocket 프록시 꼭 추가
+      },
+    },
   },
   resolve: {
     alias: {

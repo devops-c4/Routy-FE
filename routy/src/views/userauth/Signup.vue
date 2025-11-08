@@ -183,6 +183,9 @@
 <script setup>
 import { ref, onUnmounted } from 'vue';
 import axios from 'axios';
+import { useRouter } from "vue-router";
+
+const router = useRouter();
 
 const email = ref("");
 const username = ref("")
@@ -295,7 +298,7 @@ const register = async () => {
   await axios.post('http://localhost:8080/user/register',data).then(
     (res) => {
       console.log(res)
-      alert(res.data)
+      alert(res.data.message)
       router.push('/login');
       return;
     }

@@ -14,6 +14,7 @@
         <div class="route-section">
           <span class="route-item" @click="moveToDraw">여행 루트 그리기</span>
           <span class="route-item" @click="moveToBrowse">여행 루트 둘러보기</span>
+          <span class="route-item" @click="moveToChatBot">🤖</span>
         </div>
       </div>
 
@@ -36,6 +37,7 @@ const moveToDraw = () => router.push('/draw/first');
 const moveToBrowse = () => router.push("/browse");
 const moveToRegister = () => router.push('/signup');
 const moveToLogin = () => router.push('/login');
+const moveToChatBot = () => router.push('/chatbot');
 </script>
 
 <style scoped>
