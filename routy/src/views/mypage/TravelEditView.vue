@@ -4,7 +4,7 @@
     <header class="edit-header">
       <div class="header-left">
         <button class="back-btn" @click="goBack">←</button>
-        <h1>일정 수정</h1>
+        <h1>여행 루트 다시 그리기</h1>
       </div>
       <div class="header-right">
         <button class="btn-cancel" @click="goBack">취소</button>
@@ -16,7 +16,7 @@
     <section class="info-section">
       <div class="info-box">
         <div class="form-group">
-          <label>여행 제목</label>
+          <label>여행 루트 제목</label>
           <input v-model="travel.title" placeholder="여행 제목을 입력하세요" />
         </div>
 
@@ -164,7 +164,7 @@ function toggleMore() {
 .travel-edit {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 40px 0 80px;
+  padding: 40px 32px 80px;
   background: linear-gradient(135deg, rgba(219, 234, 254, 0.4), white 50%, rgba(209, 250, 229, 0.4));
   min-height: 100vh;
   display: flex;
@@ -177,42 +177,72 @@ function toggleMore() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 0.8px solid rgba(229, 231, 235, 0.6);
+  padding: 18px 32px; /* 살짝 여유 */
   border-radius: 12px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  margin-bottom: 16px;
 }
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
 }
+
+.header-left h1 {
+  margin: 0;
+  margin-left: 10px; 
+  font-size: 20px;
+  font-weight: 700;
+  color: #101828;
+  line-height: 1.2;
+}
+
 .back-btn {
   border: none;
-  background: transparent;
-  font-size: 20px;
+  background: none;
+  font-size: 22px;
+  color: #3b82f6;
   cursor: pointer;
+  transition: color 0.2s;
+  flex-shrink: 0;
 }
+
+.back-btn:hover {
+  color: #2563eb;
+}
+
 .header-right {
   display: flex;
   gap: 8px;
 }
 .btn-cancel {
-  border: 1px solid #ccc;
+  border: 0.8px solid #d1d5db;
   background: white;
-  color: #555;
-  padding: 6px 14px;
-  border-radius: 6px;
+  color: #4b5563;
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 8px;
   cursor: pointer;
+  transition: background 0.2s;
 }
+.btn-cancel:hover {
+  background: #f9fafb;
+}
+
 .btn-save {
   background: #2563eb;
   color: white;
   border: none;
-  padding: 6px 14px;
-  border-radius: 6px;
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 8px;
   cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-save:hover {
+  background: #1d4ed8;
 }
 
 /* 기본 정보 */
