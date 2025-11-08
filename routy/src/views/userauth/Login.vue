@@ -237,7 +237,9 @@ function socialLogin(provider) {
 }
 
 .login-btn {
-  padding: 13px 186px;
+  padding: 13px 40px;
+  width: 100%;
+  max-width: 400px;
   background: #155dfc;
   color: white;
   border-radius: 26px;
@@ -246,6 +248,7 @@ function socialLogin(provider) {
   border: none;
   cursor: pointer;
   transition: background 0.3s;
+  white-space: nowrap;
 }
 .login-btn:hover:not(:disabled) {
   background: #0d4ad9;

@@ -25,17 +25,30 @@ export const login = async (email, password) => {
  * 로그아웃 API
  */
 export const logout = async () => {
+  console.log('🔵 [auth.js] logout 함수 시작');
+  
   try {
+    console.log('🔵 [auth.js] POST /auth/logout 요청 전송 중...');
+    console.log('🔵 [auth.js] apiClient:', apiClient);
+    
     // 백엔드에 로그아웃 요청 (쿠키 삭제)
-    await apiClient.post('/logout');
+    const response = await apiClient.post('/auth/logout');
+    
+    console.log('🟢 [auth.js] POST /auth/logout 요청 성공!', response);
+    console.log('🟢 [auth.js] 응답 상태:', response.status);
+    console.log('🟢 [auth.js] 응답 데이터:', response.data);
     
     // 로컬 상태 초기화
     window.localStorage?.removeItem(LOGIN_STATUS_KEY);
+    console.log('🟢 [auth.js] localStorage 삭제 완료');
+    
     window.dispatchEvent(new CustomEvent('login-status-changed', { detail: { loggedIn: false } }));
+    console.log('🟢 [auth.js] CustomEvent 발생 완료');
     
     return true;
   } catch (error) {
-    console.error('로그아웃 실패:', error);
+    console.error('❌ [auth.js] 로그아웃 실패:', error);
+    console.error('❌ [auth.js] 에러 상세:', error.response);
     
     // 실패해도 로컬 상태는 초기화
     window.localStorage?.removeItem(LOGIN_STATUS_KEY);
