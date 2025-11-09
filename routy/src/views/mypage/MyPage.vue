@@ -81,7 +81,7 @@ const fetchMyPage = async () => {
         ? data.profile.username[0]
         : '유',
       nickname: data.profile?.username ?? '사용자',
-      bio: '', // 칭호 키워드, 일단 비어있는값
+      bio: '', 
       reviewCount: data.profile?.totalReviewCount ?? 0,
       likesCount: data.profile?.totalLikeReceived ?? 0,
       bookmarkCount: data.profile?.totalBookmarkCount ?? 0,
