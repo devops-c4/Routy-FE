@@ -10,7 +10,7 @@ const showReviewModal = ref(false)
 
 // 현재 여행 ID & 사용자 ID (로그인 후엔 토큰에서 가져오게 됨)
 const planId = Number(route.params.id)
-const userId = 1 // ✅ 임시 (테스트용)
+
 
 // 여행 상세 데이터
 const travel = ref(null)
@@ -20,17 +20,18 @@ const expandedDays = ref([])
 const showAll = ref(false)
 const visibleCount = ref(3)
 
-// ✅ 백엔드 연동
+// 백엔드 연동
 onMounted(async () => {
   try {
-    const res = await apiClient.get(`/api/plan/${planId}`)
+    const res = await apiClient.get(`/api/plans/${planId}`)
     travel.value = res.data
-    // dayList 구조 정리 (백엔드 DTO 구조 그대로 사용)
-    expandedDays.value = travel.value.dayList.map(() => false)
+    expandedDays.value = (travel.value?.dayList || []).map(() => false)
   } catch (err) {
     console.error('❌ 여행 데이터를 불러오는 중 오류 발생:', err)
   }
 })
+
+
 
 // 페이지 이동
 function goToEditPage() {
