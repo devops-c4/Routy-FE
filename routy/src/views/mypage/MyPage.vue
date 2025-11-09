@@ -8,6 +8,11 @@ function goToPlanDetail(planId) {
   router.push(`/mypage/travel/${planId}`)
 }
 
+// 정보수정 버튼 클릭시 정보 수정 페이지로 넘어가는 함수
+function goToModifyUser() {
+  router.push('/mypage/modify')
+}
+
 const recordLimit = ref(3)    // 한 페이지당 갯수
 const isExpanded = ref(false) // '접기' 기능
 
@@ -319,7 +324,7 @@ function toggleRecords() {
         </div>
       </div>
 
-      <button class="btn ghost edit" type="button">정보 수정</button>
+      <button class="btn ghost edit" type="button" @click="goToModifyUser">정보 수정</button>
     </section>
 
     <!-- 2열: 달력 + 내 일정 -->
