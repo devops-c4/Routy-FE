@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
+import apiClient from '@/utils/axios'
 import TravelReviewModal from '@/views/mypage/TravelReviewModal.vue'
 
 const route = useRoute()
@@ -23,9 +23,7 @@ const visibleCount = ref(3)
 // ✅ 백엔드 연동
 onMounted(async () => {
   try {
-    const res = await axios.get(`/api/plan/${planId}`, {
-      params: { userId }
-    })
+    const res = await apiClient.get(`/api/plan/${planId}`)
     travel.value = res.data
     // dayList 구조 정리 (백엔드 DTO 구조 그대로 사용)
     expandedDays.value = travel.value.dayList.map(() => false)

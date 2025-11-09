@@ -11,8 +11,25 @@ function goToPlanDetail(planId) {
 const recordLimit = ref(3)    // 한 페이지당 갯수
 const isExpanded = ref(false) // '접기' 기능
 
-/* ====== 로그인 유저 (일단 하드코딩) ====== */
-const userNo = 3
+import { jwtDecode } from 'jwt-decode'
+
+let userNo = null
+try {
+  const token = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('token='))
+    ?.split('=')[1]
+
+  if (token) {
+    const decoded = jwtDecode(token)
+    // 서버에서 JWT에 sub 또는 user_no 로 저장되어 있음
+    userNo = decoded.sub || decoded.user_no
+  } else {
+    console.warn('JWT 토큰이 존재하지 않습니다.')
+  }
+} catch (err) {
+  console.error('JWT 파싱 실패:', err)
+}
 
 /* ====== 달력 상태 ====== */
 const now = new Date()
@@ -48,6 +65,8 @@ const fetchMyPage = async () => {
         month: month.value + 1, // 백엔드는 1~12
       },
     })
+    console.log('📦 백엔드 응답 데이터:', res.data)
+
     const data = res.data
 
     // 1) 프로필
@@ -69,21 +88,22 @@ const fetchMyPage = async () => {
     calendarPlans.value = data.calendar?.plans ?? []
 
     // 3) 내 일정 (백엔드 -> 프론트 구조로 변환)
-    upcomingPlans.value = (data.upcomingPlans ?? []).map(p => {
-      // 백에서 날짜가 "2025-03-05" 이런 포맷이니까 그대로 씀
-      return {
-        id: p.planId,
-        title: p.title,
-        color: 'blue',         // 색상은 여기서 임의로, 필요하면 regionName별로 다르게
-        theme: '일정',         // 원래 너가 쓰던 필드 맞춰주려고
-        region: p.regionName,
-        transportation: '',    // 백에는 이동수단 없으니까 빈값
-        startDate: p.startDate,
-        endDate: p.endDate,
-        duration: p.durationLabel, // 서비스에서 넣어줬던 "n일 일정"이 여기에 옴
-        status: p.status,
-      }
-    })
+    upcomingPlans.value = (
+      Array.isArray(data.upcomingPlans)
+        ? data.upcomingPlans
+        : [data.upcomingPlans]  // ← 단일 객체면 배열로 감싸줌
+    ).map(p => ({
+      id: p.planId,
+      title: p.title,
+      color: 'blue',
+      theme: '일정',
+      region: p.regionName,
+      transportation: '',
+      startDate: p.startDate,
+      endDate: p.endDate,
+      duration: p.durationLabel,
+      status: p.status,
+    }))
 
     // 4) 여행 기록
     travelHistory.value = data.travelHistory ?? []
@@ -111,13 +131,47 @@ watch([year, month], () => {
 
 /* ====== 기존 화면에서 쓰던 계산들 다시 정의 ====== */
 
-// === 내 일정과 여행기록 자동 분리 ===
+
+
+const tripCount = computed(() => profile.value?.tripCount ?? 0)
+
+
+/* ====== 일정 상태 계산 유틸 ====== */
+function dday(startStr, endStr) {
+  const today = new Date(); today.setHours(0,0,0,0)
+  const start = new Date(startStr); start.setHours(0,0,0,0)
+  const end = new Date(endStr); end.setHours(0,0,0,0)
+
+  if (today < start) {
+    const diff = Math.ceil((start - today) / (1000*60*60*24))
+    console.log(startStr, '→ D-', diff)
+    return { text: `D-${diff}`, cls: 'warn' }
+  } else if (today >= start && today <= end) {
+    console.log(startStr, '→ 진행중')
+    return { text: '진행중', cls: 'ok' }
+  } else {
+    console.log(startStr, '→ 완료')
+    return { text: '완료', cls: 'done' }
+  }
+}
+
+
+/* ====== 전체 일정 상태 매핑 ====== */
+const allSchedules = computed(() => {
+  return upcomingPlans.value.map(s => {
+    const { text, cls } = dday(s.startDate, s.endDate)
+    return { ...s, stateText: text, stateClass: cls }
+  })
+})
+
+/* ====== 내 일정 (현재 + 예정) ====== */
+const viewSchedules = computed(() => {
+  return allSchedules.value.filter(s => s.stateText !== '완료')
+})
+
+/* ====== 여행 기록 (완료된 일정) ====== */
 const travelRecords = computed(() => {
-  return upcomingPlans.value
-    .map(s => {
-      const { text, cls } = dday(s.startDate, s.endDate)
-      return { ...s, stateText: text, stateClass: cls }
-    })
+  return allSchedules.value
     .filter(s => s.stateText === '완료')
     .map(s => ({
       id: s.id,
@@ -126,34 +180,6 @@ const travelRecords = computed(() => {
       thumbnailUrl: s.thumbnailUrl ?? '',
     }))
 })
-
-const tripCount = computed(() => profile.value?.tripCount ?? 0)
-
-/* 내 일정의 상태 표시 */
-function dday(startStr, endStr) {
-  const today = new Date(); today.setHours(0,0,0,0)
-  const start = new Date(startStr); start.setHours(0,0,0,0)
-  const end = new Date(endStr); end.setHours(0,0,0,0)
-
-  if (today < start) {
-    const diff = Math.ceil((start - today) / (1000*60*60*24))
-    return { text: `D-${diff}`, cls: 'warn' }   // 아직 시작 전
-  } else if (today >= start && today <= end) {
-    return { text: '진행중', cls: 'ok' }        // 여행 중
-  } else {
-    return { text: '완료', cls: 'done' }        // 이미 끝남
-  }
-}
-
-const viewSchedules = computed(() => {
-  return upcomingPlans.value
-    .map(s => {
-      const { text, cls } = dday(s.startDate, s.endDate)
-      return { ...s, stateText: text, stateClass: cls }
-    })
-    .filter(s => s.stateText !== '완료')  
-})
-
 
 /* "다가오는 여행 n건" 카운트 */
 const upcomingCount = computed(() => {
@@ -264,12 +290,8 @@ function toggleRecords() {
       <!-- 프로필 바(가로 전체) -->
     <section class="card profile-card"  v-if="profile">
     <div class="avatar">
-      <img
-        v-if="profile.profileImage"
-        :src="profile.profileImage"
-        alt="프로필 이미지"
-        class="avatar-img"
-      />
+    <img v-if="profile && profile.profileImage" :src="profile.profileImage" alt="프로필 이미지" />
+
       <span v-else>{{ profile.avatarText }}</span>
     </div>
 
@@ -326,19 +348,6 @@ function toggleRecords() {
           >
             {{ d }}
           </span>
-        </div>
-
-        <!-- 다가오는 여행 (건수는 실제 '다가오는'만) -->
-        <div class="upcoming">
-          <div class="upcoming__head">
-            <span class="upcoming__ttl">다가오는 여행</span>
-            <span class="badge pill-count">{{ upcomingCount }}건</span>
-          </div>
-          <ul class="legend">
-            <li><i class="dot red"></i> 부산 미식 투어</li>
-            <li><i class="dot blue"></i> 제주도 힐링 여행</li>
-            <li><i class="dot green"></i> 강릉 겨울 바다</li>
-          </ul>
         </div>
       </article>
 
@@ -494,6 +503,7 @@ function toggleRecords() {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;    
+  background: #f3f4f6;
 }
 
 .avatar-img {
