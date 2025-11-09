@@ -47,9 +47,10 @@
 </template>
 
 <script setup>
+import '@/assets/css/draw.css'
 import '@/assets/css/step-common.css'
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from "vue-router";
 
 const router = useRouter()
 // 나중에 수정
@@ -68,7 +69,18 @@ const toggleTheme = (name) => {
 }
 
 const goPrev = () => router.push('/draw/second')
-const goNext = () => router.push('/draw/final')
+const route = useRoute();
+
+const goNext = () => {
+  router.push({
+    path: '/draw/final',
+    query: { 
+      planId: route.query.planId,
+      totalDays: route.query.totalDays
+    }
+  });
+};
+
 </script>
 
 <style scoped>
