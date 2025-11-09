@@ -76,9 +76,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from "vue-router";
-import { login } from '@/api/auth';
+import { login, syncAuthStatus } from '@/api/auth';
 
 const router = useRouter();
 
@@ -144,8 +144,29 @@ const handleLogin = async () => {
   }
 };
 
-// 소셜 로그인
+// ⭐ OAuth2 로그인 후 리다이렉트되었을 때 상태 동기화
+onMounted(async () => {
+  // URL에서 OAuth2 로그인 성공 여부 확인
+  const urlParams = new URLSearchParams(window.location.search);
+  
+  if (urlParams.get('oauth2Login') === 'success') {
+    console.log('🟢 [Login.vue] OAuth2 로그인 성공 감지!');
+    
+    // 백엔드에서 인증 상태 확인 및 동기화
+    await syncAuthStatus();
+    
+    // URL 정리 (쿼리 파라미터 제거)
+    window.history.replaceState({}, document.title, window.location.pathname);
+    
+    // 홈으로 이동
+    await router.push("/");
+    console.log('🟢 [Login.vue] 홈으로 리다이렉트 완료');
+  }
+});
+
+// ⭐ 소셜 로그인 - OAuth2 엔드포인트로 이동
 function socialLogin(provider) {
+  console.log(`🔵 [Login.vue] ${provider} 소셜 로그인 시작`);
   window.location.href = `http://localhost:8080/oauth2/authorization/${provider}`;
 }
 </script>
@@ -237,7 +258,8 @@ function socialLogin(provider) {
 }
 
 .login-btn {
-  padding: 13px 186px;
+  height: 48px;
+  width: 100%;
   background: #155dfc;
   color: white;
   border-radius: 26px;
@@ -246,6 +268,7 @@ function socialLogin(provider) {
   border: none;
   cursor: pointer;
   transition: background 0.3s;
+  white-space: nowrap;
 }
 .login-btn:hover:not(:disabled) {
   background: #0d4ad9;
@@ -291,7 +314,7 @@ function socialLogin(provider) {
 .google-btn {
   background: white;
   color: #101828;
-  border: 0.73px solid #d1d5dc;
+  border: 1px solid #d1d5dc;
 }
 .naver-btn {
   background: #03c75a;
