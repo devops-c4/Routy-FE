@@ -9,6 +9,9 @@ export default defineConfig({
     vue(),
     vueDevTools(),
   ],
+  define: {
+    global: {},
+  },
   server: {
     port: 5173,
     proxy: {
