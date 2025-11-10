@@ -16,25 +16,6 @@ function goToModifyUser() {
 const recordLimit = ref(3)    // 한 페이지당 갯수
 const isExpanded = ref(false) // '접기' 기능
 
-import { jwtDecode } from 'jwt-decode'
-
-let userNo = null
-try {
-  const token = document.cookie
-    .split('; ')
-    .find(row => row.startsWith('token='))
-    ?.split('=')[1]
-
-  if (token) {
-    const decoded = jwtDecode(token)
-    // 서버에서 JWT에 sub 또는 user_no 로 저장되어 있음
-    userNo = decoded.sub || decoded.user_no
-  } else {
-    console.warn('JWT 토큰이 존재하지 않습니다.')
-  }
-} catch (err) {
-  console.error('JWT 파싱 실패:', err)
-}
 
 /* ====== 달력 상태 ====== */
 const now = new Date()
@@ -65,7 +46,6 @@ const fetchMyPage = async () => {
   try {
     const res = await axios.get('/api/mypage', {
       params: {
-        userNo,
         year: year.value,
         month: month.value + 1, // 백엔드는 1~12
       },

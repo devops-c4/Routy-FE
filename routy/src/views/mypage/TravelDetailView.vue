@@ -20,6 +20,20 @@ const expandedDays = ref([])
 const showAll = ref(false)
 const visibleCount = ref(3)
 
+// 삭제 버튼 클릭 할 경우
+const deletePlan = async () => {
+  if (!confirm('정말 삭제하시겠습니까?')) return
+
+  try {
+    await apiClient.patch(`/api/plans/${planId}/delete`)
+    alert('삭제되었습니다.')
+    router.push('/mypage')  
+  } catch (err) {
+    console.error(err)
+    alert('삭제 중 오류가 발생했습니다.')
+  }
+}
+
 // 백엔드 연동
 onMounted(async () => {
   try {
@@ -70,7 +84,7 @@ function toggleMore() {
         </div>
         <div class="header-right">
           <button class="btn btn-outline-blue" @click="goToEditPage">수정</button>
-          <button class="btn btn-outline-red">삭제</button>
+          <button class="btn delete" @click="deletePlan">삭제</button>
         </div>
       </header>
 
@@ -485,4 +499,22 @@ function toggleMore() {
   color: #6a7282;
   margin: 2px 0 0;
 }
+
+.btn.delete {
+  color: #ff4d4f; /* 빨간 글씨 */
+  border: 1.5px solid #ff4d4f; /* 빨간 테두리 */
+  background-color: transparent; /* 배경 투명 */
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s ease-in-out;
+}
+
+/* hover 시 색 반전 효과 */
+.btn.delete:hover {
+  background-color: #ff4d4f;
+  color: white;
+}
+
 </style>
