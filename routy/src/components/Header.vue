@@ -15,6 +15,7 @@
 
         <!-- 로고 옆 텍스트 메뉴 -->
         <div class="route-section">
+<<<<<<< HEAD
           <span
             class="route-item"
             :class="{ active: isActive('/draw/first') }"
@@ -29,7 +30,7 @@
           >
             여행 루트 둘러보기
           </span>
-        </div>
+          <span class="route-item" @click="moveToChatBot">🤖</span>
       </div>
 
       <!-- 오른쪽 메뉴 -->
@@ -91,6 +92,8 @@ const handleLogout = async () => {
     router.push('/')
   }
 }
+const moveToChatBot = () => router.push('/chatbot');
+
 </script>
 
 <style scoped>
@@ -153,7 +156,7 @@ const handleLogout = async () => {
   color: #155dfc;
 }
 
-/* ✅ 현재 페이지일 때 색상 유지 */
+/* 현재 페이지일 때 색상 유지 */
 .route-item.active {
   color: #155dfc;
   font-weight: 500;
