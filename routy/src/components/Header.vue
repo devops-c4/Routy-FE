@@ -5,7 +5,7 @@
       <div class="left-section">
         <!-- 로고 -->
         <div class="logo-section">
-          <img class="logo-img" src="/images/icons/logo.png" alt="logo" @click="moveToHome"/>
+          <img class="logo-img" src="@/assets/images/icons/logo.png" alt="logo" @click="moveToHome"/>
         </div>
 
         <!-- 로고 옆 텍스트 메뉴 -->

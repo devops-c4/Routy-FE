@@ -499,23 +499,23 @@ function toggleRecords() {
   display:flex; align-items:center; gap:20px; padding:16px;
   background:linear-gradient(90deg,#ffffff 30%,#f7fbff 100%);
 }
+
 .avatar {
-  width: 96px;   
+  width: 96px;              
   height: 96px;
   border-radius: 50%;
-  overflow: hidden;
+  background: white;         
+  border: 1px solid #e5e7eb; 
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;    
-  background: #f3f4f6;
+  overflow: hidden;
 }
 
 .avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+  width: 50%;               
+  height: 50%;
+  object-fit: contain;     
 }
 
 .pinfo{ display:flex; flex-direction:column; gap:6px; }
