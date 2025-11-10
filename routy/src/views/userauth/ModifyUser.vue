@@ -11,25 +11,35 @@
       <div class="form-section">
         <div class="input-group">
           <label>사용자 이름</label>
-          <input type="text" placeholder="이름을 입력하세요" />
+          <input 
+            v-model="username" 
+            type="text" 
+            placeholder="이름을 입력하세요" 
+          />
         </div>
 
         <div class="input-group">
           <label>나이</label>
-          <input type="number" placeholder="나이를 입력하세요" />
+          <input 
+            v-model="age" 
+            type="number" 
+            placeholder="나이를 입력하세요" 
+          />
         </div>
 
         <div class="input-group">
           <label>전화번호</label>
-          <input type="tel" placeholder="010-1234-5678" />
+          <input 
+            v-model="phone" 
+            type="tel" 
+            placeholder="010-1234-5678" 
+          />
         </div>
 
         <div class="image-upload">
           <label>프로필 이미지</label>
 
-          <div
-            class="upload-wrapper"
-          >
+          <div class="upload-wrapper">
             <div
               class="upload-box"
               :style="previewImage ? { backgroundImage: `url(${previewImage})` } : {}"
@@ -69,8 +79,10 @@
 
         <!-- 버튼 -->
         <div class="button-group">
-          <button class="cancel-btn">취소하기</button>
-          <button class="submit-btn">수정하기</button>
+          <button class="cancel-btn" @click="handleCancel">취소하기</button>
+          <button class="submit-btn" @click="handleSubmit" :disabled="isSubmitting">
+            {{ isSubmitting ? '수정 중...' : '수정하기' }}
+          </button>
         </div>
       </div>
     </div>
@@ -79,9 +91,23 @@
 
 <script setup>
 import { ref } from "vue";
+import { modifyUserInfo } from "@/api/auth";
+import { useRouter } from "vue-router";
 
+const router = useRouter();
+
+// 폼 데이터
+const username = ref("");
+const age = ref("");
+const phone = ref("");
+
+// 파일 관련
 const fileInput = ref(null);
 const previewImage = ref(null);
+const selectedFile = ref(null);  // 실제 File 객체 저장
+
+// 제출 상태
+const isSubmitting = ref(false);
 
 // 파일 선택창 열기
 const triggerFileInput = () => {
@@ -92,13 +118,15 @@ const triggerFileInput = () => {
 const handleFileChange = (e) => {
   const file = e.target.files[0];
   if (file && file.size <= 5 * 1024 * 1024 && ["image/jpeg", "image/png"].includes(file.type)) {
+    selectedFile.value = file;  // File 객체 저장
+    
     const reader = new FileReader();
     reader.onload = () => {
       previewImage.value = reader.result;
     };
     reader.readAsDataURL(file);
   } else {
-    alert("5MB 이하의 이미지만 업로드 가능합니다.");
+    alert("5MB 이하의 JPG 또는 PNG 이미지만 업로드 가능합니다.");
   }
 };
 
@@ -106,20 +134,87 @@ const handleFileChange = (e) => {
 const handleDrop = (e) => {
   const file = e.dataTransfer.files[0];
   if (file && file.size <= 5 * 1024 * 1024 && ["image/jpeg", "image/png"].includes(file.type)) {
+    selectedFile.value = file;  // File 객체 저장
+    
     const reader = new FileReader();
     reader.onload = () => {
       previewImage.value = reader.result;
     };
     reader.readAsDataURL(file);
   } else {
-    alert("5MB 이하의 이미지만 업로드 가능합니다.");
+    alert("5MB 이하의 JPG 또는 PNG 이미지만 업로드 가능합니다.");
   }
 };
 
+// 이미지 제거
 const removeImage = () => {
   previewImage.value = null;
+  selectedFile.value = null;
   if (fileInput.value) {
     fileInput.value.value = ""; 
+  }
+};
+
+// 취소 버튼
+const handleCancel = () => {
+  if (confirm("수정을 취소하시겠습니까?")) {
+    router.push("/");  // 또는 이전 페이지로: router.back()
+  }
+};
+
+// 수정하기 제출
+const handleSubmit = async () => {
+  console.log('🔵 [ModifyUser.vue] 수정하기 버튼 클릭');
+  
+  // 최소 하나의 필드는 입력되어야 함
+  if (!username.value && !age.value && !phone.value && !selectedFile.value) {
+    alert("수정할 정보를 입력해주세요.");
+    return;
+  }
+  
+  // 전화번호 유효성 검사 (입력된 경우에만)
+  if (phone.value && !/^010-\d{4}-\d{4}$/.test(phone.value)) {
+    alert("전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678)");
+    return;
+  }
+  
+  try {
+    isSubmitting.value = true;
+    
+    // 수정할 정보만 객체에 담기
+    const userInfo = {};
+    if (username.value.trim()) userInfo.username = username.value.trim();
+    if (age.value) userInfo.age = parseInt(age.value);
+    if (phone.value.trim()) userInfo.phone = phone.value.trim();
+    
+    console.log('🔵 [ModifyUser.vue] 전송할 데이터:', userInfo);
+    console.log('🔵 [ModifyUser.vue] 전송할 파일:', selectedFile.value);
+    
+    // API 호출
+    const response = await modifyUserInfo(
+      Object.keys(userInfo).length > 0 ? userInfo : null,
+      selectedFile.value
+    );
+    
+    console.log('🟢 [ModifyUser.vue] 수정 성공:', response.data);
+    alert('회원정보가 수정되었습니다.');
+    
+    // 성공 후 메인 페이지로 이동
+    router.push("/");
+    
+  } catch (error) {
+    console.error('❌ [ModifyUser.vue] 수정 실패:', error);
+    
+    if (error.response?.status === 401) {
+      alert('로그인이 필요합니다.');
+      router.push("/login");
+    } else if (error.response?.data?.message) {
+      alert(`수정 실패: ${error.response.data.message}`);
+    } else {
+      alert('회원정보 수정에 실패했습니다. 다시 시도해주세요.');
+    }
+  } finally {
+    isSubmitting.value = false;
   }
 };
 </script>
@@ -274,6 +369,7 @@ const removeImage = () => {
   font-family: Inter, sans-serif;
   font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .cancel-btn {
@@ -282,10 +378,23 @@ const removeImage = () => {
   color: #4a5565;
 }
 
+.cancel-btn:hover {
+  background: #f9fafb;
+}
+
 .submit-btn {
   background: #155dfc;
   color: white;
   border: none;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #0d47d1;
+}
+
+.submit-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
 }
 
 .remove-btn {

@@ -5,15 +5,16 @@ import axios from 'axios';
 const apiClient = axios.create({
   baseURL: 'http://localhost:8080',
   withCredentials: true,  // ⭐ 모든 요청에 쿠키 자동 포함
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  // Content-Type 제거: axios가 요청 데이터 타입에 따라 자동 설정
+  // - 일반 객체 → application/json
+  // - FormData → multipart/form-data
 });
 
 // 요청 인터셉터
 apiClient.interceptors.request.use(
   (config) => {
     console.log('API 요청:', config.url);
+    console.log('Content-Type:', config.headers['Content-Type']);
     return config;
   },
   (error) => {
