@@ -483,6 +483,7 @@ function toggleRecords() {
   display:flex; align-items:center; gap:20px; padding:16px;
   background:linear-gradient(90deg,#ffffff 30%,#f7fbff 100%);
 }
+
 .avatar {
   width: 96px;
   height: 96px;
@@ -494,6 +495,13 @@ function toggleRecords() {
   justify-content: center;
   overflow: hidden;
 }
+
+.avatar-img {
+  width: 50%;               
+  height: 50%;
+  object-fit: contain;     
+}
+
 .pinfo{ display:flex; flex-direction:column; gap:6px; }
 .nickname{ font-size:18px; font-weight:700; }
 .bio{ color:#667085; font-size:13px; }

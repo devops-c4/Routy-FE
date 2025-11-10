@@ -1,0 +1,616 @@
+<template>
+  <div class="modal-overlay" @click.self="$emit('close')">
+    <div class="modal-content">
+      <!-- 닫기 버튼 -->
+      <button class="close-btn" @click="$emit('close')">×</button>
+
+      <!-- 헤더 -->
+      <div class="modal-header">
+        <div class="title-wrapper">
+          <h2 class="title">{{ route.title }}</h2>
+          <span class="badge-public">공개</span>
+        </div>
+        <div class="meta-info">
+          <span class="meta-item">
+            <span class="meta-icon">👤</span>
+            {{ route.user }}
+          </span>
+          <span class="meta-item">
+            <span class="meta-icon">📅</span>
+            {{ route.days }}
+          </span>
+          <span class="meta-item">
+            <span class="meta-icon">📍</span>
+            {{ route.city }}
+          </span>
+        </div>
+      </div>
+
+      <!-- 통계 -->
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-icon">❤️</span>
+          <span class="stat-label">좋아요</span>
+          <span class="stat-value">{{ route.likes.toLocaleString() }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">👁️</span>
+          <span class="stat-label">조회수</span>
+          <span class="stat-value">{{ route.views.toLocaleString() }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">🔖</span>
+          <span class="stat-label">북마크</span>
+          <span class="stat-value">{{ route.shares }}</span>
+        </div>
+      </div>
+
+      <!-- 여행 후기 -->
+      <div class="review-section">
+        <div class="review-header">
+          <div class="user-info">
+            <div class="user-avatar">
+              <span>👤</span>
+            </div>
+            <div class="user-details">
+              <div class="user-name">{{ route.user }}님의 여행 후기</div>
+              <div class="review-date">{{ route.createdAt }}</div>
+            </div>
+          </div>
+          <div class="rating">
+            <span v-for="n in 5" :key="n" class="star">⭐</span>
+          </div>
+        </div>
+
+        <div class="review-images">
+          <img
+            v-for="(img, idx) in route.review.images"
+            :key="idx"
+            :src="img"
+            :alt="`여행 사진 ${idx + 1}`"
+            class="review-image"
+          />
+        </div>
+
+        <div class="review-text">
+          {{ route.review.text }}
+        </div>
+      </div>
+
+      <!-- 상세 일정 -->
+      <div class="itinerary-section">
+        <h3 class="section-title">상세 일정</h3>
+
+        <!-- Day 탭 -->
+        <div class="day-tabs">
+          <button
+            v-for="day in route.itinerary"
+            :key="day.day"
+            class="day-tab"
+            :class="{ active: selectedDay === day.day }"
+            @click="selectedDay = day.day"
+          >
+            Day {{ day.day }}
+            <span class="place-count">{{ day.places.length }}</span>
+          </button>
+        </div>
+
+        <!-- 장소 목록 -->
+        <div class="places-list">
+          <div
+            v-for="(place, idx) in selectedDayPlaces"
+            :key="idx"
+            class="place-item"
+          >
+            <div class="place-number">
+              <span class="number">{{ idx + 1 }}</span>
+              <div v-if="idx < selectedDayPlaces.length - 1" class="connector"></div>
+            </div>
+            <div class="place-details">
+              <div class="place-header">
+                <div class="place-name-wrapper">
+                  <span class="place-emoji">{{ place.emoji }}</span>
+                  <span class="place-name">{{ place.name }}</span>
+                </div>
+                <div class="place-time">
+                  <span class="time-icon">🕐</span>
+                  {{ place.time }}
+                </div>
+              </div>
+              <div class="place-address">
+                <span class="address-icon">📍</span>
+                {{ place.address }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 하단 버튼 -->
+      <div class="modal-footer">
+        <div class="footer-date">{{ route.createdAt }} 생성</div>
+        <div class="footer-actions">
+          <button class="btn-import">
+            <span class="btn-icon"></span>
+            나의 일정으로 불러오기
+          </button>
+          <button class="btn-close" @click="$emit('close')">닫기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue';
+
+const props = defineProps({
+  route: {
+    type: Object,
+    required: true
+  }
+});
+
+defineEmits(['close']);
+
+const selectedDay = ref(1);
+
+const selectedDayPlaces = computed(() => {
+  const day = props.route.itinerary.find(d => d.day === selectedDay.value);
+  return day ? day.places : [];
+});
+</script>
+
+<style scoped>
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.modal-content {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  padding: 48px 24px 24px;
+}
+
+.close-btn {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  width: 32px;
+  height: 32px;
+  font-size: 24px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+/* 헤더 */
+.modal-header {
+  margin-bottom: 24px;
+}
+
+.title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0a0a0a;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.badge-public {
+  background: #030213;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.meta-info {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a5565;
+}
+
+.meta-icon {
+  font-size: 16px;
+}
+
+/* 통계 바 */
+.stats-bar {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 24px;
+  padding: 0 20px;
+  height: 57px;
+  background: linear-gradient(90deg, #eff6ff 0%, #faf5ff 50%, #fdf2f8 100%);
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  margin-bottom: 24px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-icon {
+  font-size: 20px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #0a0a0a;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0a0a0a;
+}
+
+/* 여행 후기 */
+.review-section {
+  background: linear-gradient(135deg, white 0%, rgba(238, 245, 254, 0.3) 100%);
+  border: 2px solid #dbeafe;
+  border-radius: 14px;
+  padding: 26px;
+  margin-bottom: 24px;
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #2b7fff 0%, #ad46ff 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-name {
+  font-size: 16px;
+  color: #101828;
+}
+
+.review-date {
+  font-size: 12px;
+  color: #6a7282;
+}
+
+.rating {
+  display: flex;
+  gap: 2px;
+}
+
+.star {
+  font-size: 20px;
+}
+
+.review-images {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.review-image {
+  width: 92px;
+  height: 92px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: #f3f4f6;
+  box-shadow: 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+.review-text {
+  background: white;
+  border-radius: 10px;
+  padding: 16px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #364153;
+  white-space: pre-line;
+}
+
+/* 상세 일정 */
+.itinerary-section {
+  margin-bottom: 24px;
+}
+
+.section-title {
+  font-size: 16px;
+  color: #101828;
+  margin: 0 0 16px 0;
+}
+
+.day-tabs {
+  display: flex;
+  gap: 0;
+  background: #ececf0;
+  border-radius: 14px;
+  padding: 3px;
+  margin-bottom: 24px;
+}
+
+.day-tab {
+  flex: 1;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0a0a0a;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.day-tab.active {
+  background: white;
+}
+
+.place-count {
+  background: #155dfc;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.places-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.place-item {
+  display: flex;
+  gap: 16px;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.place-number {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.number {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #2b7fff 0%, #155dfc 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+  box-shadow: 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+.connector {
+  width: 2px;
+  flex: 1;
+  background: linear-gradient(180deg, #8ec5ff 0%, #dbeafe 100%);
+}
+
+.place-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.place-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.place-name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.place-emoji {
+  font-size: 20px;
+}
+
+.place-name {
+  font-size: 18px;
+  color: #0a0a0a;
+}
+
+.place-time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #2b7fff;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 14px;
+}
+
+.time-icon {
+  font-size: 16px;
+}
+
+.place-address {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #4a5565;
+}
+
+.address-icon {
+  font-size: 16px;
+  color: #2b7fff;
+}
+
+/* 하단 */
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 24px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.footer-date {
+  font-size: 14px;
+  color: #6a7282;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-import {
+  background: linear-gradient(90deg, #155dfc 0%, #1447e6 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.btn-import:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px -2px rgba(0, 0, 0, 0.15);
+}
+
+.btn-icon {
+  font-size: 16px;
+}
+
+.btn-close {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0a0a0a;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-close:hover {
+  background: #f3f4f6;
+}
+
+@media (max-width: 640px) {
+  .modal-content {
+    padding: 40px 16px 16px;
+  }
+
+  .stats-bar {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 12px 16px;
+  }
+
+  .review-images {
+    overflow-x: auto;
+  }
+
+  .footer-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn-import,
+  .btn-close {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>
