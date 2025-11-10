@@ -119,7 +119,12 @@ const checkVarifyNum = () => {
     alert("인증번호를 다시 확인해주세요");
     return;
   }
-  router.push("/change-password");
+  
+  // 이메일을 쿼리 파라미터로 전달
+  router.push({
+    path: "/change-password",
+    query: { email: email.value }
+  });
 }
 </script>
 
