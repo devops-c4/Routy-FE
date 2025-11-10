@@ -5,13 +5,14 @@
       <div class="left-section">
         <!-- 로고 -->
         <div class="logo-section">
-          <img class="logo-img" src="/images/icons/logo.png" alt="logo" @click="moveToHome"/>
+          <img class="logo-img" src="@/assets/images/icons/logo.png" alt="logo" @click="moveToHome"/>
         </div>
 
         <!-- 로고 옆 텍스트 메뉴 -->
         <div class="route-section">
           <span class="route-item" @click="moveToDraw">여행 루트 그리기</span>
           <span class="route-item" @click="moveToBrowse">여행 루트 둘러보기</span>
+          <span class="route-item" @click="moveToChatBot">🤖</span>
         </div>
       </div>
 
@@ -111,6 +112,7 @@ const handleLogout = async () => {
     router.push('/');
   }
 };
+const moveToChatBot = () => router.push('/chatbot');
 </script>
 
 <style scoped>
