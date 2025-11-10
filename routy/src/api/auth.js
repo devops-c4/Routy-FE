@@ -7,7 +7,7 @@ const LOGIN_STATUS_KEY = 'routy:isLoggedIn';
  * 로그인 API
  */
 export const login = async (email, password) => {
-  const response = await apiClient.post('/login', {
+  const response = await apiClient.post('/user/login', {
     email,
     password
   });
@@ -54,6 +54,27 @@ export const logout = async () => {
     window.localStorage?.removeItem(LOGIN_STATUS_KEY);
     window.dispatchEvent(new CustomEvent('login-status-changed', { detail: { loggedIn: false } }));
     
+    throw error;
+  }
+};
+
+/**
+ * 비밀번호 변경 API
+ */
+export const changePassword = async (email, newPassword) => {
+  console.log('🔵 [auth.js] changePassword 함수 시작');
+  console.log('🔵 [auth.js] email:', email);
+  
+  try {
+    const response = await apiClient.put('/auth/change-password', {  // PUT으로 변경
+      email,
+      newPassword
+    });
+    
+    console.log('🟢 [auth.js] 비밀번호 변경 성공:', response);
+    return response;
+  } catch (error) {
+    console.error('❌ [auth.js] 비밀번호 변경 실패:', error);
     throw error;
   }
 };
