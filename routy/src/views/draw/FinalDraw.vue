@@ -97,10 +97,10 @@
             <div class="map-header">
               <div class="map-title">추천 장소 지도</div>
               <div class="map-legend">
-                <span><i class="dot orange"></i> 맛집</span>
-                <span><i class="dot yellow"></i> 카페</span>
+                <span><i class="dot purple"></i> 맛집</span>
+                <span><i class="dot brown"></i> 카페</span>
                 <span><i class="dot blue"></i> 관광지</span>
-                <span><i class="dot green"></i> 숙소</span>
+                <span><i class="dot yellow"></i> 숙소</span>
               </div>
             </div>
             <div class="map-canvas" ref="mapContainer"></div>
@@ -661,6 +661,10 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+
+.dot.purple { background: #A855F7; } /* 연보라 (카페 등) */
+.dot.brown { background: #9A6648; }  /* 브라운톤 (맛집 등) */
+
 .full-layout {
   max-width: 1520px;
   border-radius: 14px;
