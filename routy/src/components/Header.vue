@@ -15,7 +15,6 @@
 
         <!-- 로고 옆 텍스트 메뉴 -->
         <div class="route-section">
-<<<<<<< HEAD
           <span
             class="route-item"
             :class="{ active: isActive('/draw/first') }"
@@ -32,7 +31,7 @@
           </span>
           <span class="route-item" @click="moveToChatBot">🤖</span>
       </div>
-
+</div>
       <!-- 오른쪽 메뉴 -->
       <div class="menu-section">
         <template v-if="!isLoggedIn">
