@@ -1,7 +1,5 @@
 <template>
   <div class="find-email-container">
-    <!-- 헤더 -->
-    <!-- <Header /> -->
 
     <!-- 본문 -->
     <div class="content">
@@ -37,31 +35,45 @@
 
 <script setup>
 import { ref } from 'vue';
-import axios from 'axios';
+import { findMyEmail } from '@/api/auth';
 
-const username = ref("")
-const phone = ref("")
+const username = ref("");
+const phone = ref("");
 
 const findEmail = async () => {
-  if(username.value == "" || phone.value == ""){
-    alert("사용자 이름과 전화번호를 다시 한번 확인해주십시오");
+  // 유효성 검사
+  if (!username.value || !phone.value) {
+    alert("사용자 이름과 전화번호를 입력해주세요.");
     return;
   }
-  const data = new FormData()
-  data.append("username",username.value);
-  data.append("phone",phone.value);
-
-  await axios.post("http://localhost:8080/user/find-email",data).then(
-    (res) => {
-      if(res.data == "존재하지 않는 회원입니다."){
-        alert("존재하지 않는 회원입니다.");
-        return;
-      }
-      alert(`회원님의 이메일은 ${res.data} 입니다.`);
+  
+  console.log('🔵 [FindEmail.vue] 이메일 찾기 시작');
+  console.log('🔵 [FindEmail.vue] username:', username.value);
+  console.log('🔵 [FindEmail.vue] phone:', phone.value);
+  
+  try {
+    const email = await findMyEmail(username.value, phone.value);
+    
+    console.log('🟢 [FindEmail.vue] 받은 이메일:', email);
+    
+    if (email === "존재하지 않는 회원입니다.") {
+      alert("존재하지 않는 회원입니다.");
       return;
     }
-  )
-}
+    
+    alert(`회원님의 이메일은 ${email} 입니다.`);
+  } catch (error) {
+    console.error('❌ [FindEmail.vue] 이메일 찾기 실패:', error);
+    
+    if (error.response?.status === 404) {
+      alert('존재하지 않는 회원입니다.');
+    } else if (error.response?.data?.message) {
+      alert(`오류: ${error.response.data.message}`);
+    } else {
+      alert('이메일 찾기에 실패했습니다. 다시 시도해주세요.');
+    }
+  }
+};
 </script>
 
 <style scoped>
