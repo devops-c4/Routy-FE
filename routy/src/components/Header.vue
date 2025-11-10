@@ -27,7 +27,7 @@
         <!-- 로그인 후 -->
         <template v-else>
           <span class="menu-item" @click="moveToMyPage">마이페이지</span>
-          <span class="menu-item" @click="handleLogout">로그아웃</span>
+          <span class="menu-item" @click="showLogoutConfirm">로그아웃</span>
         </template>
       </div>
     </div>
@@ -46,21 +46,26 @@ const LOGIN_STATUS_KEY = 'routy:isLoggedIn';
 // 로그인 상태 확인 (localStorage 기반)
 const checkAuthStatus = () => {
   isLoggedIn.value = getLocalAuthStatus();
+  console.log('🔍 [Header] 현재 로그인 상태:', isLoggedIn.value);
 };
 
 // CustomEvent 리스너
 const handleLoginStatusChange = (event) => {
+  console.log('🔔 [Header] login-status-changed 이벤트 수신:', event.detail);
   isLoggedIn.value = event.detail.loggedIn;
+  console.log('🔔 [Header] 로그인 상태 업데이트됨:', isLoggedIn.value);
 };
 
 // 컴포넌트 마운트 시 로그인 상태 확인 및 이벤트 리스너 등록
 onMounted(() => {
+  console.log('🟢 [Header] 컴포넌트 마운트됨');
   checkAuthStatus();
   window.addEventListener('login-status-changed', handleLoginStatusChange);
 });
 
 // 컴포넌트 언마운트 시 이벤트 리스너 제거
 onUnmounted(() => {
+  console.log('🔴 [Header] 컴포넌트 언마운트됨');
   window.removeEventListener('login-status-changed', handleLoginStatusChange);
 });
 
@@ -72,16 +77,37 @@ const moveToRegister = () => router.push('/signup');
 const moveToLogin = () => router.push('/login');
 const moveToMyPage = () => router.push('/mypage');
 
+// 로그아웃 확인창 표시
+const showLogoutConfirm = () => {
+  if (confirm('로그아웃 하시겠습니까?')) {
+    handleLogout();
+  }
+};
+
 // 로그아웃 처리
 const handleLogout = async () => {
+  console.log('🔴 [Header] 로그아웃 버튼 클릭됨!');
+  console.log('🔴 [Header] logout 함수 타입:', typeof logout);
+  console.log('🔴 [Header] logout 함수:', logout);
+  
   try {
+    console.log('🔵 [Header] logout() 함수 호출 시작');
+    
     // API 호출하여 백엔드 쿠키 삭제
     await logout();
     
+    console.log('🟢 [Header] logout() 함수 호출 성공!');
+    console.log('🟢 [Header] 홈으로 이동 중...');
+    
     // 홈으로 이동
     router.push('/');
+    
+    console.log('🟢 [Header] 홈 이동 완료');
   } catch (error) {
-    console.error('로그아웃 처리 중 오류:', error);
+    console.error('❌ [Header] 로그아웃 처리 중 오류:', error);
+    console.error('❌ [Header] 에러 상세:', error.message);
+    console.error('❌ [Header] 에러 스택:', error.stack);
+    
     // 에러가 발생해도 홈으로 이동
     router.push('/');
   }

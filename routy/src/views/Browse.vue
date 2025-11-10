@@ -1,7 +1,5 @@
 <template>
   <div class="home-container">
-    <!-- 헤더 -->
-    <Header />
     <!-- 메인 섹션 -->
     <section class="main-section">
       <h1 class="title">여행 루트 둘러보기</h1>
@@ -27,7 +25,6 @@
 </template>
 
 <script setup>
-import Header from "@/components/Header.vue";
 import TravelCard from "@/components/Travelcard.vue";
 
 const routes = [
@@ -65,36 +62,15 @@ const routes = [
 </script>
 
 <style scoped>
-.home-container {
-  width: 100%;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #eff6ff 0%, white 50%, #f0fdf4 100%);
-  font-family: "Inter", sans-serif;
+
+body {
+  margin: 0;
   color: #0a0a0a;
 }
 
-/* 헤더 */
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 145px;
-  background: rgba(255, 255, 255, 0.8);
-  position: sticky;
-  top: 0;
-}
-
-.header-logo {
-  width: 120px;
-  height: auto;
-}
-
-.nav a,
-.auth a {
-  color: #4a5565;
-  font-size: 16px;
-  margin: 0 12px;
-  text-decoration: none;
+.home-container {
+  width: 100%;
+  min-height: 100vh;
 }
 
 /* 메인 섹션 */
