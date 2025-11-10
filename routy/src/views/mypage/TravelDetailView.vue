@@ -34,6 +34,29 @@ const deletePlan = async () => {
   }
 }
 
+// 공유하기 버튼 눌렀을 때
+async function togglePublic() {
+  try {
+    // 현재 상태
+    const currentStatus = travel.value.is_public  // 0 또는 1
+
+    await apiClient.patch(`/api/plans/${planId}/public`)
+
+    // 토글 후 예상 상태 기반 메시지 표시
+    if (currentStatus === 0) {
+      alert('일정이 공유되었습니다.')
+      travel.value.is_public = 1
+    } else {
+      alert('일정 공유가 취소되었습니다.')
+      travel.value.is_public = 0
+    }
+  } catch (err) {
+    console.error('❌ 공유 상태 변경 중 오류:', err)
+    alert('공유 상태 변경에 실패했습니다.')
+  }
+}
+
+
 // 백엔드 연동
 onMounted(async () => {
   try {
@@ -84,6 +107,7 @@ function toggleMore() {
         </div>
         <div class="header-right">
           <button class="btn btn-outline-blue" @click="goToEditPage">수정</button>
+          <button class="btn btn-outline-green" @click="togglePublic">공유</button>
           <button class="btn delete" @click="deletePlan">삭제</button>
         </div>
       </header>
@@ -501,9 +525,9 @@ function toggleMore() {
 }
 
 .btn.delete {
-  color: #ff4d4f; /* 빨간 글씨 */
-  border: 1.5px solid #ff4d4f; /* 빨간 테두리 */
-  background-color: transparent; /* 배경 투명 */
+  color: #ff4d4f; 
+  border: 1.5px solid #ff4d4f; 
+  background-color: transparent; 
   border-radius: 6px;
   padding: 6px 14px;
   font-weight: 500;
@@ -511,10 +535,26 @@ function toggleMore() {
   transition: 0.2s ease-in-out;
 }
 
-/* hover 시 색 반전 효과 */
+
 .btn.delete:hover {
   background-color: #ff4d4f;
   color: white;
+}
+
+
+.btn-outline-green {
+  border: 1px solid #16a34a;   
+  color: #16a34a;              
+  background-color: transparent;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-outline-green:hover {
+  background-color: #16a34a;
+  color: #fff;
 }
 
 </style>
