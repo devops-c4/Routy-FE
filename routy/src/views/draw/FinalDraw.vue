@@ -622,12 +622,15 @@ const loadDurations = async () => {
 // 일차 이동
 const goPrevDay = () => {
   if (selectedDay.value > 1) selectedDay.value--;
+  deletePoliLine();
 };
 const goNextDay = () => {
   if (selectedDay.value < durations.value.length) selectedDay.value++;
+  deletePoliLine();
 };
 const selectDay = (day) => {
   selectedDay.value = day;
+  deletePoliLine();
 };
 
 // 일차 변경 시 마커 업데이트
@@ -698,17 +701,25 @@ const drawSort = async () => {
     return;
   }
 
-  const reorderedPlaces = newLocations.map(nLoc => {
-    return currentPlaces.find(p =>
+  const reorderedPlaces = newLocations.map((nLoc, index) => {
+    const matched = currentPlaces.find(p =>
       p.title === nLoc.name ||
       (Math.abs(p.latitude - nLoc.y) < 1e-6 &&
         Math.abs(p.longitude - nLoc.x) < 1e-6)
     );
+
+    if (!matched) return null;
+
+    // 기존 객체를 복사하면서 travelOrder 속성 추가
+    return {
+      ...matched,
+      travelOrder: index + 1
+    };
   }).filter(Boolean); // 매칭 실패 시 제거
 
   placesByDay.value[selectedDay.value] = reorderedPlaces;
   console.log("정렬된 장소:", reorderedPlaces)
-  console.log("정렬된 장소:", placesByDay.value[selectedDay.value]);
+  console.log("정렬된 장소:", placesByDay.value[selectedDay.value]);  // 확인 필요
 }
 
 </script>
