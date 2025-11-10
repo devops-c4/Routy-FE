@@ -2,7 +2,7 @@
   <div class="chat-page">
     <h1>Routy ChatBot 🤖</h1>
 
-    <div class="chat-box">
+    <div class="chat-box" ref="chatBox">
       <div v-for="(m, i) in messages" :key="i" :class="['msg', m.role]">
         <p>{{ m.text }}</p>
       </div>
@@ -42,13 +42,22 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, nextTick, watch } from 'vue'
 import axios from 'axios'
 
+const chatBox = ref(null)
 const userInput = ref('')
 const messages = ref([
   { role: 'bot', text: '안녕하세요! 무엇을 도와드릴까요?' }
 ])
+
+//메시지 추가 시 자동 스크롤
+watch(messages, async () => {
+  await nextTick()
+  if (chatBox.value) {
+    chatBox.value.scrollTop = chatBox.value.scrollHeight
+  }
+}, { deep: true })
 
 const suggestions = ref([
   "추천해줄 수 있는 국내 여행지가 있니?",
@@ -63,22 +72,16 @@ const subSuggestions = ref([])
 
 const handleSuggestion = (text) => {
   if (text.includes("국내 여행지")) {
-    messages.value.push({ role: 'user', text: text })
-
+    messages.value.push({ role: 'user', text })
     messages.value.push({ role: 'bot', text: '어떤 지역을 원하시나요?' })
-
     subSuggestions.value = ["서울", "부산", "제주", "강릉", "경주", "여수", "전주", "속초", "대구", "인천", "대전", "광주"]
-  } else if(text.includes("이번주 날씨")) {
-    messages.value.push({ role: 'user', text: text })
-
+  } else if (text.includes("이번주 날씨")) {
+    messages.value.push({ role: 'user', text })
     messages.value.push({ role: 'bot', text: '무슨 요일 날씨를 알고 싶으신가요?' })
-
     subSuggestions.value = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
-  } else if(text.includes("테마")){
-    messages.value.push({ role: 'user', text: text })
-
+  } else if (text.includes("테마")) {
+    messages.value.push({ role: 'user', text })
     messages.value.push({ role: 'bot', text: '선호하는 여행스타일이 있나요?' })
-
     subSuggestions.value = ["식도락", "액티비티", "힐링", "캠핑", "레저", "가족", "우정"]
   } else {
     subSuggestions.value = []
@@ -88,20 +91,17 @@ const handleSuggestion = (text) => {
 }
 
 const handleSubSuggestion = (v) => {
-
-  if(["서울", "부산", "제주", "강릉", "경주", "여수", "전주", "속초", "대구", "인천", "대전", "광주"].some(p => v.includes(p))){
+  if(["서울","부산","제주","강릉","경주","여수","전주","속초","대구","인천","대전","광주"].some(p => v.includes(p))){
     subSuggestions.value = []
     const text = `${v} 여행지 추천해줘`
     userInput.value = text
     sendMessage()
-  } 
-  else if(["월", "화", "수", "목", "금", "토", "일"].some(p => v.includes(p))){
+  } else if(["월","화","수","목","금","토","일"].some(p => v.includes(p))){
     subSuggestions.value = [] 
     const text = `이번주 ${v} 날씨 좀 알려줘`
     userInput.value = text
     sendMessage()
-  }
-  else if(["식도락", "액티비티", "힐링", "캠핑", "레저", "가족", "우정"].some(p => v.includes(p))){
+  } else if(["식도락","액티비티","힐링","캠핑","레저","가족","우정"].some(p => v.includes(p))){
     subSuggestions.value = [] 
     const text = `${v} 여행지 국내에서 좀 알려줘`
     userInput.value = text
