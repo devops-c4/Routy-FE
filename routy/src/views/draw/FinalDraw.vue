@@ -72,9 +72,9 @@
           <!-- 일차 전환 -->
           <div class="day-control">
             <div class="day-buttons">
-              <button class="day-btn gray" :disabled="selectedDay === 1" @click="goPrevDay">어제</button>
+              <button class="day-btn gray" :disabled="selectedDay === 1" @click="goPrevDay">이전</button>
               <span class="day-label">{{ selectedDay }}일차</span>
-              <button class="day-btn gray" :disabled="selectedDay === durations.length" @click="goNextDay">내일</button>
+              <button class="day-btn gray" :disabled="selectedDay === durations.length" @click="goNextDay">다음</button>
             </div>
 
             <div class="day-numbers">
@@ -140,7 +140,7 @@
                 <div class="place-address">{{ p.addressName }}</div>
                 <div class="place-meta">
                   <span>{{ p.categoryGroupName }}</span>
-                  <a :href="p.placeUrl" target="_blank" style="color:#155DFC; text-decoration:none;">지도보기</a>
+                  <a :href="p.placeUrl" target="_blank" style="color:#155DFC; text-decoration:none;">상세보기</a>
                 </div>
               </div>
               <button class="add-btn" @click="addPlace(p)" :disabled="isDayCompleted">추가</button>
@@ -271,7 +271,7 @@ const loadPlanInfo = async () => {
     
     if (plan.regionId && regionStartPoints[plan.regionId]) {
       startLocation.value = regionStartPoints[plan.regionId];
-      console.log(`🎯 시작 지점 설정: ${startLocation.value.name} (${startLocation.value.type})`);
+      console.log(`시작 지점 설정: ${startLocation.value.name} (${startLocation.value.type})`);
     }
   } catch (err) {
     console.error("Plan 정보 불러오기 실패:", err);
