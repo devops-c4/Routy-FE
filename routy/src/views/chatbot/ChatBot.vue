@@ -53,6 +53,10 @@ const messages = ref([
 const suggestions = ref([
   "추천해줄 수 있는 국내 여행지가 있니?",
   "이번주 날씨 어때?",
+  "국내 여행 노하우나 팁이 있니?",
+  "요즘 인기있는 국내 관광지는 어디니?",
+  "여행 초보가 갈만한 국내 관광지는 어디가 있니?",
+  "여행 테마별로 국내에서 여행지 추천해줄 수 있니?"
 ])
 
 const subSuggestions = ref([])
@@ -70,6 +74,12 @@ const handleSuggestion = (text) => {
     messages.value.push({ role: 'bot', text: '무슨 요일 날씨를 알고 싶으신가요?' })
 
     subSuggestions.value = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
+  } else if(text.includes("테마")){
+    messages.value.push({ role: 'user', text: text })
+
+    messages.value.push({ role: 'bot', text: '선호하는 여행스타일이 있나요?' })
+
+    subSuggestions.value = ["식도락", "액티비티", "힐링", "캠핑", "레저", "가족", "우정"]
   } else {
     subSuggestions.value = []
     userInput.value = text
@@ -88,6 +98,12 @@ const handleSubSuggestion = (v) => {
   else if(["월", "화", "수", "목", "금", "토", "일"].some(p => v.includes(p))){
     subSuggestions.value = [] 
     const text = `이번주 ${v} 날씨 좀 알려줘`
+    userInput.value = text
+    sendMessage()
+  }
+  else if(["식도락", "액티비티", "힐링", "캠핑", "레저", "가족", "우정"].some(p => v.includes(p))){
+    subSuggestions.value = [] 
+    const text = `${v} 여행지 국내에서 좀 알려줘`
     userInput.value = text
     sendMessage()
   }
