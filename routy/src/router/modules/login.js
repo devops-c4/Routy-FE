@@ -28,9 +28,5 @@ export default [
         path: '/login/success',
         name: 'loginSuccess',
         component: () => import("@/views/userauth/LoginSuccess.vue")
-    },{
-        path: '/modify-user',
-        name: "ModifyUser",
-        component: () => import("@/views/userauth/ModifyUser.vue")
     }
 ];
