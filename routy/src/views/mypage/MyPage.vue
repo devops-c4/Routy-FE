@@ -1,10 +1,21 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
+import TravelReviewModal from '@/views/mypage/TravelReviewModal.vue' // 모달 파일 경로 그대로 쓰면 됨
+const showReviewModal = ref(false)
+const selectedTravel = ref(null)
 
+function openReviewModal(travel) {
+  selectedTravel.value = travel
+  showReviewModal.value = true
+}
+function closeReviewModal() {
+  showReviewModal.value = false
+  selectedTravel.value = null
+}
 
 /* ====== 로그인 유저 (일단 하드코딩) ====== */
-const userNo = 3
+const userNo = 11
 
 /* ====== 달력 상태 ====== */
 const now = new Date()
@@ -312,6 +323,13 @@ function formatDateRange(start, end) {
           <span class="pin">📍</span>
           <b>{{ r.title }}</b>
           <small>{{ r.desc }}</small>
+
+           <button
+    class="review-btn"
+    @click="openReviewModal(r)"
+  >
+    리뷰 쓰기
+  </button>
         </div>
       </div>
       <div class="block__footer">
@@ -337,6 +355,11 @@ function formatDateRange(start, end) {
       </div>
     </section>
   </div>
+  <TravelReviewModal
+  v-if="showReviewModal"
+  :travel="selectedTravel"
+  @close="closeReviewModal"
+/>
 </template>
 
 <style>
@@ -524,6 +547,16 @@ function formatDateRange(start, end) {
 @media (max-width: 600px){
   .calendar, .schedule{ min-height: 360px; }
   .thumb-row, .bm-grid{ grid-template-columns:1fr; }
+}
+
+.review-btn {
+  margin-top: 8px;
+  background: rgba(255,255,255,.2);
+  border: 1px solid rgba(255,255,255,.4);
+  color: #fff;
+  font-size: 12px;
+  border-radius: 6px;
+  padding: 4px 10px;
 }
 </style>
 
