@@ -2,10 +2,6 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 
-
-/* ====== 로그인 유저 (일단 하드코딩) ====== */
-const userNo = 3
-
 /* ====== 달력 상태 ====== */
 const now = new Date()
 const year  = ref(now.getFullYear())
