@@ -39,7 +39,7 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import mainLogo from "/images/icons/main-logo.png";
+import mainLogo from "@/assets/images/icons/home-logo.png";
 
 const router = useRouter();
 const keyword = ref("");
