@@ -193,4 +193,31 @@ export const syncAuthStatus = async () => {
     window.localStorage?.removeItem(LOGIN_STATUS_KEY);
     return false;
   }
+
+  
+};
+
+// 이메일 찾기 API
+export const findMyEmail = async (username, phone) => {
+  console.log('🔵 [auth.js] findMyEmail 함수 시작');
+  console.log('🔵 [auth.js] username:', username);
+  console.log('🔵 [auth.js] phone:', phone);
+  
+  try {
+    
+    // GET 요청에 query parameter로 전송
+    // 요청 URL: /auth/find-email?username=홍길동&phone=010-1234-5678
+    const response = await apiClient.get('/auth/find-email', {
+      params: {
+        username,
+        phone
+      }
+    });
+    
+    console.log('🟢 [auth.js] 이메일 찾기 성공:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ [auth.js] 이메일 찾기 실패:', error);
+    throw error;
+  }
 };
