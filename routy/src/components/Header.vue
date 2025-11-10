@@ -5,25 +5,40 @@
       <div class="left-section">
         <!-- 로고 -->
         <div class="logo-section">
-          <img class="logo-img" src="/images/icons/logo.png" alt="logo" @click="moveToHome"/>
+          <img
+            class="logo-img"
+            src="@/assets/images/icons/logo.png"
+            alt="logo"
+            @click="moveToHome"
+          />
         </div>
 
         <!-- 로고 옆 텍스트 메뉴 -->
         <div class="route-section">
-          <span class="route-item" @click="moveToDraw">여행 루트 그리기</span>
-          <span class="route-item" @click="moveToBrowse">여행 루트 둘러보기</span>
+          <span
+            class="route-item"
+            :class="{ active: isActive('/draw/first') }"
+            @click="moveToDraw"
+          >
+            여행 루트 그리기
+          </span>
+          <span
+            class="route-item"
+            :class="{ active: isActive('/browse') }"
+            @click="moveToBrowse"
+          >
+            여행 루트 둘러보기
+          </span>
         </div>
       </div>
 
-      <!-- 오른쪽 메뉴 - 로그인 상태에 따라 분기 -->
+      <!-- 오른쪽 메뉴 -->
       <div class="menu-section">
-        <!-- 로그인 전 -->
         <template v-if="!isLoggedIn">
           <span class="menu-item" @click="moveToRegister">회원가입</span>
           <span class="menu-item" @click="moveToLogin">로그인</span>
         </template>
-        
-        <!-- 로그인 후 -->
+
         <template v-else>
           <span class="menu-item" @click="moveToMyPage">마이페이지</span>
           <span class="menu-item" @click="showLogoutConfirm">로그아웃</span>
@@ -34,83 +49,48 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
-import { useRouter } from "vue-router";
-import { logout, getLocalAuthStatus } from '@/api/auth';
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { logout, getLocalAuthStatus } from '@/api/auth'
 
-const router = useRouter();
-const isLoggedIn = ref(false);
-const LOGIN_STATUS_KEY = 'routy:isLoggedIn';
+const router = useRouter()
+const route = useRoute()
+const isLoggedIn = ref(false)
 
-// 로그인 상태 확인 (localStorage 기반)
+// 로그인 상태 체크
 const checkAuthStatus = () => {
-  isLoggedIn.value = getLocalAuthStatus();
-  console.log('🔍 [Header] 현재 로그인 상태:', isLoggedIn.value);
-};
+  isLoggedIn.value = getLocalAuthStatus()
+}
 
-// CustomEvent 리스너
-const handleLoginStatusChange = (event) => {
-  console.log('🔔 [Header] login-status-changed 이벤트 수신:', event.detail);
-  isLoggedIn.value = event.detail.loggedIn;
-  console.log('🔔 [Header] 로그인 상태 업데이트됨:', isLoggedIn.value);
-};
+// 현재 경로와 비교해 active 여부 반환
+const isActive = (path) => {
+  return route.path.startsWith(path)
+}
 
-// 컴포넌트 마운트 시 로그인 상태 확인 및 이벤트 리스너 등록
-onMounted(() => {
-  console.log('🟢 [Header] 컴포넌트 마운트됨');
-  checkAuthStatus();
-  window.addEventListener('login-status-changed', handleLoginStatusChange);
-});
+// 이동 함수들
+const moveToHome = () => router.push('/')
+const moveToDraw = () => router.push('/draw/first')
+const moveToBrowse = () => router.push('/browse')
+const moveToRegister = () => router.push('/signup')
+const moveToLogin = () => router.push('/login')
+const moveToMyPage = () => router.push('/mypage')
 
-// 컴포넌트 언마운트 시 이벤트 리스너 제거
-onUnmounted(() => {
-  console.log('🔴 [Header] 컴포넌트 언마운트됨');
-  window.removeEventListener('login-status-changed', handleLoginStatusChange);
-});
-
-// 네비게이션 함수들
-const moveToHome = () => router.push("/");
-const moveToDraw = () => router.push('/draw/first');
-const moveToBrowse = () => router.push("/browse");
-const moveToRegister = () => router.push('/signup');
-const moveToLogin = () => router.push('/login');
-const moveToMyPage = () => router.push('/mypage');
-
-// 로그아웃 확인창 표시
+// 로그아웃
 const showLogoutConfirm = () => {
   if (confirm('로그아웃 하시겠습니까?')) {
-    handleLogout();
+    handleLogout()
   }
-};
+}
 
-// 로그아웃 처리
 const handleLogout = async () => {
-  console.log('🔴 [Header] 로그아웃 버튼 클릭됨!');
-  console.log('🔴 [Header] logout 함수 타입:', typeof logout);
-  console.log('🔴 [Header] logout 함수:', logout);
-  
   try {
-    console.log('🔵 [Header] logout() 함수 호출 시작');
-    
-    // API 호출하여 백엔드 쿠키 삭제
-    await logout();
-    
-    console.log('🟢 [Header] logout() 함수 호출 성공!');
-    console.log('🟢 [Header] 홈으로 이동 중...');
-    
-    // 홈으로 이동
-    router.push('/');
-    
-    console.log('🟢 [Header] 홈 이동 완료');
+    await logout()
+    router.push('/')
   } catch (error) {
-    console.error('❌ [Header] 로그아웃 처리 중 오류:', error);
-    console.error('❌ [Header] 에러 상세:', error.message);
-    console.error('❌ [Header] 에러 스택:', error.stack);
-    
-    // 에러가 발생해도 홈으로 이동
-    router.push('/');
+    console.error('로그아웃 실패:', error)
+    router.push('/')
   }
-};
+}
 </script>
 
 <style scoped>
@@ -131,7 +111,7 @@ const handleLogout = async () => {
   align-items: center;
 }
 
-/* 왼쪽 섹션 (로고 + 메뉴) */
+/* 왼쪽 섹션 */
 .left-section {
   display: flex;
   align-items: center;
@@ -143,9 +123,15 @@ const handleLogout = async () => {
   width: 95px;
   height: 90px;
   cursor: pointer;
+  transition: transform 0.25s ease, filter 0.25s ease;
 }
 
-/* 로고 옆 메뉴 (텍스트) */
+.logo-img:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+/* 메뉴 텍스트 */
 .route-section {
   display: flex;
   align-items: center;
@@ -155,7 +141,7 @@ const handleLogout = async () => {
 .route-item {
   color: #4a5565;
   font-size: 16px;
-  font-family: "Inter", sans-serif;
+  font-family: 'Inter', sans-serif;
   font-weight: 400;
   line-height: 1.5;
   cursor: pointer;
@@ -165,6 +151,12 @@ const handleLogout = async () => {
 
 .route-item:hover {
   color: #155dfc;
+}
+
+/* ✅ 현재 페이지일 때 색상 유지 */
+.route-item.active {
+  color: #155dfc;
+  font-weight: 500;
 }
 
 /* 오른쪽 메뉴 */
@@ -177,7 +169,7 @@ const handleLogout = async () => {
 .menu-item {
   color: #4a5565;
   font-size: 16px;
-  font-family: "Inter", sans-serif;
+  font-family: 'Inter', sans-serif;
   font-weight: 400;
   line-height: 1.5;
   cursor: pointer;
