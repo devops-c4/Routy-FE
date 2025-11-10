@@ -1,222 +1,294 @@
 <template>
   <div class="travel-edit">
     <div class="content-wrapper">
-          <!-- 헤더 -->
-    <header class="edit-header">
-      <div class="header-left">
-        <button class="back-btn" @click="goBack">←</button>
-        <h1>여행 루트 다시 그리기</h1>
-      </div>
-      <div class="header-right">
-        <button class="btn-cancel" @click="goBack">취소</button>
-        <button class="btn-save" @click="saveEdit">저장</button>
-      </div>
-    </header>
-
-    <!-- 여행 기본 정보 -->
-    <section class="info-section">
-      <div class="info-box">
-        <div class="form-group">
-          <label>여행 루트 제목</label>
-          <input v-model="travel.title" placeholder="여행 제목을 입력하세요" />
+      <!-- 헤더 -->
+      <header class="edit-header">
+        <div class="header-left">
+          <button class="back-btn" @click="goBack">←</button>
+          <h1>여행 루트 다시 그리기</h1>
         </div>
+        <div class="header-right">
+          <button class="btn-cancel" @click="goBack">취소</button>
+          <button class="btn-save" @click="saveEdit">저장</button>
+        </div>
+      </header>
 
-        <div class="form-row">
-          <div class="form-group half">
-            <label>여행지</label>
-            <input v-model="travel.region" placeholder="여행지를 입력하세요" />
+      <!-- 여행 기본 정보 -->
+      <section class="info-section">
+        <div class="info-box">
+          <div class="form-group">
+            <label>여행 루트 제목</label>
+            <input v-model="travel.title" placeholder="여행 제목을 입력하세요" />
           </div>
-          <div class="form-group half">
-            <label>기간</label>
-            <div class="duration-box">
-              <button @click="decreaseDays">-</button>
-              <span>{{ durationText }}</span> <!-- ✅ computed로 표시 -->
-              <button @click="increaseDays">+</button>
+
+          <div class="form-row">
+            <div class="form-group half">
+              <label>여행지</label>
+              <input v-model="travel.region" placeholder="여행지를 입력하세요" />
             </div>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>테마 선택 (복수 선택 가능)</label>
-          <div class="theme-list">
-            <label v-for="theme in themes" :key="theme" class="theme-item">
-              <input type="checkbox" v-model="selectedThemes" :value="theme" />
-              {{ theme }}
-            </label>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 일정 카드 -->
-    <section class="days-wrap">
-      <div v-for="(day, index) in visibleDays" :key="index" class="day-card">
-        <div class="day-header">
-          <div class="day-circle">{{ index + 1 }}</div>
-          <div>
-            <h3>Day {{ index + 1 }}</h3>
-            <p>{{ day.date }}</p>
-          </div>
-        </div>
-
-        <!-- ✅ 드래그 가능한 일정 리스트 -->
-        <draggable v-model="day.plans" handle=".drag-handle" animation="200" class="plan-list">
-          <template #item="{ element: plan, index: i }">
-            <div class="plan-item">
-              <div class="plan-header">
-                <span class="drag-handle">⋮⋮</span>
-                <button class="delete-btn" @click="removePlan(index, i)">삭제</button>
+            <div class="form-group half">
+              <label>기간</label>
+              <div class="duration-box">
+                <button @click="decreaseDays">-</button>
+                <span>{{ durationText }}</span>
+                <button @click="increaseDays">+</button>
               </div>
-
-              <input
-                v-model="plan.place_name"
-                placeholder="장소명 (예: 제주 공항 도착)"
-              />
-              <input
-                v-model="plan.address_name"
-                placeholder="주소 (예: 제주시 공항로 2)"
-              />
-              <input
-                v-model="plan.category_group_name"
-                placeholder="카테고리 (예: 관광명소, 음식점 등)"
-              />
-              <input
-                v-model="plan.place_url"
-                placeholder="URL (예: https://place.map.kakao.com/...)"
-              />
             </div>
-          </template>
-        </draggable>
+          </div>
 
-        <!-- ✅ 장소 추가 버튼 -->
-        <button class="add-btn" @click="addPlan(index)">+ 장소 추가</button>
+          <div class="form-group">
+            <label>테마 선택 (복수 선택 가능)</label>
+            <div class="theme-list">
+              <!-- 백엔드에서 온 옵션이 있으면 그걸로, 없으면 기본 배열 -->
+              <label
+                v-for="theme in themeOptionsToShow"
+                :key="theme"
+                class="theme-item"
+              >
+                <input type="checkbox" v-model="selectedThemes" :value="theme" />
+                {{ theme }}
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 일정 카드 -->
+      <section class="days-wrap" v-if="!loading">
+        <div
+          v-for="(day, index) in visibleDays"
+          :key="day.dayId ?? index"
+          class="day-card"
+        >
+          <div class="day-header">
+            <div class="day-circle">{{ index + 1 }}</div>
+            <div>
+              <h3>Day {{ index + 1 }}</h3>
+              <p>{{ day.displayDate }}</p>
+            </div>
+          </div>
+
+          <!-- 드래그 가능한 일정 리스트 -->
+          <draggable
+            v-model="day.plans"
+            handle=".drag-handle"
+            animation="200"
+            class="plan-list"
+          >
+            <template #item="{ element: plan, index: i }">
+              <div class="plan-item">
+                <div class="plan-header">
+                  <span class="drag-handle">⋮⋮</span>
+                  <button class="delete-btn" @click="removePlan(index, i)">삭제</button>
+                </div>
+
+                <input v-model="plan.place_name" placeholder="장소명 (예: 제주 공항 도착)" />
+                <input v-model="plan.address_name" placeholder="주소 (예: 제주시 공항로 2)" />
+                <input
+                  v-model="plan.category_group_name"
+                  placeholder="카테고리 (예: 관광명소, 음식점 등)"
+                />
+                <input
+                  v-model="plan.place_url"
+                  placeholder="URL (예: https://place.map.kakao.com/...)"
+                />
+              </div>
+            </template>
+          </draggable>
+
+          <!-- 장소 추가 -->
+          <button class="add-btn" @click="addPlan(index)">+ 장소 추가</button>
+        </div>
+      </section>
+
+      <div class="load-more" v-if="travel.days.length > visibleCount">
+        <button @click="toggleMore">
+          {{ showAll ? "접기" : `더 보기 (${travel.days.length - visibleCount}일 남음)` }}
+        </button>
       </div>
-    </section>
-
-    <div class="load-more" v-if="travel.days.length > visibleCount">
-      <button @click="toggleMore">
-        {{ showAll ? '접기' : `더 보기 (${travel.days.length - visibleCount}일 남음)` }}
-      </button>
-    </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import { useRouter } from "vue-router";
+import { ref, computed, onMounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import draggable from "vuedraggable";
+import apiClient from "@/utils/axios";
 
+// 라우터 훅
 const router = useRouter();
+const route = useRoute();
+const planId = route.params.id; // /mypage/travel/:id/edit 이니까 id
 
-// ✅ 여행 데이터
+// 화면 로딩 상태
+const loading = ref(true);
+
+// 여행 데이터
 const travel = ref({
-  title: "제주도 힐링 여행",
-  region: "제주도",
-  daysCount: 2, // ← 숫자로 명시 (기본 2일)
-  days: [
-    {
-      date: "2024.12.15 (일)",
-      plans: [
-        {
-          place_name: "제주 공항 도착",
-          address_name: "제주국제공항",
-          category_group_name: "교통시설",
-          place_url: "https://place.map.kakao.com/12345",
-        },
-        {
-          place_name: "점심 식사",
-          address_name: "흑돼지 거리",
-          category_group_name: "음식점",
-          place_url: "https://place.map.kakao.com/67890",
-        },
-      ],
-    },
-    {
-      date: "2024.12.16 (월)",
-      plans: [
-        {
-          place_name: "호텔 조식",
-          address_name: "서귀포 호텔",
-          category_group_name: "숙박",
-          place_url: "https://place.map.kakao.com/22222",
-        },
-        {
-          place_name: "한라산 등반",
-          address_name: "한라산 국립공원",
-          category_group_name: "자연명소",
-          place_url: "https://place.map.kakao.com/33333",
-        },
-      ],
-    },
-  ],
+  title: "",
+  region: "",
+  daysCount: 0,
+  days: [], // [{ dayId, date, displayDate, plans: [...] }]
 });
 
-// ✅ 문자열 자동 변환 (정상 출력)
+// 테마
+const selectedThemes = ref([]);
+const themeOptions = ref([]); // 백엔드가 내려주는 전체 옵션
+
+// 더보기
+const showAll = ref(false);
+const visibleCount = ref(3);
+
+// 기간 표시
 const durationText = computed(() => {
   const count = travel.value.daysCount || 0;
   const nights = count > 0 ? count - 1 : 0;
   return `${nights}박 ${count}일`;
 });
 
-// ✅ + 버튼: Day 추가
-function increaseDays() {
+// 백엔드에서 오면 그걸 쓰고, 없으면 기본 세트
+const themeOptionsToShow = computed(() => {
+  if (themeOptions.value && themeOptions.value.length > 0) {
+    return themeOptions.value.map((t) => t.name ?? t); // DTO가 {code,name} 이라서 name만 뽑음
+  }
+  return ["자연", "인문(문화/예술/역사)", "레포츠", "쇼핑"];
+});
+
+// 더보기용 day
+const visibleDays = computed(() =>
+  showAll.value ? travel.value.days : travel.value.days.slice(0, visibleCount.value)
+);
+
+// 날짜 포맷터 (YYYY-MM-DD → YYYY.MM.DD)
+const toDisplayDate = (str) => {
+  if (!str) return "";
+  // "2024-12-15" → "2024.12.15"
+  return str.replaceAll("-", ".");
+};
+
+// 1) 수정화면 데이터 불러오기
+const fetchPlanEdit = async () => {
+  loading.value = true;
+  try {
+    const { data } = await apiClient.get(`/api/plans/${planId}/edit`);
+
+    // 상단 정보
+    travel.value.title = data.title;
+    travel.value.region = data.destination;
+    travel.value.daysCount = data.dayList?.length || data.days || 0;
+
+    // 테마
+    selectedThemes.value = data.selectedThemes || [];
+    themeOptions.value = data.themeOptions || [];
+
+    // dayList → 화면 구조로 변환
+    travel.value.days = (data.dayList || []).map((day) => ({
+      dayId: day.dayId,
+      dayNo: day.dayNo,
+      date: day.date, // 저장용 원본
+      displayDate: toDisplayDate(day.date),
+      plans: (day.activities || []).map((act) => ({
+        travelId: act.travelId,
+        // UI에서 쓰는 이름셋
+        place_name: act.placeName || act.title || "",
+        address_name: act.addressName || act.place || "",
+        category_group_name: act.categoryGroupName || act.tag || "",
+        place_url: act.placeUrl || "",
+        // 저장 때 필요
+        title: act.title || act.placeName || "",
+      })),
+    }));
+  } catch (e) {
+    console.error("❌ 일정 수정 데이터 불러오기 실패:", e);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 2) 저장
+const saveEdit = async () => {
+  // 프론트 구조 → PlanEditSaveRequestDTO 구조로 변환
+  const payload = {
+    planId: Number(planId),
+    title: travel.value.title,
+    destination: travel.value.region,
+    // 기간은 지금 UI에서 날짜를 직접 바꾸는 부분이 없어서 생략 가능
+    // nights/days 는 백엔드에서 굳이 안 써도 되지만 DTO에 있으니 맞춰줌
+    nights: travel.value.daysCount > 0 ? travel.value.daysCount - 1 : 0,
+    days: travel.value.daysCount,
+    selectedThemes: selectedThemes.value,
+    dayList: travel.value.days.map((d, dayIdx) => ({
+      dayId: d.dayId,
+      dayNo: dayIdx + 1,
+      date: d.date, // 원본 그대로
+      activities: d.plans.map((p, actIdx) => ({
+        travelId: p.travelId,
+        orderNo: actIdx + 1,
+        title: p.place_name, // 한 줄 제목
+        tag: p.category_group_name,
+        placeName: p.place_name,
+        addressName: p.address_name,
+        categoryGroupName: p.category_group_name,
+        placeUrl: p.place_url,
+      })),
+    })),
+  };
+
+  try {
+    await apiClient.put(`/api/plans/${planId}`, payload);
+    alert("수정 완료!");
+    router.push(`/mypage/travel/${planId}`);
+  } catch (e) {
+    console.error("❌ 일정 저장 실패:", e);
+    alert("저장 중 오류가 발생했습니다. 콘솔을 확인해주세요.");
+  }
+};
+
+// 버튼 동작들
+const increaseDays = () => {
   travel.value.daysCount++;
-  const newDate = `2024.12.${15 + travel.value.days.length} (추가일)`;
+  // 새 day 하나 추가
   travel.value.days.push({
-    date: newDate,
+    dayId: null,
+    dayNo: travel.value.days.length + 1,
+    date: "",
+    displayDate: "",
     plans: [],
   });
-}
+};
 
-// ✅ - 버튼: Day 삭제
-function decreaseDays() {
+const decreaseDays = () => {
   if (travel.value.daysCount > 1) {
     travel.value.daysCount--;
     travel.value.days.pop();
   }
-}
+};
 
-// ✅ 일정 추가/삭제
-function addPlan(dayIndex) {
+const addPlan = (dayIndex) => {
   travel.value.days[dayIndex].plans.push({
     place_name: "",
     address_name: "",
     category_group_name: "",
     place_url: "",
   });
-}
+};
 
-function removePlan(dayIndex, planIndex) {
+const removePlan = (dayIndex, planIndex) => {
   travel.value.days[dayIndex].plans.splice(planIndex, 1);
-}
+};
 
-function goBack() {
-  router.back();
-}
-
-function saveEdit() {
-  alert("수정 완료!");
-  router.push(`/mypage/travel/1`);
-}
-
-const themes = ["자연", "인문(문화/예술/역사)", "레포츠", "쇼핑"];
-const selectedThemes = ref(["자연"]);
-
-const showAll = ref(false);
-const visibleCount = ref(3);
-
-const visibleDays = computed(() =>
-  showAll.value
-    ? travel.value.days
-    : travel.value.days.slice(0, visibleCount.value)
-);
-
-function toggleMore() {
+const toggleMore = () => {
   showAll.value = !showAll.value;
-}
-</script>
+};
 
+const goBack = () => {
+  router.back();
+};
+
+// 최초 로딩
+onMounted(fetchPlanEdit);
+</script>
 
 <style scoped>
 .travel-edit {
@@ -224,18 +296,16 @@ function toggleMore() {
   min-height: 100vh;
   background: linear-gradient(148deg, #eff6ff 0%, white 50%, #f0fdf4 100%);
   display: flex;
-  justify-content: center; 
+  justify-content: center;
   padding: 60px 0 100px;
 }
 
-
 .travel-edit > .content-wrapper {
-  width: 1100px; 
+  width: 1100px;
   display: flex;
   flex-direction: column;
   gap: 32px;
 }
-
 
 /* 헤더 */
 .edit-header {

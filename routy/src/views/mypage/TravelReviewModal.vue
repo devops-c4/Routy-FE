@@ -3,30 +3,40 @@
     <div class="review-modal">
       <!-- 헤더 -->
       <div class="modal-header">
-        <h2>{{ travel.title }}</h2>
+        <h2>{{ travelTitle }}</h2>
         <button class="close-btn" @click="closeModal">×</button>
       </div>
 
       <!-- 리뷰 작성 -->
       <div class="section">
         <label>리뷰 작성</label>
-        <textarea v-model="review" placeholder="여행에 대한 간략한 후기를 작성해주세요"></textarea>
+        <textarea
+          v-model="review"
+          placeholder="여행에 대한 간략한 후기를 작성해주세요"
+        ></textarea>
       </div>
 
       <!-- 사진 추가 -->
       <div class="section">
         <div class="photo-header">
           <span>사진 추가 (최대 8장)</span>
-          <span>{{ photos.length }}/8</span>
+          <span>{{ previewImages?.length || 0 }}/8</span>
         </div>
         <input type="file" multiple accept="image/*" @change="onFileChange" />
         <div class="photo-preview">
-          <div v-if="!photos.length" class="photo-placeholder">
+          <div v-if="!previewImages?.length" class="photo-placeholder">
             <p>여행 사진을 추가해주세요</p>
             <small>최대 8장까지 업로드 가능합니다</small>
           </div>
           <div v-else class="photo-list">
-            <img v-for="(img, i) in photos" :key="i" :src="img" />
+            <div
+              v-for="(img, i) in previewImages"
+              :key="i"
+              class="photo-item"
+            >
+              <img :src="img.url" />
+              <button class="remove-btn" @click="removeNewFile(i)">×</button>
+            </div>
           </div>
         </div>
       </div>
@@ -43,7 +53,9 @@
             @mouseleave="hoverRating = 0"
             @click="confirmRating(i)"
             :style="getStarStyle(i)"
-          >★</span>
+          >
+            ★
+          </span>
           <span class="score">{{ displayRating.toFixed(1) }}/5점</span>
         </div>
       </div>
@@ -60,69 +72,125 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from "vue";
+import apiClient from "@/utils/axios";
 
-const emit = defineEmits(['close'])
+// ====== props & emits ======
+const { planId, title } = defineProps({
+  planId: { type: Number, required: true },
+  title: { type: String, default: "" },
+});
+const emit = defineEmits(["close", "saved"]);
 
-const travel = ref({
-  title: '제주도 힐링 여행',
-})
+// ====== 기본 상태 ======
+const travelTitle = ref(title || "여행 리뷰");
+const review = ref("");
+const rating = ref(0);
+const hoverRating = ref(0);
+const displayRating = computed(() => hoverRating.value || rating.value);
 
-const review = ref('')
-const photos = ref([])
-const rating = ref(0)
-const hoverRating = ref(0)
+const previewImages = ref([]); // { url, existing: bool }
+const newFiles = ref([]);
+const reviewId = ref(null);
 
-const displayRating = computed(() => hoverRating.value || rating.value)
+// ====== 서버에서 기존 리뷰 불러오기 ======
+const fetchReviewForm = async () => {
+  try {
+    const { data } = await apiClient.get(
+      `/api/plans/${planId}/reviews/form`
+    );
 
-/* ✅ 별 위 마우스 움직임 감지 (정확한 반점 계산) */
+    travelTitle.value = title || data.planTitle || "여행 리뷰";
+    review.value = data.content || "";
+    rating.value = data.rating || 0;
+    reviewId.value = data.reviewId || null;
+
+    previewImages.value = (data.files || []).map((f) => ({
+      url: f.url,
+      existing: true,
+    }));
+  } catch (e) {
+    console.error("❌ 리뷰 폼 불러오기 실패:", e);
+  }
+};
+
+// ====== 별점 ======
 function handleStarHover(e, index) {
-  const rect = e.target.getBoundingClientRect()
-  const offsetX = e.clientX - rect.left
-  const ratio = offsetX / rect.width
-  const value = index - 1 + (ratio <= 0.5 ? 0.5 : 1) // 0.5 또는 1점 단위
-  hoverRating.value = Math.min(5, Math.max(0.5, value))
+  const rect = e.target.getBoundingClientRect();
+  const offsetX = e.clientX - rect.left;
+  const ratio = offsetX / rect.width;
+  const value = index - 1 + (ratio <= 0.5 ? 0.5 : 1);
+  hoverRating.value = Math.min(5, Math.max(0.5, value));
 }
-
-/* ✅ 클릭 시 확정 */
 function confirmRating() {
-  rating.value = hoverRating.value
+  rating.value = hoverRating.value;
+}
+function getStarStyle(index) {
+  const filled = displayRating.value - (index - 1);
+  if (filled >= 1) return { color: "#facc15" };
+  if (filled > 0)
+    return {
+      background: `linear-gradient(90deg, #facc15 ${filled * 100}%, #d1d5db ${
+        filled * 100
+      }%)`,
+      WebkitBackgroundClip: "text",
+      color: "transparent",
+    };
+  return { color: "#d1d5db" };
 }
 
-/* ✅ 별의 색상 채우기 */
-function getStarStyle(index) {
-  const filled = displayRating.value - (index - 1)
-  let gradient = ''
-  if (filled >= 1) gradient = '#facc15'
-  else if (filled > 0) {
-    gradient = `linear-gradient(90deg, #facc15 ${filled * 100}%, #d1d5db ${filled * 100}%)`
-  } else gradient = '#d1d5db'
+// ====== 파일 업로드 ======
+function onFileChange(e) {
+  const files = Array.from(e.target.files);
+  for (const file of files) {
+    if (previewImages.value.length >= 8) break;
+    const url = URL.createObjectURL(file);
+    previewImages.value.push({ url, existing: false });
+    newFiles.value.push(file);
+  }
+  e.target.value = "";
+}
 
-  return {
-    background: gradient,
-    WebkitBackgroundClip: 'text',
-    color: 'transparent',
+function removeNewFile(idx) {
+  const target = previewImages.value[idx];
+  previewImages.value.splice(idx, 1);
+  if (!target.existing) {
+    newFiles.value = newFiles.value.filter(
+      (f) => `blob:${f.name}` !== target.url
+    );
   }
 }
 
-/* ====== 사진 업로드 ====== */
-function onFileChange(e) {
-  const files = Array.from(e.target.files).slice(0, 8)
-  photos.value = []
-  files.forEach((file) => {
-    const reader = new FileReader()
-    reader.onload = (ev) => photos.value.push(ev.target.result)
-    reader.readAsDataURL(file)
-  })
+// ====== 제출 ======
+async function submitReview() {
+  const formData = new FormData();
+  if (reviewId.value) formData.append("reviewId", reviewId.value);
+  formData.append("planId", planId);
+  formData.append("content", review.value);
+  formData.append("rating", Math.round((rating.value || 0) * 10) / 10);
+
+  newFiles.value.forEach((file) => {
+    formData.append("files", file);
+  });
+
+  try {
+    await apiClient.post(`/api/plans/${planId}/reviews`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    alert("리뷰가 등록되었습니다!");
+    emit("saved");
+    emit("close");
+  } catch (e) {
+    console.error("❌ 리뷰 등록 실패:", e);
+    alert("리뷰 등록 중 오류가 발생했습니다.");
+  }
 }
 
-/* ====== 닫기 & 등록 ====== */
 function closeModal() {
-  emit('close')
+  emit("close");
 }
-function submitReview() {
-  alert(`리뷰 등록 완료!\n별점: ${rating.value.toFixed(1)}점`)
-}
+
+onMounted(fetchReviewForm);
 </script>
 
 <style scoped>
@@ -130,7 +198,7 @@ function submitReview() {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -140,7 +208,7 @@ function submitReview() {
   width: 460px;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
   padding: 20px;
   position: relative;
   max-height: 85vh;
@@ -215,11 +283,27 @@ input[type="file"] {
   gap: 8px;
   justify-content: center;
 }
-.photo-list img {
+.photo-item {
+  position: relative;
+}
+.photo-item img {
   width: 80px;
   height: 80px;
   object-fit: cover;
   border-radius: 8px;
+}
+.remove-btn {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  cursor: pointer;
 }
 .photo-placeholder p {
   color: #666;
@@ -269,7 +353,7 @@ input[type="file"] {
   border: 1px solid #ccc;
 }
 .btn-submit {
-  background: #3B82F6;
+  background: #3b82f6;
   color: white;
   border: none;
 }
