@@ -1,24 +1,26 @@
 <template>
   <div class="password-change-page">
-
-    <!-- 메인 콘텐츠 -->
     <main class="main-container">
       <div class="title-section">
         <h1>비밀번호 변경</h1>
         <p>새로운 비밀번호를 입력해주세요</p>
       </div>
 
-      <!-- 계정 이메일 -->
+      <!-- 계정 이메일 - 전달받은 이메일 표시 -->
       <div class="email-box">
         <label>계정 이메일</label>
-        <div class="email-value">example@gmail.com</div>
+        <div class="email-value">{{ userEmail }}</div>
       </div>
 
       <!-- 새 비밀번호 -->
       <div class="form-group">
         <label>새 비밀번호</label>
         <div class="input-row">
-          <input type="password" placeholder="새 비밀번호를 입력하세요 (8자 이상)" />
+          <input 
+            type="password" 
+            placeholder="새 비밀번호를 입력하세요 (8자 이상)" 
+            v-model="newPassword" 
+          />
           <i class="eye-icon"></i>
         </div>
         <p class="note">영문, 숫자, 특수문자를 조합하여 8자 이상 입력해주세요</p>
@@ -28,12 +30,16 @@
       <div class="form-group">
         <label>비밀번호 확인</label>
         <div class="input-row">
-          <input type="password" placeholder="비밀번호를 다시 입력하세요" />
+          <input 
+            type="password" 
+            placeholder="비밀번호를 다시 입력하세요" 
+            v-model="confirmPassword" 
+          />
           <i class="eye-icon"></i>
         </div>
       </div>
 
-      <button class="change-btn">비밀번호 변경</button>
+      <button class="change-btn" @click="handleChangePassword">비밀번호 변경</button>
 
       <hr class="divider" />
       <router-link to="/login" class="back-to-login">로그인</router-link>
@@ -42,7 +48,65 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { changePassword } from '@/api/auth';
 
+const route = useRoute();
+const router = useRouter();
+
+const userEmail = ref('');
+const newPassword = ref('');
+const confirmPassword = ref('');
+
+// 컴포넌트 마운트 시 쿼리 파라미터에서 이메일 가져오기
+onMounted(() => {
+  userEmail.value = route.query.email || '';
+  
+  // 이메일이 없으면 비밀번호 찾기 페이지로 리다이렉트
+  if (!userEmail.value) {
+    alert('잘못된 접근입니다.');
+    router.push('/find-password');
+  }
+});
+
+const handleChangePassword = async () => {
+  console.log('🔵 [ChangePassword.vue] 비밀번호 변경 시작');
+  
+  // 유효성 검사
+  if (!newPassword.value || newPassword.value.length < 8) {
+    alert('비밀번호는 8자 이상이어야 합니다.');
+    return;
+  }
+  
+  if (newPassword.value !== confirmPassword.value) {
+    alert('비밀번호가 일치하지 않습니다.');
+    return;
+  }
+  
+  try {
+    console.log('🔵 [ChangePassword.vue] API 호출 중...');
+    const response = await changePassword(userEmail.value, newPassword.value);
+    
+    console.log('🟢 [ChangePassword.vue] 비밀번호 변경 성공:', response);
+    
+    // 성공 시 로그인 페이지로 이동
+    if (response.status === 200) {
+      alert('비밀번호가 성공적으로 변경되었습니다.\n로그인 페이지로 이동합니다.');
+      router.push('/login');
+    }
+  } catch (error) {
+    console.error('❌ [ChangePassword.vue] 비밀번호 변경 실패:', error);
+    
+    // 에러 메시지 처리
+    if (error.response) {
+      const errorMessage = error.response.data?.message || error.response.data?.error || '비밀번호 변경에 실패했습니다.';
+      alert(errorMessage);
+    } else {
+      alert('서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+    }
+  }
+};
 </script>
 
 <style scoped>
@@ -198,6 +262,10 @@
   cursor: pointer;
 }
 
+.change-btn:hover {
+  background-color: #1249d6;
+}
+
 /* 구분선 */
 .divider {
   width: 416px;
@@ -212,5 +280,9 @@
   color: #4A5565;
   cursor: pointer;
   text-decoration: none;
+}
+
+.back-to-login:hover {
+  color: #155DFC;
 }
 </style>
