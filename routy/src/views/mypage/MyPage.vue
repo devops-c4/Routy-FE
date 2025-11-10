@@ -3,7 +3,6 @@ import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
 
-
 // 여행 기록에서 상세 페이지로 넘어갈때 사용되는 함수
 function goToPlanDetail(planId) {
   router.push(`/mypage/travel/${planId}`)
@@ -37,7 +36,6 @@ try {
   console.error('JWT 파싱 실패:', err)
 }
 
->>>>>>> 74613cae7702926adde06d4c8ae835b84bdaa585
 /* ====== 달력 상태 ====== */
 const now = new Date()
 const year  = ref(now.getFullYear())
@@ -501,23 +499,23 @@ function toggleRecords() {
   display:flex; align-items:center; gap:20px; padding:16px;
   background:linear-gradient(90deg,#ffffff 30%,#f7fbff 100%);
 }
+
 .avatar {
-  width: 96px;   
+  width: 96px;              
   height: 96px;
   border-radius: 50%;
-  overflow: hidden;
+  background: white;         
+  border: 1px solid #e5e7eb; 
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;    
-  background: #f3f4f6;
+  overflow: hidden;
 }
 
 .avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+  width: 50%;               
+  height: 50%;
+  object-fit: contain;     
 }
 
 .pinfo{ display:flex; flex-direction:column; gap:6px; }
