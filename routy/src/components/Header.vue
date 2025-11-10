@@ -12,6 +12,7 @@
         <div class="route-section">
           <span class="route-item" @click="moveToDraw">여행 루트 그리기</span>
           <span class="route-item" @click="moveToBrowse">여행 루트 둘러보기</span>
+          <span class="route-item" @click="moveToChatBot">🤖</span>
         </div>
       </div>
 
@@ -111,6 +112,7 @@ const handleLogout = async () => {
     router.push('/');
   }
 };
+const moveToChatBot = () => router.push('/chatbot');
 </script>
 
 <style scoped>

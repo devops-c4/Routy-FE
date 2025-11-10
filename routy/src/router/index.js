@@ -6,12 +6,14 @@ import Login from './modules/login';
 import Draw from './modules/draw.js';
 import MyPage from './modules/mypage';
 import info from './modules/info'
+import ChatBot from './modules/chatbot';
 
 const routes = [
     ...Login,
     ...Draw,
     ...info,
     ...MyPage,
+    ...ChatBot,
     { path: '/', name: 'home', component: Home },
     { path: "/browse", name: "browse", component: Browse }
 ]
