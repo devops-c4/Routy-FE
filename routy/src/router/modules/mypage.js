@@ -20,4 +20,15 @@ export default [
     component: TravelEditView,
     props: true,
   },
+  {
+  path: '/mypage/travel/:id',
+  name: 'TravelDetail',
+  component: () => import('@/views/mypage/TravelDetailView.vue'),
+},
+
+{
+  path: '/mypage/modify',
+  name: 'ModifyUser',
+  component: () => import('@/views/userauth/ModifyUser.vue'),
+}
 ];
