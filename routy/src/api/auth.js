@@ -80,6 +80,55 @@ export const changePassword = async (email, newPassword) => {
 };
 
 /**
+ * 회원정보 수정 API
+ */
+export const modifyUserInfo = async (userInfo, profileFile) => {
+  console.log('🔵 [auth.js] modifyUserInfo 함수 시작');
+  console.log('🔵 [auth.js] userInfo:', userInfo);
+  console.log('🔵 [auth.js] profileFile:', profileFile);
+  
+  try {
+    const formData = new FormData();
+    
+    // JSON 데이터를 Blob으로 변환하여 추가
+    if (userInfo) {
+      const userInfoBlob = new Blob(
+        [JSON.stringify(userInfo)], 
+        { type: 'application/json' }
+      );
+      formData.append('newUserInfo', userInfoBlob);
+      console.log('🔵 [auth.js] userInfo Blob 추가 완료');
+    }
+    
+    // 프로필 이미지 추가 (있는 경우에만)
+    if (profileFile) {
+      formData.append('profile', profileFile);
+      console.log('🔵 [auth.js] profile 파일 추가 완료:', profileFile.name);
+    }
+    
+    // FormData 내용 확인 (디버깅용)
+    console.log('🔵 [auth.js] FormData 내용:');
+    for (let pair of formData.entries()) {
+      console.log(`  ${pair[0]}:`, pair[1]);
+    }
+    
+    console.log('🔵 [auth.js] PUT /auth/modifyuserinfo 요청 전송 중...');
+    
+    // axios가 자동으로 Content-Type: multipart/form-data 설정
+    const response = await apiClient.put('/auth/modifyuserinfo', formData);
+    
+    console.log('🟢 [auth.js] 회원정보 수정 성공:', response);
+    console.log('🟢 [auth.js] 응답 데이터:', response.data);
+    
+    return response;
+  } catch (error) {
+    console.error('❌ [auth.js] 회원정보 수정 실패:', error);
+    console.error('❌ [auth.js] 에러 응답:', error.response);
+    throw error;
+  }
+};
+
+/**
  * 로그인 상태 확인 API (백엔드에 요청)
  */
 export const checkAuthStatus = async () => {
