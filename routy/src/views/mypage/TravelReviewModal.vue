@@ -87,7 +87,11 @@ const travelTitle = ref(title || "여행 리뷰");
 const review = ref("");
 const rating = ref(0)
 const hoverRating = ref(0)
-const displayRating = computed(() => hoverRating.value || rating.value)
+const isLocked = ref(false)
+const displayRating = computed(() => {
+  // 잠겨 있으면 확정 점수만 보여주고, 아니면 호버 중인 점수 보여줌
+  return isLocked.value ? rating.value : (hoverRating.value || rating.value)
+})
 
 const previewImages = ref([]); // { url, existing: bool }
 const newFiles = ref([]);
@@ -116,10 +120,10 @@ const fetchReviewForm = async () => {
 
 // ====== 별점 ======
 function handleStarHover(e, index) {
-  const rect = e.target.getBoundingClientRect()
+   if (isLocked.value) return
+ const rect = e.target.getBoundingClientRect()
   const offsetX = e.clientX - rect.left
   const ratio = offsetX / rect.width
-  // index는 1~5니까 1칸당 1점, 절반 이하면 0.5
   const value = index - 1 + (ratio <= 0.5 ? 0.5 : 1)
   hoverRating.value = Math.min(5, Math.max(0.5, value))
 }
@@ -128,8 +132,10 @@ function confirmRating(e, index) {
   const offsetX = e.clientX - rect.left
   const ratio = offsetX / rect.width
   const value = index - 1 + (ratio <= 0.5 ? 0.5 : 1)
+
   rating.value = Math.min(5, Math.max(0.5, value))
-  hoverRating.value = 0 // 클릭하면 미리보기 걷어내고 확정만 보여주고 싶으면
+  hoverRating.value = 0
+  isLocked.value = true 
 }
 function getStarStyle(index) {
   const filled = displayRating.value - (index - 1);
