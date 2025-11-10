@@ -11,14 +11,27 @@
         <!-- 왼쪽 패널 -->
         <aside class="left-panel">
           <div class="left-actions">
-            <div class="action-row">
+            <div class="left-actions-grid">
+              <div></div> <!-- 2사분면 빈 공간 -->
+              
+              <button 
+                class="left-btn" 
+                @click="drawRoute"
+                :disabled="isDayCompleted"
+              >경로 그리기</button>
+
               <button 
                 class="left-btn" 
                 :class="{ active: showHotelModal }"
                 @click="openHotelModal" 
                 :disabled="isDayCompleted"
               >숙소 선택</button>
-              <button class="left-btn" :disabled="isDayCompleted">자동 정렬</button>
+
+              <button 
+                class="left-btn" 
+                @click="drawSort"
+                :disabled="isDayCompleted"
+              >자동 정렬</button>
             </div>
             <button class="end-btn" @click="endDaySchedule">일정 종료</button>
           </div>
@@ -201,6 +214,9 @@ import draggable from "vuedraggable";
 import restaurantMarker from '@/assets/images/icons/restaurant-marker.svg';
 import cafeMarker from '@/assets/images/icons/cafe-marker.svg';
 import attractionMarker from '@/assets/images/icons/attraction-marker.svg';
+
+// 폴리라인 그리기
+import { deletePoliLine, direction, sortDirection } from '@/utils/draw/direction'
 
 const route = useRoute();
 const planId = Number(route.query.planId);
@@ -473,6 +489,9 @@ const removePlace = (p) => {
     
     // 지도 중심 이동
     updateMapCenter();
+
+    // 그려진 경로가 있다면 삭제
+    deletePoliLine();
     
     // 제거 후 재검색
     loadPlaces(currentType.value);
@@ -658,6 +677,40 @@ onMounted(async () => {
   await loadDurations();
   await loadPlaces("restaurants");
 });
+
+
+// 폴리 라인 그리기
+const drawRoute = async () => {
+  console.log("장소들:", placesByDay.value[selectedDay.value]);
+  
+  await direction(map, placesByDay.value[selectedDay.value]);
+}
+
+// 자동 정렬하기
+const drawSort = async () => {
+  const currentPlaces = placesByDay.value[selectedDay.value];
+  console.log("현재 장소들:", currentPlaces);
+
+  const newLocations = await sortDirection(map, currentPlaces);
+
+  if (!newLocations || newLocations.length === 0) {
+    console.warn("정렬된 경로가 없습니다.");
+    return;
+  }
+
+  const reorderedPlaces = newLocations.map(nLoc => {
+    return currentPlaces.find(p =>
+      p.title === nLoc.name ||
+      (Math.abs(p.latitude - nLoc.y) < 1e-6 &&
+        Math.abs(p.longitude - nLoc.x) < 1e-6)
+    );
+  }).filter(Boolean); // 매칭 실패 시 제거
+
+  placesByDay.value[selectedDay.value] = reorderedPlaces;
+  console.log("정렬된 장소:", reorderedPlaces)
+  console.log("정렬된 장소:", placesByDay.value[selectedDay.value]);
+}
+
 </script>
 
 <style scoped>
@@ -708,6 +761,18 @@ onMounted(async () => {
   background: white;
   color: #4A5565;
   transition: 0.2s;
+}
+
+.left-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  padding: 16px;
+}
+.left-actions-grid .left-btn {
+  width: 100%;
+  height: 40px;
 }
 
 .left-btn:hover:not(:disabled) {
