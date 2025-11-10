@@ -37,7 +37,6 @@
 
 <script setup>
 import { ref } from 'vue';
-import Header from '@/components/Header.vue';
 import axios from 'axios';
 
 const username = ref("")
