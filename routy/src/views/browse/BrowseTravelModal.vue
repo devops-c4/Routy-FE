@@ -13,15 +13,15 @@
         <div class="meta-info">
           <span class="meta-item">
             <span class="meta-icon">👤</span>
-            {{ route.user }}
+            {{ route.username }}
           </span>
           <span class="meta-item">
             <span class="meta-icon">📅</span>
-            {{ route.days }}
+            {{ route.days }}일
           </span>
           <span class="meta-item">
             <span class="meta-icon">📍</span>
-            {{ route.city }}
+            {{ route.destination }}
           </span>
         </div>
       </div>
@@ -31,30 +31,30 @@
         <div class="stat-item">
           <span class="stat-icon">❤️</span>
           <span class="stat-label">좋아요</span>
-          <span class="stat-value">{{ route.likes.toLocaleString() }}</span>
+          <span class="stat-value">{{ route.likeCount }}</span>
         </div>
         <div class="stat-item">
           <span class="stat-icon">👁️</span>
           <span class="stat-label">조회수</span>
-          <span class="stat-value">{{ route.views.toLocaleString() }}</span>
+          <span class="stat-value">{{ route.viewCount }}</span>
         </div>
         <div class="stat-item">
           <span class="stat-icon">🔖</span>
           <span class="stat-label">북마크</span>
-          <span class="stat-value">{{ route.shares }}</span>
+          <span class="stat-value">{{ route.bookmarkCount }}</span>
         </div>
       </div>
 
       <!-- 여행 후기 -->
-      <div class="review-section">
+      <div class="review-section" v-if="route.review">
         <div class="review-header">
           <div class="user-info">
             <div class="user-avatar">
               <span>👤</span>
             </div>
             <div class="user-details">
-              <div class="user-name">{{ route.user }}님의 여행 후기</div>
-              <div class="review-date">{{ route.createdAt }}</div>
+              <div class="user-name">{{ route.review.username }}님의 여행 후기</div>
+              <div class="review-date">{{ route.review.createdAt }}</div>
             </div>
           </div>
           <div class="rating">
@@ -62,7 +62,7 @@
           </div>
         </div>
 
-        <div class="review-images">
+        <div v-if="route.review.images?.length" class="review-images">
           <img
             v-for="(img, idx) in route.review.images"
             :key="idx"
@@ -73,24 +73,24 @@
         </div>
 
         <div class="review-text">
-          {{ route.review.text }}
+          {{ route.review.content }}
         </div>
       </div>
 
       <!-- 상세 일정 -->
-      <div class="itinerary-section">
+      <div class="itinerary-section" v-if="route.dayList?.length">
         <h3 class="section-title">상세 일정</h3>
 
         <!-- Day 탭 -->
         <div class="day-tabs">
           <button
-            v-for="day in route.itinerary"
-            :key="day.day"
+            v-for="day in route.dayList"
+            :key="day.dayNo"
             class="day-tab"
-            :class="{ active: selectedDay === day.day }"
-            @click="selectedDay = day.day"
+            :class="{ active: selectedDay === day.dayNo }"
+            @click="selectedDay = day.dayNo"
           >
-            Day {{ day.day }}
+            Day {{ day.dayNo }}
             <span class="place-count">{{ day.places.length }}</span>
           </button>
         </div>
@@ -104,17 +104,20 @@
           >
             <div class="place-number">
               <span class="number">{{ idx + 1 }}</span>
-              <div v-if="idx < selectedDayPlaces.length - 1" class="connector"></div>
+              <div
+                v-if="idx < selectedDayPlaces.length - 1"
+                class="connector"
+              ></div>
             </div>
+
             <div class="place-details">
               <div class="place-header">
                 <div class="place-name-wrapper">
-                  <span class="place-emoji">{{ place.emoji }}</span>
                   <span class="place-name">{{ place.name }}</span>
                 </div>
                 <div class="place-time">
                   <span class="time-icon">🕐</span>
-                  {{ place.time }}
+                  {{ place.startTime }} ~ {{ place.endTime }}
                 </div>
               </div>
               <div class="place-address">
@@ -142,24 +145,26 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+  import { ref, computed } from 'vue'
 
-const props = defineProps({
-  route: {
-    type: Object,
-    required: true
-  }
-});
+  const props = defineProps({
+    route: {
+      type: Object,
+      required: true
+    }
+  })
 
-defineEmits(['close']);
+  defineEmits(['close'])
 
-const selectedDay = ref(1);
+  const selectedDay = ref(1)
 
-const selectedDayPlaces = computed(() => {
-  const day = props.route.itinerary.find(d => d.day === selectedDay.value);
-  return day ? day.places : [];
-});
+  const selectedDayPlaces = computed(() => {
+    const day = props.route.dayList?.find(d => d.dayNo === selectedDay.value)
+    return day ? day.places : []
+  })
 </script>
+
+
 
 <style scoped>
 .modal-overlay {

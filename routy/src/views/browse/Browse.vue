@@ -1,18 +1,37 @@
 <template>
   <div class="browse-container">
-    <!-- 메인 섹션 -->
     <section class="main-section">
       <h1 class="main-title">✈️실시간 인기 여행 일정✨</h1>
       <p class="main-subtitle">다른 여행자들이 공유한 일정을 확인하세요</p>
 
       <!-- 필터 탭 -->
       <div class="filter-tabs">
-        <button class="tab-btn active">최신순</button>
-        <button class="tab-btn">북마크순</button>
-        <button class="tab-btn">조회순</button>
-        
+        <div class="sort-buttons">
+          <button
+            class="tab-btn"
+            :class="{ active: sortType === 'latest' }"
+            @click="changeSort('latest')"
+          >
+            최신순
+          </button>
+          <button
+            class="tab-btn"
+            :class="{ active: sortType === 'bookmark' }"
+            @click="changeSort('bookmark')"
+          >
+            북마크순
+          </button>
+          <button
+            class="tab-btn"
+            :class="{ active: sortType === 'view' }"
+            @click="changeSort('view')"
+          >
+            조회순
+          </button>
+        </div>
+
         <div class="filter-dropdowns">
-          <select class="filter-select">
+          <select class="filter-select" v-model="selectedRegion" @change="applyFilter">
             <option value="">지역</option>
             <option 
               v-for="region in regions" 
@@ -22,7 +41,8 @@
               {{ region.regionName }}
             </option>
           </select>
-          <select class="filter-select">
+
+          <select class="filter-select" v-model="selectedDays" @change="applyFilter">
             <option value="">일정</option>
             <option value="1">1일</option>
             <option value="2">2일</option>
@@ -30,28 +50,50 @@
             <option value="4">4일</option>
             <option value="5">5일 이상</option>
           </select>
+
           <span class="result-count">총 {{ routes.length }}개의 여행 일정</span>
         </div>
       </div>
+
 
       <!-- 카드 리스트 -->
       <div class="card-grid">
         <TravelCard
           v-for="(route, idx) in routes"
-          :key="idx"
-          :city="route.city"
-          :date="route.date"
+          :key="route.planId || idx"
+          :city="route.destination"
+          :date="`${route.startDate} ~ ${route.endDate}`"
           :title="route.title"
-          :user="route.user"
-          :days="route.days"
-          :places="route.places"
-          :likes="route.likes"
-          :views="route.views"
-          :shares="route.shares"
+          :user="route.userNickname"
+          :days="`${route.days}일`"
+          :likes="route.likeCount"
+          :views="route.viewCount"
+          :shares="route.bookmarkCount"
           @click="openModal(route)"
         />
       </div>
-    </section>
+
+      <!-- ✅ 더 보기 / 접기 버튼 -->
+      <div v-if="!loading" class="load-more-wrapper">
+        <button
+          v-if="hasMore"
+          class="btn btn-green"
+          @click="loadMore"
+        >
+          더 보기
+        </button>
+
+        <button
+          v-if="page > 0"
+          class="btn btn-blue"
+          @click="collapseList"
+        >
+          접기
+        </button>
+      </div>
+
+      <div v-if="loading" class="loading-text">불러오는 중...</div>
+    </section> 
 
     <!-- 모달 -->
     <TravelDetailModal
@@ -63,132 +105,108 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
-import TravelCard from "@/views/browse/BrowseTravelCard.vue";
-import TravelDetailModal from "@/views/browse/BrowseTravelModal.vue";
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
+import TravelCard from '@/views/browse/BrowseTravelCard.vue'
+import TravelDetailModal from '@/views/browse/BrowseTravelModal.vue'
 
-const selectedRoute = ref(null);
-const regions = ref([]);
+const selectedRoute = ref(null)
+const regions = ref([])
+const selectedRegion = ref('')
+const selectedDays = ref('')
+const routes = ref([])
+const page = ref(0)
+const size = 9
+const hasMore = ref(true)
+const loading = ref(false)
 
-// API에서 지역 목록 가져오기
+
+const applyFilter = () => {
+  page.value = 0
+  fetchPublicPlans(false)
+}
+
+//  1. 지역 목록 불러오기
 const fetchRegions = async () => {
   try {
-    const response = await axios.get('http://localhost:8080/api/regions');
-    regions.value = response.data;
-    console.log('지역 목록:', regions.value);
+    const response = await axios.get('http://localhost:8080/api/regions')
+    regions.value = response.data
   } catch (error) {
-    console.error('지역 목록을 불러오는데 실패했습니다:', error);
+    console.error('지역 목록 불러오기 실패:', error)
   }
-};
+}
 
+// 2. 공개 일정 목록 불러오기 (페이지 단위)
+const fetchPublicPlans = async (append = false) => {
+  if (loading.value) return
+  loading.value = true
+  try {
+    const res = await axios.get('http://localhost:8080/api/plans/public', {
+      params: {
+        page: page.value,
+        size,
+        sort: sortType.value,
+        regionId: selectedRegion.value,
+        days: selectedDays.value,
+      },
+    })
+    const data = res.data.content || res.data
+    if (append) routes.value.push(...data)
+    else routes.value = data
+    hasMore.value = data.length === size
+  } catch (err) {
+    console.error('공개 일정 목록 불러오기 실패:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 3. 더 보기 버튼
+const loadMore = () => {
+  page.value++
+  fetchPublicPlans(true)
+}
+
+// 접기
+const collapseList = () => {
+  page.value = 0
+  fetchPublicPlans(false)
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+//  마운트 시 실행
 onMounted(() => {
-  fetchRegions();
-});
+  fetchRegions()
+  fetchPublicPlans()
+})
 
-const routes = [
-  {
-    city: "제주도",
-    date: "11월 2일",
-    title: "제주도 힐링 3박4일 완벽 가이드",
-    user: "여행러버",
-    days: "4일",
-    places: 13,
-    likes: 1245,
-    views: 8932,
-    shares: 456,
-    isPublic: true,
-    transport: "자차",
-    createdAt: "2025년 11월 2일",
-    review: {
-      text: "제주도 여행 정말 최고였어요! 🌊 성산일출봉에서 본 일출은 정말 장관이었고, 애월 카페거리의 감성 카페들도 너무 예뻤어요. 특히 오션뷰 카페에서 마신 커피 한 잔이 아직도 생각나네요 ☕️\n\n한림공원은 가족들과 함께 가기 좋았고, 용암동굴도 신기했어요! 렌터카로 이동해서 자유롭게 여행할 수 있었던 점이 가장 좋았습니다. 다음에 또 가고 싶어요! 💙",
-      images: [
-        "https://placehold.co/97x97",
-        "https://placehold.co/97x97",
-        "https://placehold.co/97x97",
-        "https://placehold.co/97x97"
-      ]
-    },
-    itinerary: [
-      {
-        day: 1,
-        places: [
-          {
-            emoji: "🏛️",
-            name: "성산일출봉",
-            rating: 4.7,
-            time: "06:00 - 08:00",
-            address: "제주특별자치도 서귀포시 성산읍 성산리",
-            description: "유네스코 세계자연유산으로 지정된 제주의 대표 관광지. 일출을 보기 위해 많은 관광객이 찾는 명소입니다.",
-            duration: "90분",
-            tip: "일출 시간에 맞춰 일찍 도착하는 것을 추천합니다"
-          },
-          {
-            emoji: "☕",
-            name: "제주 감성 카페",
-            rating: 4.5,
-            time: "10:00 - 11:30",
-            address: "제주특별자치도 제주시 애월읍",
-            description: "오션뷰가 멋진 감성 카페. 신선한 베이커리와 맛있는 커피를 즐길 수 있습니다.",
-            duration: "60분"
-          },
-          {
-            emoji: "🏛️",
-            name: "한림공원",
-            rating: 4.6,
-            time: "13:00 - 15:30",
-            address: "제주특별자치도 제주시 한림읍",
-            description: "다양한 테마정원과 용암동굴을 함께 즐길 수 있는 복합 관광지",
-            duration: "120분"
-          },
-          {
-            emoji: "🍽️",
-            name: "제주 흑돼지 맛집",
-            rating: 4.8,
-            time: "18:00 - 19:30",
-            address: "제주특별자치도 제주시 제주대학로",
-            description: "제주 특산물인 흑돼지 구이를 맛볼 수 있는 현지 맛집. 신선한 고기와 푸짐한 반찬이 일품입니다.",
-            duration: "90분",
-            tip: "저녁 식사 시간에는 대기가 있을 수 있으니 예약 추천"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    city: "부산",
-    date: "11월 1일",
-    title: "부산 감성 여행 (해운대+광안리)",
-    user: "부산토박이",
-    days: "3일",
-    places: 7,
-    likes: 2103,
-    views: 12847,
-    shares: 892,
-  },
-  {
-    city: "서울",
-    date: "10월 31일",
-    title: "서울 핫플 투어 2일",
-    user: "서울러",
-    days: "2일",
-    places: 9,
-    likes: 1876,
-    views: 15234,
-    shares: 721,
-  },
-];
-
-const openModal = (route) => {
-  selectedRoute.value = route;
-  document.body.style.overflow = 'hidden';
-};
-
+// 모달
+const openModal = async (route) => {
+  selectedRoute.value = null
+  try {
+    const res = await axios.get(`http://localhost:8080/api/plans/public/${route.planId}`)
+    selectedRoute.value = res.data
+    document.body.style.overflow = 'hidden'
+  } catch (error) {
+    console.error('상세 일정 불러오기 실패:', error)
+  }
+}
 const closeModal = () => {
-  selectedRoute.value = null;
-  document.body.style.overflow = '';
-};
+  selectedRoute.value = null
+  document.body.style.overflow = ''
+}
+
+const sortType = ref('latest') // 기본 정렬: 최신순
+
+// 정렬 변경
+const changeSort = (type) => {
+  if (sortType.value === type) return
+  sortType.value = type
+  page.value = 0
+  fetchPublicPlans(false)
+}
 </script>
+
 
 <style scoped>
 .browse-container {
@@ -285,18 +303,64 @@ const closeModal = () => {
   gap: 28px;
 }
 
+/* ✅ 공용 버튼 스타일 (media query 밖으로 이동) */
+.btn {
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+  border: none;
+}
+
+.btn-green {
+  background: #10b981; /* 녹색 */
+  color: white;
+}
+
+.btn-green:hover {
+  background: #059669;
+}
+
+.btn-blue {
+  background: #3b82f6; /* 파란색 */
+  color: white;
+}
+
+.btn-blue:hover {
+  background: #2563eb;
+}
+
+/* ✅ 버튼 정렬 */
+.load-more-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 40px;
+}
+
+.loading-text {
+  text-align: center;
+  color: #6b7280;
+  margin-top: 20px;
+}
+
+/* 반응형 조정 */
 @media (max-width: 768px) {
   .filter-tabs {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .filter-dropdowns {
     justify-content: space-between;
   }
-  
+
   .card-grid {
     grid-template-columns: 1fr;
   }
 }
+
 </style>
