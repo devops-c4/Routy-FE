@@ -224,7 +224,7 @@ const saveEdit = async () => {
       date: d.date, // 원본 그대로
       activities: d.plans.map((p, actIdx) => ({
         travelId: p.travelId,
-        orderNo: actIdx + 1,
+        travelOrder: actIdx + 1,
         title: p.place_name, // 한 줄 제목
         tag: p.category_group_name,
         placeName: p.place_name,
