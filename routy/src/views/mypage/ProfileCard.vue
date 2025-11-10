@@ -1,6 +1,7 @@
 <!-- src/components/mypage/ProfileCard.vue -->
 <script setup>
 const props = defineProps({
+  imageUrl: { type: String, default: '' },
   initials: { type: String, default: '여' },
   name: { type: String, default: '' },
   tagline: { type: String, default: '' },
@@ -13,19 +14,20 @@ const emit = defineEmits(['edit'])
 </script>
 
 <template>
-  <div
-    class="relative overflow-hidden rounded-2xl border border-[#60A5FA]/20 bg-white/90 p-6 md:p-8 shadow-lg backdrop-blur-sm"
-  >
+<div
+  class="relative overflow-hidden rounded-2xl border border-[#60A5FA]/20 bg-white p-6 md:p-8 shadow-lg"
+>
     <!-- 은은한 대각 그라데이션 하이라이트 -->
     <div class="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#E0F2FE]/40 via-transparent to-transparent"></div>
 
     <div class="relative flex items-center gap-6">
-      <!-- 아바타 -->
-      <div
-        class="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-[#60A5FA] to-[#3B82F6] text-white
-               flex items-center justify-center text-2xl md:text-3xl font-semibold shadow-inner"
-      >
-        {{ initials }}
+      <div class="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden bg-white">
+        <img
+          v-if="imageUrl"
+          :src="imageUrl"
+          alt="프로필 이미지"
+          class="w-full h-full object-cover"
+        />
       </div>
 
       <!-- 텍스트/통계 -->
