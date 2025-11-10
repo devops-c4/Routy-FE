@@ -97,9 +97,10 @@
             <div class="map-header">
               <div class="map-title">추천 장소 지도</div>
               <div class="map-legend">
-                <span><i class="dot orange"></i> 맛집</span>
-                <span><i class="dot yellow"></i> 카페</span>
+                <span><i class="dot purple"></i> 맛집</span>
+                <span><i class="dot brown"></i> 카페</span>
                 <span><i class="dot blue"></i> 관광지</span>
+                <span><i class="dot yellow"></i> 숙소</span>
               </div>
             </div>
             <div class="map-canvas" ref="mapContainer"></div>
@@ -191,10 +192,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import axios from "axios";
 import draggable from "vuedraggable";
+
+// 마커 이미지 import
+import restaurantMarker from '@/assets/images/icons/restaurant-marker.svg';
+import cafeMarker from '@/assets/images/icons/cafe-marker.svg';
+import attractionMarker from '@/assets/images/icons/attraction-marker.svg';
 
 const route = useRoute();
 const planId = Number(route.query.planId);
@@ -205,6 +211,7 @@ console.log("planId:", planId, "/ totalDays:", totalDays);
 const mapContainer = ref(null);
 let map = null;
 let marker = null;
+const placeMarkers = ref([]); // 추가된 장소 마커들을 저장
 
 // 시작 지점 (Plan의 regionId에 따라 설정)
 const startLocation = ref({
@@ -214,20 +221,19 @@ const startLocation = ref({
 });
 
 // rgionId별 시작 지점 매핑 (관광 중심지 기준)
-// DB의 region_id는 AUTO_INCREMENT로 생성됨
 const regionStartPoints = {
-  1: { lat: 37.5547, lng: 126.9707, name: "서울역", type: "교통허브 🚄" },          // 서울
-  2: { lat: 35.1149, lng: 129.0422, name: "부산역", type: "교통허브 🚄" },          // 부산
-  3: { lat: 33.5067, lng: 126.4927, name: "제주국제공항", type: "공항 ✈️" },        // 제주
-  4: { lat: 37.7636, lng: 128.8989, name: "강릉역", type: "교통허브 🚄" },          // 강릉
-  5: { lat: 35.8389, lng: 129.2181, name: "경주역", type: "교통허브 🚄" },          // 경주
-  6: { lat: 34.7423, lng: 127.7440, name: "여수엑스포역", type: "교통허브 🚄" },     // 여수
-  7: { lat: 35.8125, lng: 127.1351, name: "전주역", type: "교통허브 🚄" },          // 전주
-  8: { lat: 38.2078, lng: 128.5914, name: "속초시외버스터미널", type: "터미널 🚌" },  // 속초
-  9: { lat: 37.4602, lng: 126.4407, name: "인천국제공항", type: "공항 ✈️" },         // 인천
-  10: { lat: 36.3315, lng: 127.4346, name: "대전역", type: "교통허브 🚄" },          // 대전
-  11: { lat: 35.8794, lng: 128.6283, name: "동대구역", type: "교통허브 🚄" },        // 대구
-  12: { lat: 35.1278, lng: 126.7977, name: "광주송정역", type: "교통허브 🚄" },      // 광주
+  1: { lat: 37.5547, lng: 126.9707, name: "서울역", type: "교통허브 🚄" },
+  2: { lat: 35.1149, lng: 129.0422, name: "부산역", type: "교통허브 🚄" },
+  3: { lat: 33.5067, lng: 126.4927, name: "제주국제공항", type: "공항 ✈️" },
+  4: { lat: 37.7636, lng: 128.8989, name: "강릉역", type: "교통허브 🚄" },
+  5: { lat: 35.8389, lng: 129.2181, name: "경주역", type: "교통허브 🚄" },
+  6: { lat: 34.7423, lng: 127.7440, name: "여수엑스포역", type: "교통허브 🚄" },
+  7: { lat: 35.8125, lng: 127.1351, name: "전주역", type: "교통허브 🚄" },
+  8: { lat: 38.2078, lng: 128.5914, name: "속초시외버스터미널", type: "터미널 🚌" },
+  9: { lat: 37.4602, lng: 126.4407, name: "인천국제공항", type: "공항 ✈️" },
+  10: { lat: 36.3315, lng: 127.4346, name: "대전역", type: "교통허브 🚄" },
+  11: { lat: 35.8794, lng: 128.6283, name: "동대구역", type: "교통허브 🚄" },
+  12: { lat: 35.1278, lng: 126.7977, name: "광주송정역", type: "교통허브 🚄" },
 };
 
 // 장소 관련
@@ -246,6 +252,93 @@ const selectedPlaces = computed(() => placesByDay.value[selectedDay.value] || []
 // 일차별 종료 상태 (종료된 일차는 수정 불가)
 const completedDays = ref(new Set());
 
+// 타입별 마커 이미지 URL 정의
+const getMarkerImageUrl = (type) => {
+  const markerImages = {
+    'restaurants': restaurantMarker,  // 맛집 - 커스텀 이미지
+    'cafes': cafeMarker,              // 카페 - 커스텀 이미지
+    'attractions': attractionMarker,   // 관광지 - 커스텀 이미지
+    'hotel': 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png' // 숙소 - 별
+  };
+  return markerImages[type] || markerImages['attractions'];
+};
+
+// 마커 생성 함수
+const createMarker = (place, placeType) => {
+  if (!map) return null;
+  
+  const position = new kakao.maps.LatLng(place.latitude, place.longitude);
+  const markerImageUrl = getMarkerImageUrl(placeType);
+  
+  const markerImage = new kakao.maps.MarkerImage(
+    markerImageUrl,
+    new kakao.maps.Size(40, 40)
+  );
+  
+  const newMarker = new kakao.maps.Marker({
+    position: position,
+    map: map,
+    image: markerImage,
+    title: place.title
+  });
+  
+  // 마커 클릭 이벤트 추가
+  kakao.maps.event.addListener(newMarker, 'click', function() {
+    highlightPlace(place);
+  });
+  
+  return newMarker;
+};
+
+// 장소 선택/강조 함수
+const highlightPlace = (place) => {
+  selectedPlace.value = place;
+  
+  // 지도 중심 이동
+  if (map) {
+    const pos = new kakao.maps.LatLng(place.latitude, place.longitude);
+    map.panTo(pos);
+  }
+  
+  // 오른쪽 리스트에서 스크롤 (선택적)
+  const placeElement = document.querySelector(`[data-place-title="${place.title}"]`);
+  if (placeElement) {
+    placeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+};
+
+// 모든 마커 제거
+const clearAllMarkers = () => {
+  placeMarkers.value.forEach(marker => marker.setMap(null));
+  placeMarkers.value = [];
+};
+
+// 현재 일차의 장소들을 지도에 표시
+const updateMapMarkers = () => {
+  clearAllMarkers();
+  
+  const currentDayPlaces = placesByDay.value[selectedDay.value] || [];
+  currentDayPlaces.forEach(place => {
+    let placeType;
+    if (place.isHotel) {
+      placeType = 'hotel';
+    } else if (place.categoryCode === 'FD6') {
+      placeType = 'restaurants';
+    } else if (place.categoryCode === 'CE7') {
+      placeType = 'cafes';
+    } else {
+      placeType = 'attractions';
+    }
+    
+    const marker = createMarker(place, placeType);
+    if (marker) {
+      placeMarkers.value.push(marker);
+    }
+  });
+  
+  console.log(`${selectedDay.value}일차 마커 ${placeMarkers.value.length}개 표시`);
+};
+
 // 지도 초기화
 const initMap = () => {
   const waitForKakao = () => {
@@ -254,6 +347,9 @@ const initMap = () => {
         const center = new kakao.maps.LatLng(startLocation.value.lat, startLocation.value.lng);
         map = new kakao.maps.Map(mapContainer.value, { center, level: 5 });
         console.log("Kakao 지도 초기화 완료:", startLocation.value.name);
+        
+        // 초기 마커 표시
+        updateMapMarkers();
       });
     } else {
       setTimeout(waitForKakao, 500);
@@ -287,13 +383,11 @@ const loadPlaces = async (type) => {
   const currentDayPlaces = placesByDay.value[selectedDay.value] || [];
   
   if (currentDayPlaces.length > 0) {
-    // 일정에 장소가 있으면 → 마지막 장소 기준으로 검색
     const lastPlace = currentDayPlaces[currentDayPlaces.length - 1];
     searchLat = lastPlace.latitude;
     searchLng = lastPlace.longitude;
     console.log(`마지막 장소(${lastPlace.title}) 기준으로 검색`);
   } else {
-    // 일정이 비어있으면 → 지역 시작점 기준으로 검색
     searchLat = startLocation.value.lat;
     searchLng = startLocation.value.lng;
     console.log(`${startLocation.value.name} 기준으로 검색`);
@@ -326,7 +420,7 @@ const loadPlaces = async (type) => {
   }
 };
 
-//지도 선택
+// 지도 선택
 const selectPlace = (p) => {
   selectedPlace.value = p;
   if (!map) return;
@@ -357,6 +451,9 @@ const addPlace = (p) => {
     placesByDay.value[day].push({ ...p, dayNumber: day });
     console.log(`${p.title} 추가됨`);
     
+    // 마커 업데이트
+    updateMapMarkers();
+    
     // 지도 중심 이동
     updateMapCenter();
     
@@ -371,10 +468,13 @@ const removePlace = (p) => {
     placesByDay.value[day] = placesByDay.value[day].filter((x) => x.title !== p.title);
     console.log(`${p.title} 제거됨`);
     
+    // 마커 업데이트
+    updateMapMarkers();
+    
     // 지도 중심 이동
     updateMapCenter();
     
-    // 제거 후 재검색 (마지막 장소 기준 또는 시작점)
+    // 제거 후 재검색
     loadPlaces(currentType.value);
   }
 };
@@ -390,33 +490,25 @@ const onDragMove = (evt) => {
   const relatedItem = evt.relatedContext.element;
   const list = placesByDay.value[selectedDay.value] || [];
   
-  // 1. 고정된 아이템 드래그 불가
   if (draggedItem.fixed) return false;
-  
-  // 2. 이동 대상이 고정된 아이템이면 불가
   if (relatedItem?.fixed) return false;
   
-  // 3. 고정된 항목을 경계로 한쪽 블록만 이동 허용
   const fixedIndexes = list
     .map((p, i) => (p.fixed ? i : -1))
     .filter((i) => i !== -1);
   
-  // 고정된 게 없으면 자유 이동
   if (fixedIndexes.length === 0) return true;
   
   const draggedIndex = evt.draggedContext.index;
   const targetIndex = evt.relatedContext.index;
   
-  // dragged와 target이 같은 블록 안에 있는지 판단
   const inSameBlock = fixedIndexes.every((fi) => {
-    // 둘 다 fi보다 작거나, 둘 다 fi보다 크면 같은 블록
     return (
       (draggedIndex < fi && targetIndex < fi) ||
       (draggedIndex > fi && targetIndex > fi)
     );
   });
   
-  // 고정된 항목을 '건너뛰는 이동'은 막기
   return inSameBlock;
 };
 
@@ -447,10 +539,12 @@ const openHotelModal = async () => {
     console.error("숙소 불러오기 실패:", e);
   }
 };
+
 const closeHotelModal = () => {
   showHotelModal.value = false;
   console.log("숙소 모달 닫힘");
 };
+
 const addHotel = (hotel) => {
   const day = selectedDay.value;
   if (!placesByDay.value[day]) placesByDay.value[day] = [];
@@ -458,25 +552,13 @@ const addHotel = (hotel) => {
     placesByDay.value[day].push({ ...hotel, isHotel: true });
   }
   alert(`${hotel.title}이(가) ${day}일차 일정에 추가되었습니다!`);
-
-  // 지도에 호텔 마커 표시
-  if (map) {
-    const pos = new kakao.maps.LatLng(hotel.latitude, hotel.longitude);
-    const hotelMarker = new kakao.maps.Marker({
-      position: pos,
-      map: map,
-      image: new kakao.maps.MarkerImage(
-        "https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png", // 별모양 마커
-        new kakao.maps.Size(24, 35)
-      ),
-      title: hotel.title,
-    });
-
-    // 지도 중심 이동
-    map.panTo(pos);
-    console.log(`호텔 마커 추가: ${hotel.title}`);
-  }
+  
+  // 마커 업데이트
+  updateMapMarkers();
+  
+  closeHotelModal();
 };
+
 const focusHotelOnMap = (hotel) => {
   if (!hotelMap) return;
   const pos = new kakao.maps.LatLng(hotel.latitude, hotel.longitude);
@@ -529,6 +611,11 @@ const selectDay = (day) => {
   selectedDay.value = day;
 };
 
+// 일차 변경 시 마커 업데이트
+watch(selectedDay, () => {
+  updateMapMarkers();
+});
+
 // 일정 종료 (해당 일차 수정 불가)
 const endDaySchedule = () => {
   const day = selectedDay.value;
@@ -566,14 +653,18 @@ const saveAllDaysPlaces = async () => {
 };
 
 onMounted(async () => {
-  await loadPlanInfo(); // 먼저 Plan 정보를 가져와서 시작 지점 설정
-  initMap(); // 그 다음 지도 초기화
+  await loadPlanInfo();
+  initMap();
   await loadDurations();
   await loadPlaces("restaurants");
 });
 </script>
 
 <style scoped>
+
+.dot.purple { background: #A855F7; } /* 연보라 (카페 등) */
+.dot.brown { background: #9A6648; }  /* 브라운톤 (맛집 등) */
+
 .full-layout {
   max-width: 1520px;
   border-radius: 14px;
@@ -891,6 +982,7 @@ onMounted(async () => {
   box-shadow: 0 4px 6px -4px rgba(0,0,0,0.1);
   display: flex; justify-content: space-between; align-items: center;
   width: calc(100% - 32px);
+  z-index: 10;
 }
 .map-legend { display: flex; gap: 12px; font-size: 14px; }
 .dot {
@@ -899,6 +991,7 @@ onMounted(async () => {
 .dot.orange { background: #FF6900; }
 .dot.yellow { background: #FE9A00; }
 .dot.blue { background: #2B7FFF; }
+.dot.green { background: #10B981; }
 
 .map-canvas {
   width: 100%; height: 100%; position: relative;
@@ -952,6 +1045,7 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  cursor: pointer;
 }
 .place-card.active {
   border: 2px solid #155dfc;
