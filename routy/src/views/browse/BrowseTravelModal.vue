@@ -36,12 +36,12 @@
         <div class="stat-item">
           <span class="stat-icon">👁️</span>
           <span class="stat-label">조회수</span>
-          <span class="stat-value">{{ route.viewCount }}</span>
+          <span class="stat-value">{{ viewCount }}</span>
         </div>
         <div class="stat-item">
-          <span class="stat-icon">🔖</span>
-          <span class="stat-label">북마크</span>
-          <span class="stat-value">{{ route.bookmarkCount }}</span>
+          <button @click="toggleBookmark" class="like-btn">
+            🔖 북마크 {{ bookmarkCount }}
+          </button>
         </div>
       </div>
 
@@ -159,63 +159,87 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue' 
 import apiClient from '@/utils/axios'
-
 
 // 부모로부터 전달받는 여행 데이터(route)
 const props = defineProps({
   route: Object
 })
+const emit = defineEmits(['updateRoute', 'close'])
 
-// ✅ 좋아요 관련 상태
+// 상태 관리
 const likeCount = ref(0)
+const bookmarkCount = ref(0)
+const viewCount = ref(0)
 const isLiked = ref(false)
+const selectedDay = ref(1)
+
+// props.route가 바뀔 때마다 내부 데이터 갱신
+watch(
+  () => props.route,
+  (newVal) => {
+    if (newVal) {
+      likeCount.value = newVal.likeCount || 0
+      bookmarkCount.value = newVal.bookmarkCount || 0
+      viewCount.value = newVal.viewCount || 0
+    }
+  },
+  { immediate: true, deep: true }
+)
 
 
-//  좋아요 수 불러오기 + 상태 초기화
-const fetchLikeData = async () => {
-  if (!props.route?.planId || !userId) return
-  try {
-    // 좋아요 수
-    const countRes = await apiClient.get(`/api/plans/${props.route.planId}/like-count`)
-    likeCount.value = countRes.data
 
-    // 이미 눌렀는지 여부 (선택적으로 추가)
-    const checkRes = await apiClient.get(`/api/plans/${props.route.planId}/like`, {
-      params: { userId }
-    })
-    isLiked.value = checkRes.data === true
-  } catch (err) {
-    console.error('좋아요 데이터 로드 실패:', err)
-  }
-}
-
-//  좋아요 토글 (누르기/취소)
+// ✅ 좋아요 토글
 const toggleLike = async () => {
-  console.log('❤️ 좋아요 버튼 눌림', props.route.planId)
   try {
     const res = await apiClient.post(`/api/plans/${props.route.planId}/like`)
     likeCount.value = res.data.likeCount
     isLiked.value = !isLiked.value
+
+    // 부모에도 반영
+    emit('updateRoute', {
+      planId: props.route.planId,
+      likeCount: likeCount.value,
+      bookmarkCount: bookmarkCount.value
+    })
   } catch (err) {
     console.error('좋아요 요청 실패:', err)
   }
 }
 
-
-
-//  Day별 장소 표시 
-const selectedDay = ref(1)
+// ✅ Day별 활동
 const selectedDayActivities = computed(() => {
   const day = props.route.dayList?.find(d => d.dayNo === selectedDay.value)
   return day ? day.activities : []
 })
 
-//  페이지 로드시 좋아요 정보 가져오기
-onMounted(() => {
-  console.log('✅ 모달 마운트됨, planId:', props.route.planId)
+// ✅ 조회수 증가
+onMounted(async () => {
+  try {
+    viewCount.value++ // 즉시 반영
+    await apiClient.post(`/api/plans/${props.route.planId}/view`)
+  } catch (err) {
+    console.error('조회수 증가 실패:', err)
+  }
 })
+
+// ✅ 북마크 토글
+const toggleBookmark = async () => {
+  try {
+    const res = await apiClient.post(`/api/plans/${props.route.planId}/bookmark`)
+    bookmarkCount.value = res.data.bookmarkCount
+
+    // 부모에도 반영
+    emit('updateRoute', {
+      planId: props.route.planId,
+      likeCount: likeCount.value,
+      bookmarkCount: bookmarkCount.value
+    })
+  } catch (err) {
+    console.error('북마크 요청 실패:', err)
+  }
+}
 </script>
 
 <style scoped>

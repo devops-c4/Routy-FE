@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
 import { jwtDecode } from 'jwt-decode' // 설치 안 돼 있으면: npm i jwt-decode
+import BrowseTravelModal from '@/views/browse/BrowseTravelModal.vue'
 
 const router = useRouter()
 
@@ -14,6 +15,21 @@ function goToPlanDetail(planId) {
 // 정보수정 버튼 클릭시 정보 수정 페이지로 넘어가는 함수
 function goToModifyUser() {
   router.push('/mypage/modify')
+}
+
+// 북마크 모달 상태
+const showModal = ref(false)
+const selectedPlan = ref(null)
+
+// 북마크 모달 열기 함수
+const openBookmarkModal = async (planId) => {
+  try {
+    const res = await axios.get(`/api/plans/public/${planId}`)
+    selectedPlan.value = res.data
+    showModal.value = true
+  } catch (err) {
+    console.error('모달 데이터 로드 실패:', err)
+  }
 }
 
 const recordLimit = ref(3)    // 한 페이지당 갯수
@@ -95,7 +111,8 @@ const fetchMyPage = async () => {
     travelHistoryRaw.value = data.travelHistory ?? []
 
     // 5) 북마크
-    bookmarksRaw.value = data.bookmarks ?? []
+    const bookmarkRes = await axios.get('/api/plans/bookmarks')
+    bookmarksRaw.value = bookmarkRes.data ?? []
 
   } catch (e) {
     console.error(e)
@@ -203,12 +220,13 @@ function nextMonth(){
 /* 북마크 카드용 변환 */
 const bookmarks = computed(() =>
   (bookmarksRaw.value ?? []).map(b => ({
-    id: b.bookmarkId,
+    id: b.planId, // ✅ 이 부분을 bookmarkId → planId 로 수정
     title: b.planTitle,
     type: '여행일정',
     count: b.bookmarkCount ?? 0,
   }))
 )
+
 
 /* 날짜 포맷 */
 function formatDateRange(start, end) {
@@ -399,7 +417,12 @@ function toggleRecords() {
         <header class="block__title">북마크</header>
 
         <div class="bm-grid">
-          <div class="bm-card" v-for="b in bookmarks" :key="b.id">
+          <div
+            class="bm-card"
+            v-for="b in bookmarks"
+            :key="b.id"
+            @click="openBookmarkModal(b.id)" 
+          >
             <div class="bm-icon">🔖</div>
             <span class="bm-count">{{ b.count }}</span>
             <div class="bm-title">{{ b.title }}</div>
@@ -413,9 +436,15 @@ function toggleRecords() {
           </button>
         </div>
       </section>
+
     </div>
-  </div>
-  
+    <!-- ✅ 모달 컴포넌트 (페이지 하단) -->
+    </div>
+        <BrowseTravelModal
+        v-if="showModal"
+        :route="selectedPlan"
+        @close="showModal = false"
+      />
 </template>
 
 <style>

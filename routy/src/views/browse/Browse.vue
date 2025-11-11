@@ -99,6 +99,7 @@
     <TravelDetailModal
       v-if="selectedRoute"
       :route="selectedRoute"
+      @updateRoute="updateRoute"
       @close="closeModal"
     />
   </div>
@@ -184,13 +185,22 @@ onMounted(() => {
 const openModal = async (route) => {
   selectedRoute.value = null
   try {
+    // ✅ 최신 데이터로 다시 요청
     const res = await axios.get(`http://localhost:8080/api/plans/public/${route.planId}`)
     selectedRoute.value = res.data
     document.body.style.overflow = 'hidden'
+
+    // ✅ 조회수 증가 요청 (작성자 제외)
+    await axios.post(`http://localhost:8080/api/plans/${route.planId}/view`)
+
+    // ✅ 부모 리스트에서 해당 카드 카운트도 즉시 반영
+    const target = routes.value.find(r => r.planId === route.planId)
+    if (target) target.viewCount++
   } catch (error) {
     console.error('상세 일정 불러오기 실패:', error)
   }
 }
+
 const closeModal = () => {
   selectedRoute.value = null
   document.body.style.overflow = ''
@@ -205,6 +215,21 @@ const changeSort = (type) => {
   page.value = 0
   fetchPublicPlans(false)
 }
+
+const updateRoute = (updated) => {
+  const target = routes.value.find(r => r.planId === updated.planId)
+  if (target) {
+    target.likeCount = updated.likeCount
+    target.bookmarkCount = updated.bookmarkCount
+  }
+
+  //모달 내부도 즉시 반영되게 selectedRoute도 갱신
+  if (selectedRoute.value && selectedRoute.value.planId === updated.planId) {
+    selectedRoute.value.likeCount = updated.likeCount
+    selectedRoute.value.bookmarkCount = updated.bookmarkCount
+  }
+}
+
 </script>
 
 
