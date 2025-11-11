@@ -30,9 +30,17 @@
               <button 
                 class="left-btn" 
                 @click="drawSort"
-                :disabled="isDayCompleted"
-              >자동 정렬</button>
+                :disabled="isDayCompleted || isLoading">            
+                <span v-if="isLoading">⏳ 정렬 중...</span>
+                <span v-else>자동 정렬</span>
+              </button>
             </div>
+            <!-- 로딩 스피너 -->
+            <div v-if="isLoading" class="loading-overlay">
+              <div class="spinner"></div>
+              <p>자동 정렬 중입니다. 잠시만 기다려주세요...</p>
+            </div>
+
             <button class="end-btn" @click="endDaySchedule">일정 종료</button>
           </div>
 
@@ -689,13 +697,16 @@ const drawRoute = async () => {
   await direction(map, placesByDay.value[selectedDay.value]);
 }
 
+
+const isLoading = ref(false);
 // 자동 정렬하기
 const drawSort = async () => {
   const currentPlaces = placesByDay.value[selectedDay.value];
   console.log("현재 장소들:", currentPlaces);
 
+  isLoading.value = true;
   const newLocations = await sortDirection(map, currentPlaces);
-
+  isLoading.value = false;
   if (!newLocations || newLocations.length === 0) {
     console.warn("정렬된 경로가 없습니다.");
     return;
