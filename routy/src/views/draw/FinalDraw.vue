@@ -277,10 +277,6 @@ const selectedPlaces = computed(() => placesByDay.value[selectedDay.value] || []
 // 일차별 종료 상태
 const completedDays = ref(new Set());
 
-// 검색 중복 방지
-const isSearching = ref(false);
-const lastSearchCoords = ref({ lat: null, lng: null });
-
 // 이전 페이지로 이동
 const goPrev = () => {
   router.push({
@@ -454,13 +450,12 @@ const updateMapMarkers = () => {
 
 // 지도 초기화
 const initMap = (location) => {
-  console.log("🗺️ initMap 호출됨 - 전달받은 location:", location);
+  console.log("initMap 호출됨 - 전달받은 location:", location);
   
   const waitForKakao = () => {
     if (window.kakao && window.kakao.maps) {
       window.kakao.maps.load(() => {
-        console.log("🗺️ Kakao Maps API 로드 완료");
-        console.log("📍 지도 생성 시 사용할 좌표:", location);
+        console.log("Kakao Maps API 로드 완료");
         
         const center = new kakao.maps.LatLng(location.lat, location.lng);
         map = new kakao.maps.Map(mapContainer.value, { 
@@ -468,23 +463,10 @@ const initMap = (location) => {
           level: 5 
         });
         
-        console.log(`✅ Kakao 지도 초기화 완료: ${location.name}`);
-        console.log(`📌 지도 중심 좌표: lat=${location.lat}, lng=${location.lng}`);
-        
+        console.log(`Kakao 지도 초기화 완료: ${location.name}`);
         updateMapMarkers();
         
-        // ✅ 지도 이동 시 장소 재검색 (중복 방지 로직 추가)
-        kakao.maps.event.addListener(map, "idle", async () => {
-          const center = map.getCenter();
-          const lat = center.getLat();
-          const lng = center.getLng();
-          
-          // 유의미한 변경이 있을 때만 검색
-          if (hasSignificantChange(lat, lng) && !isSearching.value) {
-            console.log("📍 지도 이동 감지 - 새로운 검색:", lat, lng);
-            await loadPlaces(currentType.value, lat, lng);
-          }
-        });
+        // idle 이벤트 리스너 완전 제거!
       });
     } else {
       console.log("⏳ Kakao Maps API 대기 중...");
@@ -492,17 +474,6 @@ const initMap = (location) => {
     }
   };
   waitForKakao();
-};
-
-// 좌표가 유의미하게 변경되었는지 확인
-const hasSignificantChange = (newLat, newLng) => {
-  if (!lastSearchCoords.value.lat) return true;
-  
-  const latDiff = Math.abs(newLat - lastSearchCoords.value.lat);
-  const lngDiff = Math.abs(newLng - lastSearchCoords.value.lng);
-  
-  // 0.01도 이상 변경되었을 때만 새로 검색 (약 1km)
-  return latDiff > 0.01 || lngDiff > 0.01;
 };
 
 // Plan 정보 가져오기 및 시작 지점 설정
@@ -539,18 +510,14 @@ const loadPlanInfo = async () => {
 };
 
 // Kakao API 장소 불러오기 (중복 방지 추가)
+// ✅ 수정 후 (중복 방지 로직 제거)
 const loadPlaces = async (type, lat = null, lng = null) => {
-  if (isSearching.value) {
-    console.log("⏸️ 이미 검색 중...");
-    return;
-  }
-  
   currentType.value = type;
   
   let searchLat = lat;
   let searchLng = lng;
   
- // 검색 기준 좌표 결정
+  // 검색 기준 좌표 결정
   if (!searchLat || !searchLng) {
     const currentDayPlaces = placesByDay.value[selectedDay.value] || [];
     if (currentDayPlaces.length > 0) {
@@ -558,21 +525,12 @@ const loadPlaces = async (type, lat = null, lng = null) => {
       searchLat = lastPlace.latitude;
       searchLng = lastPlace.longitude;
     } else {
-      // 초기 검색 시 startLocation 사용
       searchLat = startLocation.value.lat;  
       searchLng = startLocation.value.lng;
     }
   }
   
-  // 이전 검색과 좌표가 같으면 스킵
-  if (!hasSignificantChange(searchLat, searchLng)) {
-    console.log("좌표 변경 없음 - 검색 스킵");
-    return;
-  }
-  
   console.log(`${type} 검색 좌표: lat=${searchLat}, lng=${searchLng}`);
-  
-  isSearching.value = true;
   
   try {
     const res = await axios.get(`/api/kakao/${type}`, { 
@@ -595,14 +553,9 @@ const loadPlaces = async (type, lat = null, lng = null) => {
     }));
     console.log(`${type} ${places.value.length}개 검색 완료`);
     
-    // 검색 좌표 업데이트
-    lastSearchCoords.value = { lat: searchLat, lng: searchLng };
-    
     displaySearchResultMarkers();
   } catch (err) {
     console.error("장소 불러오기 실패:", err);
-  } finally {
-    isSearching.value = false;
   }
 };
 
@@ -629,9 +582,6 @@ const removePlace = (p) => {
     placesByDay.value[day] = placesByDay.value[day].filter((x) => x.title !== p.title);
     console.log(`${p.title} 제거됨`);
     updateMapMarkers();
-
-    // 지도 중심 이동
-    updateMapCenter();
 
     // 그려진 경로가 있다면 삭제
     deletePoliLine();
