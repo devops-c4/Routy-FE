@@ -43,10 +43,10 @@
 
       <!-- 별점 평가 -->
       <div class="section">
-       <label>별점 평가 (5점 만점)</label>
+       <label>별점 평가 (10점 만점)</label>
 <div class="stars">
   <span
-    v-for="i in 5"
+    v-for="i in 10"
     :key="i"
     class="star"
     @mousemove="handleStarHover($event, i)"
@@ -56,7 +56,7 @@
   >
     ★
   </span>
-  <span class="score">{{ displayRating.toFixed(1) }}/5점</span>
+  <span class="score">{{ displayRating }}/10점</span>
 </div>
       </div>
 
@@ -120,35 +120,20 @@ const fetchReviewForm = async () => {
 
 // ====== 별점 ======
 function handleStarHover(e, index) {
-   if (isLocked.value) return
- const rect = e.target.getBoundingClientRect()
-  const offsetX = e.clientX - rect.left
-  const ratio = offsetX / rect.width
-  const value = index - 1 + (ratio <= 0.5 ? 0.5 : 1)
-  hoverRating.value = Math.min(5, Math.max(0.5, value))
+  if (isLocked.value) return
+ hoverRating.value = index   // 1~10
 }
 function confirmRating(e, index) {
-  const rect = e.target.getBoundingClientRect()
-  const offsetX = e.clientX - rect.left
-  const ratio = offsetX / rect.width
-  const value = index - 1 + (ratio <= 0.5 ? 0.5 : 1)
-
-  rating.value = Math.min(5, Math.max(0.5, value))
+  rating.value = index        // 1~10
   hoverRating.value = 0
-  isLocked.value = true 
+  isLocked.value = true
 }
 function getStarStyle(index) {
-  const filled = displayRating.value - (index - 1);
-  if (filled >= 1) return { color: "#facc15" };
-  if (filled > 0)
-    return {
-      background: `linear-gradient(90deg, #facc15 ${filled * 100}%, #d1d5db ${
-        filled * 100
-      }%)`,
-      WebkitBackgroundClip: "text",
-      color: "transparent",
-    };
-  return { color: "#d1d5db" };
+  const filled = displayRating.value
+  if (index <= filled) {
+    return { color: "#facc15", cursor: "pointer" }   // 채워진 별
+  }
+  return { color: "#d1d5db", cursor: "pointer" }     // 빈 별
 }
 
 // ====== 파일 업로드 ======
