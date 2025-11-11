@@ -111,7 +111,7 @@
               <div class="map-legend">
                 <span><i class="dot purple"></i> 맛집</span>
                 <span><i class="dot brown"></i> 카페</span>
-                <span><i class="dot blue"></i> 관광지</span>
+                <span><i class="dot green"></i> 관광지</span>
                 <span><i class="dot yellow"></i> 숙소</span>
               </div>
             </div>
@@ -481,10 +481,10 @@ const loadPlanInfo = async () => {
   try {
     const res = await axios.get(`/api/plans/select/${planId}`);
     const plan = res.data;
-    console.log("📋 Plan 정보:", plan);
+    console.log("Plan 정보:", plan);
     
     const regionId = plan.regionId || plan.region_id;
-    console.log("📍 추출된 regionId:", regionId);
+    console.log("추출된 regionId:", regionId);
     
     if (regionId) {
       // Region 정보 가져오기
@@ -499,18 +499,18 @@ const loadPlanInfo = async () => {
           name: region.regionName,
           type: "출발지"
         };
-        console.log(`✅ DB 기반 시작지점 설정: ${startLocation.value.name}`);
-        console.log(`📌 좌표: lat=${startLocation.value.lat}, lng=${startLocation.value.lng}`);
+        console.log(`DB 기반 시작지점 설정: ${startLocation.value.name}`);
+        console.log(`좌표: lat=${startLocation.value.lat}, lng=${startLocation.value.lng}`);
       }
     }
   } catch (err) {
-    console.error("❌ Plan/Region 정보 불러오기 실패:", err);
+    console.error("Plan/Region 정보 불러오기 실패:", err);
     console.error("에러 상세:", err.response?.data || err.message);
   }
 };
 
 // Kakao API 장소 불러오기 (중복 방지 추가)
-// ✅ 수정 후 (중복 방지 로직 제거)
+// 수정 후 (중복 방지 로직 제거)
 const loadPlaces = async (type, lat = null, lng = null) => {
   currentType.value = type;
   
@@ -795,8 +795,8 @@ const saveAllDaysPlaces = async () => {
 
 // 컴포넌트 마운트 시 실행
 onMounted(async () => {
-  console.log("🚀 컴포넌트 마운트 시작");
-  console.log("📍 planId:", planId);
+  console.log("컴포넌트 마운트 시작");
+  console.log("planId:", planId);
   
   // 1. Plan 및 Region 정보 로드 (시작 좌표 포함)
   await loadPlanInfo();
@@ -859,9 +859,6 @@ const drawSort = async () => {
 </script>
 
 <style scoped>
-.dot.purple { background: #d877e1; }
-.dot.brown { background: #d0a473; }
-
 .full-layout {
   max-width: 1520px;
   border-radius: 14px;
@@ -1205,9 +1202,9 @@ const drawSort = async () => {
   display: inline-block; width: 12px; height: 12px; border-radius: 50%;
 }
 
-.dot.orange { background: #FF6900; }
+.dot.purple { background: #d877e1; }
+.dot.brown { background: #d0a473; }
 .dot.yellow { background: #FE9A00; }
-.dot.blue { background: #2B7FFF; }
 .dot.green { background: #10B981; }
 
 .map-canvas {
