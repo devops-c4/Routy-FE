@@ -42,7 +42,6 @@
 
 <script setup>
 import { ref, onUnmounted } from 'vue';
-import Header from '@/components/Header.vue';
 import axios from 'axios';
 import { useRouter } from "vue-router";
 
