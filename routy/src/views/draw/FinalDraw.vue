@@ -788,6 +788,13 @@ const saveAllDaysPlaces = async () => {
       })));
     }
     alert("전체 일정 저장 완료!");
+    let count = Number(sessionStorage.getItem("newPlan")) || 0;
+    count++;
+    sessionStorage.setItem("newPlan",count);
+
+    router.push("/mypage").then(() => {
+    window.location.reload();
+  });
   } catch (err) {
     console.error("저장 실패:", err);
   }
