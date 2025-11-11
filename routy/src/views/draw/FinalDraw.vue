@@ -60,7 +60,16 @@
               :disabled="isDayCompleted"
             >
               <template #item="{ element, index }">
-                <div class="selected-card" :class="{ fixed: element.fixed, hotel: element.isHotel, completed: isDayCompleted }">
+                <div 
+                  class="selected-card" 
+                  :class="{ 
+                    fixed: element.fixed, 
+                    hotel: element.isHotel, 
+                    completed: isDayCompleted,
+                    active: selectedPlace && selectedPlace.title === element.title
+                  }"
+                  @click="selectPlaceFromLeft(element)"
+                >
                   <div class="drag-handle" :class="{ disabled: element.fixed || isDayCompleted }">⋮⋮</div>
                   <div class="card-content">
                     <div class="card-header">
@@ -70,10 +79,10 @@
                     <div class="card-title">{{ element.title }}</div>
                     <div class="card-category">{{ getLastCategory(element.description || element.categoryGroupName) }}</div>
                     <div class="card-actions">
-                      <button class="action-btn fix-btn" :class="{ active: element.fixed }" @click="toggleFix(element)" :disabled="isDayCompleted">
+                      <button class="action-btn fix-btn" :class="{ active: element.fixed }" @click.stop="toggleFix(element)" :disabled="isDayCompleted">
                         고정
                       </button>
-                      <button class="action-btn remove-btn" @click="removePlace(element)" :disabled="isDayCompleted">빼기</button>
+                      <button class="action-btn remove-btn" @click.stop="removePlace(element)" :disabled="isDayCompleted">빼기</button>
                     </div>
                   </div>
                 </div>
@@ -383,8 +392,72 @@ const createSelectedMarker = (place, placeType) => {
 const highlightPlace = (place, fromMarkerClick = false) => {
   selectedPlace.value = place;
   
+  // 지도 중심 이동
+  if (map && place.latitude && place.longitude) {
+    const position = new kakao.maps.LatLng(place.latitude, place.longitude);
+    map.panTo(position);
+  }
+  
+  // 오른쪽 장소 리스트에서 스크롤
   if (placeCardRefs.value[place.title] && placeListContainer.value) {
     const element = placeCardRefs.value[place.title];
+    const container = placeListContainer.value;
+    
+    const elementTop = element.offsetTop;
+    const elementHeight = element.offsetHeight;
+    const containerHeight = container.clientHeight;
+    
+    const scrollPosition = elementTop - (containerHeight / 2) + (elementHeight / 2);
+    
+    container.scrollTo({
+      top: scrollPosition,
+      behavior: 'smooth'
+    });
+  }
+};
+
+// 왼쪽 선택된 장소 클릭 핸들러 (새로 추가)
+const selectPlaceFromLeft = async (place) => {
+  selectedPlace.value = place;
+  
+  // 지도 중심 이동
+  if (map && place.latitude && place.longitude) {
+    const position = new kakao.maps.LatLng(place.latitude, place.longitude);
+    map.panTo(position);
+  }
+  
+  // 해당 장소의 카테고리로 필터 변경 및 검색 결과 로드
+  let newType = currentType.value;
+  
+  if (place.isHotel) {
+    // 숙소는 검색 결과에 포함되지 않으므로 현재 타입 유지
+    return;
+  } else if (place.categoryCode === 'FD6') {
+    newType = 'restaurants';
+  } else if (place.categoryCode === 'CE7') {
+    newType = 'cafes';
+  } else {
+    newType = 'attractions';
+  }
+  
+  // 카테고리가 변경되었거나 검색 결과가 없으면 새로 로드
+  if (newType !== currentType.value || places.value.length === 0) {
+    currentType.value = newType;
+    await loadPlaces(newType, place.latitude, place.longitude);
+  }
+  
+  // 오른쪽 리스트에서 해당 장소로 스크롤
+  await nextTick();
+  
+  // 검색 결과에서 해당 장소 찾기
+  const matchedPlace = places.value.find(p => 
+    p.title === place.title || 
+    (Math.abs(p.latitude - place.latitude) < 0.0001 && 
+     Math.abs(p.longitude - place.longitude) < 0.0001)
+  );
+  
+  if (matchedPlace && placeCardRefs.value[matchedPlace.title] && placeListContainer.value) {
+    const element = placeCardRefs.value[matchedPlace.title];
     const container = placeListContainer.value;
     
     const elementTop = element.offsetTop;
@@ -623,6 +696,12 @@ const loadPlaces = async (type, lat = null, lng = null) => {
 // 지도 선택
 const selectPlace = (p) => {
   selectedPlace.value = p;
+  
+  // 지도 중심 이동
+  if (map && p.latitude && p.longitude) {
+    const position = new kakao.maps.LatLng(p.latitude, p.longitude);
+    map.panTo(position);
+  }
 };
 
 // 장소 추가
@@ -805,6 +884,7 @@ watch(selectedDay, () => {
   updateMapMarkers();
   // 일차 변경 시 검색 좌표 리셋
   lastSearchCoords.value = { lat: null, lng: null, type: null };
+  selectedPlace.value = null; // 선택 초기화
 });
 
 // 일정 종료
@@ -1042,10 +1122,16 @@ const drawSort = async () => {
   padding: 16px;
   transition: 0.2s ease;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  cursor: pointer;
 }
 
 .selected-card:hover {
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.selected-card.active {
+  border: 2px solid #155DFC;
+  background: #EEF4FF;
 }
 
 .selected-card.fixed {
