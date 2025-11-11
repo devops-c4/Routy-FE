@@ -15,14 +15,29 @@
         <p class="card-subtitle">여행 시작일과 종료일을 선택해주세요</p>
 
         <div class="date-grid">
+          <!-- 시작일 -->
           <div class="date-input">
             <label for="start">시작일</label>
-            <input id="start" type="date" v-model="startDate" />
+            <input
+              id="start"
+              type="date"
+              v-model="startDate"
+              :min="today"
+              @change="handleStartChange"
+            />
           </div>
+
           <span class="tilde">~</span>
+
+          <!-- 종료일 -->
           <div class="date-input">
             <label for="end">종료일</label>
-            <input id="end" type="date" v-model="endDate" />
+            <input
+              id="end"
+              type="date"
+              v-model="endDate"
+              :min="startDate || today"
+            />
           </div>
         </div>
 
@@ -34,7 +49,13 @@
 
       <div class="button-group">
         <button class="prev-btn" @click="goPrev">이전</button>
-        <button class="next-btn" :disabled="!startDate || !endDate" @click="goNext">다음</button>
+        <button
+          class="next-btn"
+          :disabled="!startDate || !endDate"
+          @click="goNext"
+        >
+          다음
+        </button>
       </div>
     </div>
   </div>
@@ -53,6 +74,16 @@ const route = useRoute();
 const startDate = ref('');
 const endDate = ref('');
 
+// 오늘 날짜를 YYYY-MM-DD 형식으로 계산
+const today = new Date().toISOString().split('T')[0];
+
+// 시작일 변경 시 종료일이 이전 날짜면 자동 초기화
+const handleStartChange = () => {
+  if (endDate.value && endDate.value < startDate.value) {
+    endDate.value = '';
+  }
+};
+
 // 1단계에서 넘어온 지역 정보
 const regionId = route.query.regionId;
 const regionName = route.query.regionName;
@@ -63,7 +94,7 @@ const goPrev = () => router.push('/draw/first');
 // 다음 단계 (일정 생성 후 이동)
 const goNext = async () => {
   if (!startDate.value || !endDate.value) {
-    alert("시작일과 종료일을 모두 선택해주세요!");
+    alert('시작일과 종료일을 모두 선택해주세요!');
     return;
   }
 
@@ -72,39 +103,32 @@ const goNext = async () => {
       planTitle: `${regionName} 여행 일정`,
       startDate: startDate.value,
       endDate: endDate.value,
-      regionId: regionId,
+      regionId,
       userId: 1
     };
 
     const res = await axios.post('/api/plans', payload);
-const planId = res.data.planId;
-await axios.post(`/api/plans/${planId}/durations`, { totalDays: totalDays.value });
-router.push({ path: '/draw/third', query: { planId, totalDays: totalDays.value } });
-    console.log("일정 생성 성공:", res.data);
+    const planId = res.data.planId;
 
-    // 추후 수정
-    // alert("여행 일정이 등록되었습니다!");
+    await axios.post(`/api/plans/${planId}/durations`, { totalDays: totalDays.value });
 
-    // planId와 totalDays 둘 다 전달
     router.push({
       path: '/draw/third',
-      query: { 
-        planId: res.data.planId,
-        totalDays: totalDays.value
-      }
+      query: { planId, totalDays: totalDays.value }
     });
 
+    console.log('일정 생성 성공:', res.data);
   } catch (err) {
-    console.error("일정 생성 실패:", err);
-    alert("일정 저장 중 오류가 발생했습니다!");
+    console.error('일정 생성 실패:', err);
+    alert('일정 저장 중 오류가 발생했습니다!');
   }
 };
-
 
 // 기간 텍스트
 const formattedPeriod = computed(() => {
   if (!startDate.value || !endDate.value) return '';
-  const s = new Date(startDate.value), e = new Date(endDate.value);
+  const s = new Date(startDate.value);
+  const e = new Date(endDate.value);
   return `${s.getMonth() + 1}월 ${s.getDate()}일 - ${e.getMonth() + 1}월 ${e.getDate()}일`;
 });
 
@@ -115,6 +139,7 @@ const totalDays = computed(() => {
   return Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
 });
 </script>
+
 
 
 <style scoped>
