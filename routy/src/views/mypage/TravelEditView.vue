@@ -24,7 +24,8 @@
           <div class="form-row">
             <div class="form-group half">
               <label>여행지</label>
-              <input v-model="travel.region" placeholder="여행지를 입력하세요" />
+              <input v-model="travel.region" placeholder="여행지를 입력하세요"  
+               :readonly="placeLocked" class="readonly-input" />
             </div>
             <div class="form-group half">
               <label>기간</label>
@@ -66,6 +67,7 @@
               <h3>Day {{ index + 1 }}</h3>
               <p>{{ day.displayDate }}</p>
             </div>
+              <button class="day-delete-btn" @click="removeDay(index)">삭제</button>
           </div>
 
           <!-- 드래그 가능한 일정 리스트 -->
@@ -74,6 +76,8 @@
             handle=".drag-handle"
             animation="200"
             class="plan-list"
+            :group="{ name: 'plans-by-day', pull: true, put: true }"
+            @change="onPlanChange"
           >
             <template #item="{ element: plan, index: i }">
               <div class="plan-item">
@@ -82,15 +86,23 @@
                   <button class="delete-btn" @click="removePlan(index, i)">삭제</button>
                 </div>
 
-                <input v-model="plan.place_name" placeholder="장소명 (예: 제주 공항 도착)" />
-                <input v-model="plan.address_name" placeholder="주소 (예: 제주시 공항로 2)" />
+                <input v-model="plan.place_name" placeholder="장소명 (예: 제주 공항 도착)" 
+                 :readonly="placeLocked"
+  :class="{ 'readonly-input': placeLocked }"/>
+                <input v-model="plan.address_name" placeholder="주소 (예: 제주시 공항로 2)" 
+                  :readonly="placeLocked"
+  :class="{ 'readonly-input': placeLocked }"/>
                 <input
                   v-model="plan.category_group_name"
                   placeholder="카테고리 (예: 관광명소, 음식점 등)"
+                   :readonly="placeLocked"
+  :class="{ 'readonly-input': placeLocked }"
                 />
                 <input
                   v-model="plan.place_url"
                   placeholder="URL (예: https://place.map.kakao.com/...)"
+                    :readonly="placeLocked"
+  :class="{ 'readonly-input': placeLocked }"
                 />
               </div>
             </template>
@@ -124,6 +136,7 @@ const planId = route.params.id; // /mypage/travel/:id/edit 이니까 id
 // 화면 로딩 상태
 const loading = ref(true);
 
+const placeLocked = ref(true) //장소 수정 불가
 // 여행 데이터
 const travel = ref({
   title: "",
@@ -266,11 +279,50 @@ const decreaseDays = () => {
 };
 
 const addPlan = (dayIndex) => {
-  travel.value.days[dayIndex].plans.push({
-    place_name: "",
-    address_name: "",
-    category_group_name: "",
-    place_url: "",
+  // 현재까지의 일정 데이터 보존
+  const currentData = {
+    planId: Number(planId),
+    title: travel.value.title,
+    destination: travel.value.region,
+    daysCount: travel.value.daysCount,
+    selectedThemes: selectedThemes.value,
+    dayList: travel.value.days.map((d, dayIdx) => ({
+      dayId: d.dayId,
+      dayNo: dayIdx + 1,
+      date: d.date,
+      activities: d.plans.map((p, actIdx) => ({
+        travelId: p.travelId,
+        travelOrder: actIdx + 1,
+        title: p.place_name,
+        tag: p.category_group_name,
+        placeName: p.place_name,
+        addressName: p.address_name,
+        categoryGroupName: p.category_group_name,
+        placeUrl: p.place_url,
+      })),
+    })),
+  }; 
+
+  // 선택된 day 정보도 같이 넘겨줌 (어느 날에 추가할지)
+  const targetDay = dayIndex + 1;
+
+  sessionStorage.setItem("travelEditData", JSON.stringify(currentData));
+  sessionStorage.setItem("travelEditTargetDay", String(targetDay));
+
+  // “여행 루트 그리기” 페이지로 이동 (예: /draw/second)
+  router.push({
+    path: "/draw/final",
+    // query로도 보내기
+    query: {
+      planId: currentData.planId,
+      targetDay,
+      from: "edit",
+    },
+    // state로도 한 번 더(되면 쓰고)
+    state: {
+      previousData: currentData,
+      targetDay,
+    },
   });
 };
 
@@ -286,8 +338,59 @@ const goBack = () => {
   router.back();
 };
 
-// 최초 로딩
-onMounted(fetchPlanEdit);
+const onPlanChange = () => {
+  console.log(" 일정 순서 또는 위치가 변경됨")
+}
+
+const removeDay = (dayIndex) => {
+  if (travel.value.days.length <= 1) {
+    alert("하루 이상은 남아 있어야 합니다!");
+    return;
+  }
+  if (confirm(`Day ${dayIndex + 1} 일정을 삭제하시겠습니까?`)) {
+    travel.value.days.splice(dayIndex, 1);
+    travel.value.daysCount--;
+
+    // day 번호 다시 정리 (Day1, Day2, ... 순서 유지용)
+    travel.value.days.forEach((d, idx) => {
+      d.dayNo = idx + 1;
+    });
+  }
+};
+
+onMounted(() => {
+  // vue-router로 push할 때 넣은 state는 여기로 옴
+  const historyState = window.history.state || {};
+
+  console.log(" historyState on edit page:", historyState);
+
+  if (historyState.updatedData) {
+    const data = historyState.updatedData;
+
+    travel.value.title = data.title;
+    travel.value.region = data.destination;
+    travel.value.daysCount = data.dayList?.length || data.daysCount || 0;
+    selectedThemes.value = data.selectedThemes || [];
+
+    travel.value.days = (data.dayList || []).map((day) => ({
+      dayId: day.dayId,
+      dayNo: day.dayNo,
+      date: day.date,
+      displayDate: day.date ? day.date.replaceAll("-", ".") : "",
+      plans: (day.activities || []).map((act) => ({
+        travelId: act.travelId,
+        place_name: act.placeName || act.title || "",
+        address_name: act.addressName || act.place || "",
+        category_group_name: act.categoryGroupName || act.tag || "",
+        place_url: act.placeUrl || "",
+        title: act.title || act.placeName || "",
+      })),
+    }));
+  } else {
+    // 평소처럼 백엔드에서 불러오기
+    fetchPlanEdit();
+  }
+});
 </script>
 
 <style scoped>
@@ -532,5 +635,29 @@ input {
 }
 .load-more button:hover {
   background: #eff6ff;
+}
+.readonly-input {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+.add-btn:disabled,
+.delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.day-delete-btn {
+  background: none;
+  border: none;
+  color: #fee2e2;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: auto;
+  font-size: 13px;
+  transition: color 0.2s;
+}
+.day-delete-btn:hover {
+  color: #ef4444;
 }
 </style>
