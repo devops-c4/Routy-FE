@@ -129,7 +129,7 @@ const applyFilter = () => {
 //  1. 지역 목록 불러오기
 const fetchRegions = async () => {
   try {
-    const response = await axios.get('http://localhost:8080/api/regions')
+    const response = await axios.get('http://localhost:8080/api/plans/regions')
     regions.value = response.data
   } catch (error) {
     console.error('지역 목록 불러오기 실패:', error)
