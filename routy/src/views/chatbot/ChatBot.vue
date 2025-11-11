@@ -1,6 +1,9 @@
 <template>
   <div class="chat-page">
-    <h1>Routy ChatBot 🤖</h1>
+    <div class="chat-header">
+      <h1>Routy ChatBot</h1>
+      <img src="../../assets/images/chatbot/chatbot2.png" alt="chatbot" />
+    </div>
 
     <div class="chat-box" ref="chatBox">
       <div v-for="(m, i) in messages" :key="i" :class="['msg', m.role]">
@@ -151,12 +154,14 @@ const sendMessage = async () => {
 
 .msg {
   display: inline-block; 
-  padding: 8px 12px;
-  border-radius: 16px;
-  margin: 6px 0;
+  padding: 4px 8px; 
+  border-radius: 14px;
+  margin: 4px 0; 
   max-width: 80%; 
   word-wrap: break-word;
   white-space: pre-wrap; 
+  line-height: 1.2; 
+  font-size: 14px; 
 }
 
 .msg.user {
@@ -172,6 +177,11 @@ const sendMessage = async () => {
   color: black;
   text-align: left;
   margin-right: auto;
+}
+
+p {
+  margin-top: 2px;
+  margin-bottom: 2px;
 }
 
 .input-area {
@@ -239,5 +249,17 @@ button {
 .sub-btn:hover {
   background: #e67e22;
   color: white;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center; /* 세로 가운데 정렬 */
+  gap: 10px; /* 텍스트와 이미지 간 간격 */
+  margin-bottom: 10px;
+}
+
+.chat-header img {
+  width: 60px; /* 이미지 크기 조절 */
+  height: 60px;
 }
 </style>

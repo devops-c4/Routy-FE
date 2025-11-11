@@ -12,7 +12,9 @@
         <div class="route-section">
           <span class="route-item" @click="moveToDraw">여행 루트 그리기</span>
           <span class="route-item" @click="moveToBrowse">여행 루트 둘러보기</span>
-          <span class="route-item" @click="moveToChatBot">🤖</span>
+          <span class="route-item" @click="moveToChatBot">
+            <img class="chatbot-icon" src="../assets/images/chatbot/chatbot1.png" alt="chatbot"/>
+          </img></span>
         </div>
       </div>
 
@@ -189,5 +191,18 @@ const moveToChatBot = () => router.push('/chatbot');
 
 .menu-item:hover {
   color: #155dfc;
+}
+
+.chatbot-icon {
+  width: 50px; /* 크기 조절 (20~32px 사이 추천) */
+  height: 50px;
+  object-fit: contain; /* 비율 유지하며 크기 맞춤 */
+  vertical-align: middle; /* 텍스트 기준으로 가운데 정렬 */
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.chatbot-icon:hover {
+  transform: scale(1.1); /* 살짝 확대되는 효과 */
 }
 </style>

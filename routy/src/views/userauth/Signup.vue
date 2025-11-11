@@ -19,8 +19,27 @@
         <div class="form-group">
           <label>이메일 *</label>
           <div class="email-row">
-            <input type="email" placeholder="example@email.com" v-model="email"/>
-            <button class="verify-btn" @click="validationNum">인증번호</button>
+            <input 
+              type="email" 
+              placeholder="example@email.com" 
+              v-model="email"
+              :disabled="isEmailVerified"
+            />
+            <!-- 이메일 옆 버튼: 인증번호 발송 → 재전송 -->
+            <button 
+              v-if="!emailSent" 
+              class="verify-btn" 
+              @click="sendVerificationCode"
+            >
+              인증번호 발송
+            </button>
+            <button 
+              v-else 
+              class="resend-btn" 
+              @click="sendVerificationCode"
+            >
+              재전송
+            </button>
           </div>
         </div>
 
@@ -28,25 +47,39 @@
         <div class="form-group">
           <label>인증번호</label>
           <div class="verify-row">
-            <input type="text" placeholder="인증번호 6자리" v-model="varifyNum"/>
+            <input 
+              type="text" 
+              placeholder="인증번호 6자리" 
+              v-model="verifyNum"
+              :disabled="isEmailVerified"
+            />
 
-            <div v-if="timerDisplay" class="timer-display">
-                <span :class="{ expired: timer <= 0 }">{{ timerDisplay }}</span>
+            <div v-if="timerDisplay && !isEmailVerified" class="timer-display">
+              <span :class="{ expired: timer <= 0 }">{{ timerDisplay }}</span>
             </div>
 
-            <button class="resend-btn" @click="validationNum">재전송</button>
+            <!-- 인증번호 옆 버튼: 처음부터 인증확인 버튼 존재 -->
+            <button 
+              v-if="!isEmailVerified" 
+              class="confirm-btn" 
+              @click="confirmVerificationCode"
+            >
+              인증확인
+            </button>
+            <span v-else class="verified-badge">✓ 인증완료</span>
           </div>
-          <small>이메일로 전송된 인증번호를 입력해주세요</small>  
+          <small v-if="!isEmailVerified">이메일로 전송된 인증번호를 입력해주세요</small>
+          <small v-else class="success-text">이메일 인증이 완료되었습니다!</small>
         </div>
 
         <!-- 성별 -->
         <div class="form-group">
-            <label>성별</label>
-            <select class="select-box" v-model="gender">
-                <option value="" disabled selected>선택하세요</option>
-                <option value="남">남성</option>
-                <option value="여">여성</option>
-            </select>
+          <label>성별</label>
+          <select class="select-box" v-model="gender">
+            <option value="" disabled selected>선택하세요</option>
+            <option value="남">남성</option>
+            <option value="여">여성</option>
+          </select>
         </div>
 
         <!-- 나이 -->
@@ -91,7 +124,6 @@
       </div>
     </div>
 
-
     <!-- 이용약관 모달 -->
     <div v-if="showTerms" class="modal-overlay" @click.self="showTerms = false">
       <div class="modal-box">
@@ -99,7 +131,7 @@
         <div class="modal-content">
           <h1>개인정보처리방침</h1>
           <p>
-            Routy(이하 “서비스”)는 이용자의 개인정보를 중요하게 생각하며,
+            Routy(이하 "서비스")는 이용자의 개인정보를 중요하게 생각하며,
             개인정보 보호와 관련된 대한민국의 법령을 준수합니다.
             본 개인정보처리방침은 서비스가 어떤 정보를 수집하고, 어떤 목적으로 이용하며,
             어떻게 보호하는지에 대해 설명합니다.
@@ -182,28 +214,31 @@
 
 <script setup>
 import { ref, onUnmounted } from 'vue';
+import { sendVerificationEmail, confirmVerificationCode as confirmCodeAPI } from '@/api/auth';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
 const email = ref("");
-const username = ref("")
-const varifyNum = ref()
-const varifyNumCheck = ref()
-const gender = ref("")
-const phone = ref("")
-const age = ref()
-const password = ref("")
-const passwordCheck = ref("")
-const agreeCheck = ref(false)
-const showTerms = ref(false)
+const username = ref("");
+const verifyNum = ref("");
+const gender = ref("");
+const phone = ref("");
+const age = ref();
+const password = ref("");
+const passwordCheck = ref("");
+const agreeCheck = ref(false);
+const showTerms = ref(false);
+
+// 이메일 인증 상태
+const emailSent = ref(false);           // 인증번호 발송 여부
+const isEmailVerified = ref(false);     // 인증 완료 여부
 
 // 타이머 관련 변수
-const timer = ref(0)              // 남은 시간 (초)
-const timerDisplay = ref("")      // "02:59" 형식으로 표시
-let timerInterval = null          // setInterval을 저장할 변수
-
+const timer = ref(0);              // 남은 시간 (초)
+const timerDisplay = ref("");      // "02:59" 형식으로 표시
+let timerInterval = null;          // setInterval을 저장할 변수
 
 // 타이머 포맷 함수
 const formatTime = (seconds) => {
@@ -226,7 +261,6 @@ const startTimer = () => {
     if (timer.value <= 0) {
       clearInterval(timerInterval);
       timerDisplay.value = "00:00";
-      varifyNumCheck.value = ""; // 인증번호 무효화
       alert("인증번호가 만료되었습니다. 재전송해주세요.");
     }
   }, 1000);
@@ -239,52 +273,97 @@ onUnmounted(() => {
   }
 });
 
-const validationNum = async () => {
-
+// 인증번호 발송 (이메일 옆 버튼)
+const sendVerificationCode = async () => {
+  console.log('🔵 [Signup.vue] 인증번호 발송 시작');
+  
   if (!email.value.trim()) {
     alert("이메일을 입력해주세요!");
     return;
   }
 
-  const data = new FormData();
-  data.append("mail",email.value)
-
-  await axios.post('http://localhost:8080/validation/sendmail',data).then(
-    (res) => {
-      console.log(res.data)
-      if(res.data == 0){
-        alert("이메일이 올바르지 않습니다.");
-        return;
-      }
-      varifyNumCheck.value = res.data
-      alert("인증번호가 발송되었습니다.")
-      startTimer();
+  try {
+    const result = await sendVerificationEmail(email.value);
+    
+    if (result === 0) {
+      alert("이메일이 올바르지 않습니다.");
+      return;
     }
-  )
-}
-
-const register = async () => {
-  if(username.value == ""){
-    alert("사용자 이름을 입력해주세요")
-    return;
+    
+    console.log('🟢 [Signup.vue] 인증번호 발송 성공');
+    emailSent.value = true;  // 버튼을 "재전송"으로 변경
+    alert("인증번호가 발송되었습니다.");
+    startTimer();
+  } catch (error) {
+    console.error('❌ [Signup.vue] 인증번호 발송 실패:', error);
+    alert("인증번호 발송에 실패했습니다. 다시 시도해주세요.");
   }
+};
 
-  if(password.value == "" || password.value != passwordCheck.value){
-    alert("비밀번호를 확인해주세요");
-    return;
-  }
-
-  if(varifyNum.value == null || varifyNum.value != varifyNumCheck.value){
-    alert("인증번호를 제대로 입력해주세요");
+// 인증번호 확인 (인증번호 옆 버튼)
+const confirmVerificationCode = async () => {
+  console.log('🔵 [Signup.vue] 인증번호 확인 시작');
+  
+  if (!emailSent.value) {
+    alert("먼저 인증번호를 발송해주세요!");
     return;
   }
   
-  if(!agreeCheck.value){
+  if (!verifyNum.value) {
+    alert("인증번호를 입력해주세요!");
+    return;
+  }
+
+  if (timer.value <= 0) {
+    alert("인증번호가 만료되었습니다. 재전송해주세요.");
+    return;
+  }
+
+  try {
+    const result = await confirmCodeAPI(email.value, verifyNum.value);
+    
+    console.log('🟢 [Signup.vue] 백엔드 응답:', result);
+    
+    // 백엔드 응답: "인증되었습니다." 또는 "인증 성공"
+    if (result === "인증되었습니다." || result === "인증 성공" || result.includes("성공") || result.includes("인증")) {
+      isEmailVerified.value = true;
+      clearInterval(timerInterval);
+      timerDisplay.value = "";
+      alert("이메일 인증이 완료되었습니다!");
+    } else {
+      alert("인증번호가 일치하지 않습니다. 다시 확인해주세요.");
+    }
+  } catch (error) {
+    console.error('❌ [Signup.vue] 인증번호 확인 실패:', error);
+    alert("인증 확인에 실패했습니다. 다시 시도해주세요.");
+  }
+};
+
+// 회원가입
+const register = async () => {
+  console.log('🔵 [Signup.vue] 회원가입 시작');
+  
+  if (username.value === "") {
+    alert("사용자 이름을 입력해주세요");
+    return;
+  }
+
+  if (!isEmailVerified.value) {
+    alert("이메일 인증을 완료해주세요");
+    return;
+  }
+
+  if (password.value === "" || password.value !== passwordCheck.value) {
+    alert("비밀번호를 확인해주세요");
+    return;
+  }
+  
+  if (!agreeCheck.value) {
     alert("이용약관을 확인해주세요");
     return;
   }
 
-  var data = {
+  const data = {
     username: username.value,
     email: email.value,
     password: password.value,
@@ -293,25 +372,23 @@ const register = async () => {
     gender: gender.value,
     role: "ROLE_USER",
     isDeleted: 0
-  }
+  };
 
   try {
     const res = await axios.post('http://localhost:8080/user/register', data);
     
-    // 백엔드에서 보낸 message 필드 사용
+    console.log('🟢 [Signup.vue] 회원가입 성공:', res.data);
     alert(res.data.message);
     router.push('/login');
   } catch (error) {
-    // 에러 처리 추가
-    console.error("회원가입 오류:", error);
+    console.error('❌ [Signup.vue] 회원가입 실패:', error);
     if (error.response) {
       alert(error.response.data.message || "회원가입에 실패했습니다.");
     } else {
       alert("서버와 연결할 수 없습니다.");
     }
   }
-}
-
+};
 </script>
 
 <style scoped>
@@ -323,44 +400,6 @@ const register = async () => {
   flex-direction: column;
   align-items: center;
   gap: 50px;
-}
-
-/* 상단바 */
-.nav-bar {
-  width: 100%;
-  height: 49px;
-  background: rgba(255, 255, 255, 0.8);
-  position: relative;
-}
-
-.nav-content {
-  width: 1167px;
-  margin: 12px auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.logo-section {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.logo-section img {
-  width: 36px;
-  height: 36px;
-}
-
-.logo-text {
-  font-size: 16px;
-  font-weight: 600;
-  color: #101828;
-}
-
-.login-text {
-  color: #4a5565;
-  font-size: 14px;
 }
 
 /* 메인 섹션 */
@@ -417,12 +456,17 @@ const register = async () => {
   outline: none;
 }
 
+.form-group input:disabled {
+  background: #e5e7eb;
+  cursor: not-allowed;
+}
+
 .email-row,
 .verify-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  position: relative; /* 타이머의 기준 */
+  position: relative;
 }
 
 .email-row input,
@@ -438,6 +482,7 @@ const register = async () => {
   padding: 8px 16px;
   font-size: 14px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .resend-btn {
@@ -448,11 +493,38 @@ const register = async () => {
   font-size: 14px;
   cursor: pointer;
   color: #101828;
+  white-space: nowrap;
+}
+
+.confirm-btn {
+  background: #155dfc;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.verified-badge {
+  background: #10b981;
+  color: white;
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 small {
   font-size: 12px;
   color: #4a5565;
+}
+
+.success-text {
+  color: #10b981;
+  font-weight: 500;
 }
 
 .select-box {
@@ -463,18 +535,10 @@ small {
   padding: 12px;
   color: #717182;
   font-size: 14px;
-  appearance: none; /* 기본 화살표 제거 */
+  appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
   position: relative;
-}
-
-/* 화살표 추가 (선택 사항) */
-.select-box::after {
-  content: "▾";
-  position: absolute;
-  right: 16px;
-  pointer-events: none;
 }
 
 /* 약관 동의 */
@@ -567,20 +631,15 @@ small {
   margin-left: 4px;
 }
 
-.logo-image {
-  width: 200px;
-  height: 80px;
-}
-
 .timer-display {
   position: absolute;
-  right: 16px; /* 버튼 위치에 맞게 */
-  top: -10px; /* 버튼 위로 살짝 띄움 */
+  right: 106px;
+  top: 50%;
   font-size: 13px;
   color: #4a5565;
-  transform: translateY(-50%); /* 위치 균형 조정 */
-  pointer-events: none; /* 클릭 방지 */
-  padding-bottom: 10px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-weight: 500;
 }
 
 .timer-display .expired {
@@ -588,7 +647,7 @@ small {
   font-weight: 600;
 }
 
-.terms-btn{
+.terms-btn {
   cursor: pointer;
   text-decoration: underline;
 }
