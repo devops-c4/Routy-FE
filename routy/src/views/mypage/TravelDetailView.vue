@@ -8,9 +8,8 @@ const route = useRoute()
 const router = useRouter()
 const showReviewModal = ref(false)
 
-// 현재 여행 ID & 사용자 ID (로그인 후엔 토큰에서 가져오게 됨)
+// 현재 여행 ID
 const planId = Number(route.params.id)
-
 
 // 여행 상세 데이터
 const travel = ref(null)
@@ -24,14 +23,13 @@ const visibleCount = ref(3)
 onMounted(async () => {
   try {
     const res = await apiClient.get(`/api/plans/${planId}`)
-    travel.value = res.data
-    expandedDays.value = (travel.value?.dayList || []).map(() => false)
+    travel.value = res.data || {}
+    const dayList = travel.value.dayList || []
+    expandedDays.value = dayList.map(() => false)
   } catch (err) {
     console.error('❌ 여행 데이터를 불러오는 중 오류 발생:', err)
   }
 })
-
-
 
 // 페이지 이동
 function goToEditPage() {
@@ -45,14 +43,16 @@ function toggleDayPlans(index) {
 
 // 표시할 일자
 function shownPlans(day, index) {
-  if (expandedDays.value[index]) return day.activities
-  return day.activities.slice(0, 3)
+  const acts = day?.activities || []
+  if (expandedDays.value[index]) return acts
+  return acts.slice(0, 3)
 }
 
 // 전체 보기
 function toggleMore() {
+  const dayList = travel.value?.dayList || []
   showAll.value = !showAll.value
-  visibleCount.value = showAll.value ? travel.value.dayList.length : 3
+  visibleCount.value = showAll.value ? dayList.length : 3
 }
 </script>
 
@@ -110,9 +110,9 @@ function toggleMore() {
 
         <div class="info-footer">
           <p class="date">{{ travel.startDate }} ~ {{ travel.endDate }}</p>
-          <button 
-            v-if="travel.reviewWritable" 
-            class="btn btn-green" 
+          <button
+            v-if="travel.reviewWritable"
+            class="btn btn-green"
             @click="showReviewModal = true"
           >
             리뷰 작성하기
@@ -141,17 +141,24 @@ function toggleMore() {
               :key="i"
               class="plan"
             >
-              <div class="plan-title">{{ plan.title }}</div>
-              <div class="plan-address">
+              <!-- ✅ 장소 이름 -->
+              <div class="plan-title">{{ plan.placeName }}</div>
+
+              <!-- ✅ 주소 -->
+              <div class="plan-address" v-if="plan.addressName">
                 <i class="fa fa-map-marker-alt"></i>
-                {{ plan.place }}
+                {{ plan.addressName }}
               </div>
-              <div class="plan-category">
+
+              <!-- ✅ 태그 / 카테고리 -->
+              <div class="plan-category" v-if="plan.tag || plan.categoryGroupName">
                 <i class="fa fa-tag"></i>
-                {{ plan.tag }}
+                {{ plan.tag || plan.categoryGroupName }}
               </div>
-              <div class="plan-link" v-if="plan.url">
-                <a :href="plan.url" target="_blank">자세히 보기</a>
+
+              <!-- ✅ 자세히 보기 링크 -->
+              <div class="plan-link" v-if="plan.placeUrl">
+                <a :href="plan.placeUrl" target="_blank">자세히 보기</a>
               </div>
             </div>
 
@@ -180,7 +187,10 @@ function toggleMore() {
 
   <TravelReviewModal
     v-if="showReviewModal"
+    :plan-id="planId"
+    :title="travel?.title"
     @close="showReviewModal = false"
+    @saved="() => { showReviewModal = false; }"
   />
 </template>
 
@@ -190,19 +200,15 @@ function toggleMore() {
   min-height: 100vh;
   background: linear-gradient(148deg, #eff6ff 0%, white 50%, #f0fdf4 100%);
   display: flex;
-  justify-content: center; /* ✅ 중앙 정렬 */
+  justify-content: center;
   padding: 60px 0 100px;
 }
-
-/* ✅ 중앙 콘텐츠 박스 추가 */
 .travel-detail > .content-wrapper {
   width: 1120px;
   display: flex;
   flex-direction: column;
   gap: 32px;
 }
-
-/* 헤더 */
 .header {
   height: 72px;
   background: rgba(255, 255, 255, 0.8);
@@ -217,7 +223,6 @@ function toggleMore() {
 }
 .header-left { display: flex; align-items: center; }
 .header-right { display: flex; gap: 8px; }
-
 .btn {
   border-radius: 8px;
   padding: 8px 16px;
@@ -228,7 +233,6 @@ function toggleMore() {
 .btn-outline-red { border: 0.8px solid #fb2c36; color: #fb2c36; background: white; }
 .btn-green { background: #10b981; color: white; border: none; }
 
-/* 여행 정보 카드 */
 .info-card {
   background: #fff;
   box-shadow: 0 4px 6px -4px rgba(0,0,0,0.05);
@@ -239,8 +243,6 @@ function toggleMore() {
   gap: 20px;
   border: 1px solid rgba(229, 231, 235, 0.5);
 }
-
-/* 상단 테마 태그 */
 .info-header {
   display: flex;
   align-items: center;
@@ -265,27 +267,23 @@ function toggleMore() {
   padding: 4px 10px;
   border-radius: 8px;
 }
-
 .info-grid {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 40px; 
+  padding: 20px 40px;
   border-radius: 12px;
   margin-bottom: 4px;
 }
-
-
 .info-item {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 10px; 
+  gap: 10px;
   text-align: left;
 }
-
 .icon-wrap {
-  width: 46px; 
+  width: 46px;
   height: 46px;
   border-radius: 50%;
   background: #e0f2fe;
@@ -293,35 +291,27 @@ function toggleMore() {
   justify-content: center;
   align-items: center;
 }
-
-
 .icon-wrap i {
   color: #3b82f6;
   font-size: 20px;
 }
-
-
 .text {
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 2px;
 }
-
 .text .label {
   font-size: 13px;
   color: #6a7282;
   margin: 0;
 }
-
 .text .value {
   font-size: 15px;
   font-weight: 600;
   color: #101828;
   margin: 0;
 }
-
-
 .info-footer {
   border-top: 1px solid #e5e7eb;
   padding-top: 10px;
@@ -334,10 +324,9 @@ function toggleMore() {
   color: #6a7282;
 }
 
-/* 일정 카드 */
 .days-wrap {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 24px 28px;
 }
 .day-card {
@@ -392,7 +381,6 @@ function toggleMore() {
   transition: all 0.2s ease;
 }
 .plan:hover { background: #f1f5f9; }
-.plan .time { font-size: 12px; color: #3b82f6; }
 .plan-title {
   color: #101828;
   font-size: 14px;
@@ -413,9 +401,7 @@ function toggleMore() {
   text-decoration: none;
 }
 .plan-link a:hover { text-decoration: underline; }
-.plan .location { font-size: 12px; color: #4a5565; }
 
-/* ✅ “+1개 장소 더 보기” */
 .more-activities {
   margin-top: 10px;
   text-align: center;
@@ -439,7 +425,6 @@ function toggleMore() {
   letter-spacing: 0.2px;
 }
 
-/* 전체 더 보기 버튼 */
 .load-more {
   grid-column: 1 / -1;
   display: flex;
@@ -457,14 +442,13 @@ function toggleMore() {
 }
 .load-more button:hover { background: #eff6ff; }
 
-/* 제목과 뒤로가기 */
 .back-btn {
   border: none;
   background: none;
   font-size: 20px;
   color: #3b82f6;
   cursor: pointer;
-  flex-shrink: 0; 
+  flex-shrink: 0;
   transition: color 0.2s;
 }
 .back-btn:hover { color: #2563eb; }
