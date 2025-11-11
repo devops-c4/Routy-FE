@@ -73,7 +73,7 @@ const goNext = async () => {
       startDate: startDate.value,
       endDate: endDate.value,
       regionId: regionId,
-      userId: 1
+       // userId는 백엔드에서 SecurityContext로 자동 추출
     };
 
     const res = await axios.post('/api/plans', payload);

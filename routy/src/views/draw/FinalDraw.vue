@@ -381,42 +381,15 @@ const createSelectedMarker = (place, placeType) => {
     zIndex: 100
   });
   
-  kakao.maps.event.addListener(newMarker, 'click', function() {
-    highlightPlace(place, true);
+  // 선택된 마커 클릭 시 카테고리 전환 후 스크롤
+  kakao.maps.event.addListener(newMarker, 'click', async function() {
+    await selectPlaceFromLeft(place);
   });
   
   return newMarker;
 };
 
-// 장소 선택/강조 함수
-const highlightPlace = (place, fromMarkerClick = false) => {
-  selectedPlace.value = place;
-  
-  // 지도 중심 이동
-  if (map && place.latitude && place.longitude) {
-    const position = new kakao.maps.LatLng(place.latitude, place.longitude);
-    map.panTo(position);
-  }
-  
-  // 오른쪽 장소 리스트에서 스크롤
-  if (placeCardRefs.value[place.title] && placeListContainer.value) {
-    const element = placeCardRefs.value[place.title];
-    const container = placeListContainer.value;
-    
-    const elementTop = element.offsetTop;
-    const elementHeight = element.offsetHeight;
-    const containerHeight = container.clientHeight;
-    
-    const scrollPosition = elementTop - (containerHeight / 2) + (elementHeight / 2);
-    
-    container.scrollTo({
-      top: scrollPosition,
-      behavior: 'smooth'
-    });
-  }
-};
-
-// 왼쪽 선택된 장소 클릭 핸들러 (새로 추가)
+// 왼쪽 선택된 장소 클릭 핸들러 (마커 클릭도 이 함수 사용)
 const selectPlaceFromLeft = async (place) => {
   selectedPlace.value = place;
   
@@ -426,13 +399,16 @@ const selectPlaceFromLeft = async (place) => {
     map.panTo(position);
   }
   
-  // 해당 장소의 카테고리로 필터 변경 및 검색 결과 로드
+  // 숙소는 검색 결과에 포함되지 않으므로 종료
+  if (place.isHotel) {
+    console.log('숙소는 검색 결과에 없음');
+    return;
+  }
+  
+  // 해당 장소의 카테고리로 필터 변경
   let newType = currentType.value;
   
-  if (place.isHotel) {
-    // 숙소는 검색 결과에 포함되지 않으므로 현재 타입 유지
-    return;
-  } else if (place.categoryCode === 'FD6') {
+  if (place.categoryCode === 'FD6') {
     newType = 'restaurants';
   } else if (place.categoryCode === 'CE7') {
     newType = 'cafes';
@@ -440,22 +416,27 @@ const selectPlaceFromLeft = async (place) => {
     newType = 'attractions';
   }
   
-  // 카테고리가 변경되었거나 검색 결과가 없으면 새로 로드
-  if (newType !== currentType.value || places.value.length === 0) {
-    currentType.value = newType;
-    await loadPlaces(newType, place.latitude, place.longitude);
-  }
+  console.log(`카테고리 전환: ${currentType.value} → ${newType}`);
   
-  // 오른쪽 리스트에서 해당 장소로 스크롤
+  // 카테고리 설정
+  currentType.value = newType;
+  
+  // 해당 장소를 중심으로 강제 재검색
+  lastSearchCoords.value = { lat: null, lng: null, type: null }; // 검색 좌표 리셋
+  await loadPlaces(newType, place.latitude, place.longitude);
+  
+  // DOM 업데이트 대기
+  await nextTick();
   await nextTick();
   
-  // 검색 결과에서 해당 장소 찾기
+  // 검색 결과에서 해당 장소 찾기 (제목 또는 좌표로 매칭)
   const matchedPlace = places.value.find(p => 
     p.title === place.title || 
     (Math.abs(p.latitude - place.latitude) < 0.0001 && 
      Math.abs(p.longitude - place.longitude) < 0.0001)
   );
   
+  // 매칭되는 장소가 있으면 스크롤
   if (matchedPlace && placeCardRefs.value[matchedPlace.title] && placeListContainer.value) {
     const element = placeCardRefs.value[matchedPlace.title];
     const container = placeListContainer.value;
@@ -470,9 +451,12 @@ const selectPlaceFromLeft = async (place) => {
       top: scrollPosition,
       behavior: 'smooth'
     });
+    
+    console.log(`✅ "${matchedPlace.title}" 찾아서 스크롤 완료`);
+  } else {
+    console.log(`⚠️ "${place.title}"를 검색 결과에서 찾지 못함`);
   }
 };
-
 // 마커 제거 (최적화)
 const clearAllMarkers = () => {
   placeMarkers.value.forEach(marker => {
@@ -693,15 +677,9 @@ const loadPlaces = async (type, lat = null, lng = null) => {
   }
 };
 
-// 지도 선택
+// 지도 선택 (지도 이동 제거)
 const selectPlace = (p) => {
   selectedPlace.value = p;
-  
-  // 지도 중심 이동
-  if (map && p.latitude && p.longitude) {
-    const position = new kakao.maps.LatLng(p.latitude, p.longitude);
-    map.panTo(position);
-  }
 };
 
 // 장소 추가
@@ -926,16 +904,46 @@ const saveAllDaysPlaces = async () => {
     for (const duration of durations.value) {
       const dayPlaces = placesByDay.value[duration.day] || [];
       if (!dayPlaces.length) continue;
-      await axios.post("/api/places/batch", dayPlaces.map((p, i) => ({ 
-        ...p,
+      
+      console.log(`${duration.day}일차 원본 데이터:`, dayPlaces);
+      
+      const payload = dayPlaces.map((p, i) => ({
+        // 필수 필드
         durationId: duration.durationId,
-        planId,
+        planId: planId,
         travelOrder: i + 1,
-      })));
+        travelDay: duration.day,
+        estimatedTravelTime: 0,
+        
+        // Kakao API 필드
+        placeName: p.title,
+        latitude: p.latitude,
+        longitude: p.longitude,
+        categoryCode: p.categoryCode,
+        categoryGroupName: p.categoryGroupName,
+        addressName: p.addressName,
+        placeUrl: p.placeUrl,
+        description: p.description || null,
+        
+        // 추가 필드
+        imagePath: p.imageUrl || null,
+        runTime: null
+      }));
+      
+      console.log(`${duration.day}일차 전송할 데이터:`, JSON.stringify(payload, null, 2));
+      
+      await axios.post("/api/places/batch", payload);
+      console.log(`✅ ${duration.day}일차 저장 완료!`);
     }
     alert("전체 일정 저장 완료!");
   } catch (err) {
-    console.error("저장 실패:", err);
+    console.error("❌ 저장 실패 상세:", err.response?.data);
+    console.error("❌ 상태 코드:", err.response?.status);
+    console.error("❌ 전체 에러:", err);
+    
+    // 사용자에게 구체적인 에러 메시지 표시
+    const errorMsg = err.response?.data?.message || "일정 저장 중 오류가 발생했습니다!";
+    alert(errorMsg);
   }
 };
 
