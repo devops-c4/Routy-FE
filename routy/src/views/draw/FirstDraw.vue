@@ -170,7 +170,10 @@ const selectCity = (region) => {
 const goNext = () => {
   router.push({
     path: "/draw/second",
-    query: { regionId: selectedCity.value.regionId, regionName: selectedCity.value.regionName },
+    query: { 
+      regionId: selectedCity.value.regionId, 
+      regionName: selectedCity.value.regionName
+    },
   });
 };
 
@@ -179,8 +182,13 @@ onMounted(async () => {
   kakao.maps.load(initMap); // SDK 비동기 로드 후 지도 초기화
 
   if (route.query.city) {
-    const matched = regions.value.find((r) => route.query.city.includes(r.regionName));
-    if (matched) selectedCity.value = matched;
+    const query = route.query.city;
+
+    const split = query.split(' '); // 띄어스기로 분리해서 가장 앞에 걸로 확인
+    const matched = regions.value.find((r) => query.includes(r.regionName) || r.regionName.includes(split[0]));  // '제주' 만 입력해도 제주도가 선택될 수 있게 변경
+    if (matched) {
+      selectCity(matched);  // 선택된 지역으로 지도가 이동되도록 만들기 위해서 함수 사용
+    }
   }
 });
 </script>

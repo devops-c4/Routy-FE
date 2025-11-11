@@ -89,7 +89,14 @@ const regionId = route.query.regionId;
 const regionName = route.query.regionName;
 
 // 이전 단계 이동
-const goPrev = () => router.push('/draw/first');
+const goPrev = () => {
+  router.push({
+    path: '/draw/first',
+    query: {
+      city: regionName  // 돌아가도 이전에 선택한 것은 여전히 선택한 채로 넘어가도록 변경
+    }
+  });
+};
 
 // 다음 단계 (일정 생성 후 이동)
 const goNext = async () => {
@@ -112,9 +119,15 @@ const goNext = async () => {
 
     await axios.post(`/api/plans/${planId}/durations`, { totalDays: totalDays.value });
 
+    const query = {
+      planId,
+      totalDays: totalDays.value
+    };
+    
+
     router.push({
       path: '/draw/third',
-      query: { planId, totalDays: totalDays.value }
+      query: query
     });
 
     console.log('일정 생성 성공:', res.data);
