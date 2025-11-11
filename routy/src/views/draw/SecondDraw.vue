@@ -110,8 +110,9 @@ const goNext = async () => {
       planTitle: `${regionName} 여행 일정`,
       startDate: startDate.value,
       endDate: endDate.value,
-      regionId,
-      userId: 1
+
+      regionId: regionId,
+      // userId는 백엔드에서 SecurityContext로 자동 추출
     };
 
     const res = await axios.post('/api/plans', payload);

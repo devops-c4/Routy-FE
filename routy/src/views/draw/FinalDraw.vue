@@ -555,7 +555,7 @@ const initMap = (location) => {
         const lng = center.getLng();
         
         if (hasSignificantChange(lat, lng, currentType.value) && !isSearching.value) {
-          console.log("📍 지도 이동 - 새 검색:", lat, lng);
+          console.log("지도 이동 - 새 검색:", lat, lng);
           await loadPlaces(currentType.value, lat, lng);
         }
       }, 800); // 800ms 디바운싱
@@ -783,15 +783,20 @@ const openHotelModal = async () => {
 const closeHotelModal = () => {
   showHotelModal.value = false;
 };
-
 const addHotel = (hotel) => {
   const day = selectedDay.value;
   if (!placesByDay.value[day]) placesByDay.value[day] = [];
-  if (!placesByDay.value[day].find((x) => x.title === hotel.title)) {
-    placesByDay.value[day].push({ ...hotel, isHotel: true });
-  }
-  alert(`${hotel.title}이(가) ${day}일차 일정에 추가되었습니다!`);
   
+  if (!placesByDay.value[day].find((x) => x.title === hotel.title)) {
+    placesByDay.value[day].push({ 
+      ...hotel,
+      title: hotel.title,
+      placeName: hotel.title,  // 추가
+      isHotel: true 
+    });
+  }
+  
+  alert(`${hotel.title}이(가) ${day}일차 일정에 추가되었습니다!`);
   updateMapMarkers();
   closeHotelModal();
 };
@@ -903,22 +908,40 @@ const saveAllDaysPlaces = async () => {
     for (const duration of durations.value) {
       const dayPlaces = placesByDay.value[duration.day] || [];
       if (!dayPlaces.length) continue;
-      await axios.post("/api/places/batch", dayPlaces.map((p, i) => ({ 
-        ...p,
+      
+      // 필드명을 명시적으로 매핑
+      const mappedPlaces = dayPlaces.map((p, i) => ({
         durationId: duration.durationId,
         planId,
         travelOrder: i + 1,
-      })));
+        estimatedTravelTime: p.estimatedTravelTime || 0,
+        
+        // title → placeName 변환
+        placeName: p.title,
+        
+        latitude: p.latitude,
+        longitude: p.longitude,
+        categoryCode: p.categoryCode,
+        categoryGroupName: p.categoryGroupName,
+        addressName: p.addressName,
+        placeUrl: p.placeUrl,
+        description: p.description || '',
+        imagePath: p.imagePath || null,
+        runTime: p.runTime || null,
+      }));
+      
+      console.log('전송 데이터:', mappedPlaces);
+      await axios.post("/api/places/batch", mappedPlaces);
     }
     alert("전체 일정 저장 완료!");
   } catch (err) {
     console.error("저장 실패:", err);
+    console.error("에러 상세:", err.response?.data);
   }
 };
-
 // 컴포넌트 마운트
 onMounted(async () => {
-  console.log("🚀 컴포넌트 초기화 시작");
+  console.log("컴포넌트 초기화 시작");
   
   // 1. Plan 정보 로드
   await loadPlanInfo();
@@ -933,7 +956,7 @@ onMounted(async () => {
   await nextTick();
   await loadPlaces("restaurants");
   
-  console.log("✅ 초기화 완료");
+  console.log("초기화 완료");
 });
 
 // 경로 그리기
