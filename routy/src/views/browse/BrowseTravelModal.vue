@@ -29,9 +29,9 @@
       <!-- 통계 -->
       <div class="stats-bar">
         <div class="stat-item">
-          <span class="stat-icon">❤️</span>
-          <span class="stat-label">좋아요</span>
-          <span class="stat-value">{{ route.likeCount }}</span>
+          <button @click="toggleLike" class="like-btn">
+            ❤️좋아요 {{ likeCount }}
+          </button>
         </div>
         <div class="stat-item">
           <span class="stat-icon">👁️</span>
@@ -91,21 +91,21 @@
             @click="selectedDay = day.dayNo"
           >
             Day {{ day.dayNo }}
-            <span class="place-count">{{ day.places.length }}</span>
+            <span class="place-count">{{ day.activities?.length || 0 }}</span>
           </button>
         </div>
 
         <!-- 장소 목록 -->
-        <div class="places-list">
+        <div class="places-list" v-if="selectedDayActivities?.length">
           <div
-            v-for="(place, idx) in selectedDayPlaces"
-            :key="idx"
+            v-for="(activity, idx) in selectedDayActivities"
+            :key="activity.travelId"
             class="place-item"
           >
             <div class="place-number">
               <span class="number">{{ idx + 1 }}</span>
               <div
-                v-if="idx < selectedDayPlaces.length - 1"
+                v-if="idx < selectedDayActivities.length - 1"
                 class="connector"
               ></div>
             </div>
@@ -113,19 +113,33 @@
             <div class="place-details">
               <div class="place-header">
                 <div class="place-name-wrapper">
-                  <span class="place-name">{{ place.name }}</span>
-                </div>
-                <div class="place-time">
-                  <span class="time-icon">🕐</span>
-                  {{ place.startTime }} ~ {{ place.endTime }}
+                  <span class="place-name">{{ activity.placeName }}</span>
+                  <span class="place-tag">{{ activity.tag }}</span>
                 </div>
               </div>
+
               <div class="place-address">
                 <span class="address-icon">📍</span>
-                {{ place.address }}
+                {{ activity.addressName }}
+              </div>
+
+              <!-- ✨ 더 보기 버튼 -->
+              <div class="place-footer">
+                <a
+                  :href="activity.placeUrl"
+                  target="_blank"
+                  class="btn-more"
+                >
+                  더 보기 →
+                </a>
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Day에 활동이 없을 때 -->
+        <div v-else class="no-activities">
+          등록된 일정이 없습니다.
         </div>
       </div>
 
@@ -145,26 +159,64 @@
 </template>
 
 <script setup>
-  import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import apiClient from '@/utils/axios'
 
-  const props = defineProps({
-    route: {
-      type: Object,
-      required: true
-    }
-  })
 
-  defineEmits(['close'])
+// 부모로부터 전달받는 여행 데이터(route)
+const props = defineProps({
+  route: Object
+})
 
-  const selectedDay = ref(1)
+// ✅ 좋아요 관련 상태
+const likeCount = ref(0)
+const isLiked = ref(false)
 
-  const selectedDayPlaces = computed(() => {
-    const day = props.route.dayList?.find(d => d.dayNo === selectedDay.value)
-    return day ? day.places : []
-  })
+
+//  좋아요 수 불러오기 + 상태 초기화
+const fetchLikeData = async () => {
+  if (!props.route?.planId || !userId) return
+  try {
+    // 좋아요 수
+    const countRes = await apiClient.get(`/api/plans/${props.route.planId}/like-count`)
+    likeCount.value = countRes.data
+
+    // 이미 눌렀는지 여부 (선택적으로 추가)
+    const checkRes = await apiClient.get(`/api/plans/${props.route.planId}/like`, {
+      params: { userId }
+    })
+    isLiked.value = checkRes.data === true
+  } catch (err) {
+    console.error('좋아요 데이터 로드 실패:', err)
+  }
+}
+
+//  좋아요 토글 (누르기/취소)
+const toggleLike = async () => {
+  console.log('❤️ 좋아요 버튼 눌림', props.route.planId)
+  try {
+    const res = await apiClient.post(`/api/plans/${props.route.planId}/like`)
+    likeCount.value = res.data.likeCount
+    isLiked.value = !isLiked.value
+  } catch (err) {
+    console.error('좋아요 요청 실패:', err)
+  }
+}
+
+
+
+//  Day별 장소 표시 
+const selectedDay = ref(1)
+const selectedDayActivities = computed(() => {
+  const day = props.route.dayList?.find(d => d.dayNo === selectedDay.value)
+  return day ? day.activities : []
+})
+
+//  페이지 로드시 좋아요 정보 가져오기
+onMounted(() => {
+  console.log('✅ 모달 마운트됨, planId:', props.route.planId)
+})
 </script>
-
-
 
 <style scoped>
 .modal-overlay {
@@ -618,4 +670,52 @@
     justify-content: center;
   }
 }
+.place-footer {
+  text-align: right;
+  margin-top: 6px;
+}
+
+.btn-more {
+  display: inline-block;
+  font-size: 14px;
+  color: #0066ff;
+  text-decoration: none;
+  border: 1px solid #0066ff;
+  border-radius: 6px;
+  padding: 4px 10px;
+  transition: all 0.2s;
+}
+
+.btn-more:hover {
+  background-color: #0066ff;
+  color: #fff;
+}
+
+.place-tag {
+  display: inline-block;
+  background-color: #2563eb; /* 파란색 */
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 20px;
+  padding: 4px 10px;
+  margin-left: 8px;
+  vertical-align: middle;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+.like-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+.like-btn.active {
+  color: red;
+  transform: scale(1.2);
+}
+.like-btn:hover {
+  transform: scale(1.1);
+}
+
 </style>
