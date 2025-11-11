@@ -66,7 +66,7 @@ export const changePassword = async (email, newPassword) => {
   console.log('🔵 [auth.js] email:', email);
   
   try {
-    const response = await apiClient.put('/auth/change-password', {  // PUT으로 변경
+    const response = await apiClient.put('/auth/change-password', {
       email,
       newPassword
     });
@@ -75,6 +75,125 @@ export const changePassword = async (email, newPassword) => {
     return response;
   } catch (error) {
     console.error('❌ [auth.js] 비밀번호 변경 실패:', error);
+    throw error;
+  }
+};
+
+/**
+ * 회원정보 수정 API
+ */
+export const modifyUserInfo = async (userInfo, profileFile) => {
+  console.log('🔵 [auth.js] modifyUserInfo 함수 시작');
+  console.log('🔵 [auth.js] userInfo:', userInfo);
+  console.log('🔵 [auth.js] profileFile:', profileFile);
+  
+  try {
+    const formData = new FormData();
+    
+    // JSON 데이터를 Blob으로 변환하여 추가
+    if (userInfo) {
+      const userInfoBlob = new Blob(
+        [JSON.stringify(userInfo)], 
+        { type: 'application/json' }
+      );
+      formData.append('newUserInfo', userInfoBlob);
+      console.log('🔵 [auth.js] userInfo Blob 추가 완료');
+    }
+    
+    // 프로필 이미지 추가 (있는 경우에만)
+    if (profileFile) {
+      formData.append('profile', profileFile);
+      console.log('🔵 [auth.js] profile 파일 추가 완료:', profileFile.name);
+    }
+    
+    // FormData 내용 확인 (디버깅용)
+    console.log('🔵 [auth.js] FormData 내용:');
+    for (let pair of formData.entries()) {
+      console.log(`  ${pair[0]}:`, pair[1]);
+    }
+    
+    console.log('🔵 [auth.js] PUT /auth/modifyuserinfo 요청 전송 중...');
+    
+    // axios가 자동으로 Content-Type: multipart/form-data 설정
+    const response = await apiClient.put('/auth/modifyuserinfo', formData);
+    
+    console.log('🟢 [auth.js] 회원정보 수정 성공:', response);
+    console.log('🟢 [auth.js] 응답 데이터:', response.data);
+    
+    return response;
+  } catch (error) {
+    console.error('❌ [auth.js] 회원정보 수정 실패:', error);
+    console.error('❌ [auth.js] 에러 응답:', error.response);
+    throw error;
+  }
+};
+
+/**
+ * 이메일 인증번호 발송 API
+ */
+export const sendVerificationEmail = async (email) => {
+  console.log('🔵 [auth.js] sendVerificationEmail 함수 시작');
+  console.log('🔵 [auth.js] email:', email);
+  
+  try {
+    const formData = new FormData();
+    formData.append('mail', email);
+    
+    const response = await apiClient.post('/validation/sendmail', formData);
+    
+    console.log('🟢 [auth.js] 인증번호 발송 성공:', response.data);
+    return response.data; // 인증번호 반환 (0이면 실패)
+  } catch (error) {
+    console.error('❌ [auth.js] 인증번호 발송 실패:', error);
+    throw error;
+  }
+};
+
+/**
+ * 이메일 인증번호 확인 API
+ */
+export const confirmVerificationCode = async (email, code) => {
+  console.log('🔵 [auth.js] confirmVerificationCode 함수 시작');
+  console.log('🔵 [auth.js] email:', email);
+  console.log('🔵 [auth.js] code:', code);
+  
+  try {
+    const formData = new FormData();
+    formData.append('email', email);
+    formData.append('number', code);
+    
+    const response = await apiClient.post('/auth/confirm', formData);
+    
+    console.log('🟢 [auth.js] 인증번호 확인 성공:', response.data);
+    return response.data; // "인증 성공" 또는 "인증 실패" 메시지
+  } catch (error) {
+    console.error('❌ [auth.js] 인증번호 확인 실패:', error);
+    throw error;
+  }
+};
+
+/**
+ * 이메일 찾기 API
+ */
+export const findMyEmail = async (username, phone) => {
+  console.log('🔵 [auth.js] findMyEmail 함수 시작');
+  console.log('🔵 [auth.js] username:', username);
+  console.log('🔵 [auth.js] phone:', phone);
+  
+  try {
+    // GET 요청에 query parameter로 전송
+    // 요청 URL: /auth/find-email?username=홍길동&phone=010-1234-5678
+    const response = await apiClient.get('/auth/find-email', {
+      params: {
+        username,
+        phone
+      }
+    });
+    
+    console.log('🟢 [auth.js] 이메일 찾기 성공:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ [auth.js] 이메일 찾기 실패:', error);
     throw error;
   }
 };
