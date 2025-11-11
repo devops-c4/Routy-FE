@@ -498,7 +498,7 @@ const initMap = (location) => {
         const lng = center.getLng();
         
         if (hasSignificantChange(lat, lng, currentType.value) && !isSearching.value) {
-          console.log("📍 지도 이동 - 새 검색:", lat, lng);
+          console.log("지도 이동 - 새 검색:", lat, lng);
           await loadPlaces(currentType.value, lat, lng);
         }
       }, 800); // 800ms 디바운싱
@@ -603,7 +603,7 @@ const loadPlaces = async (type, lat = null, lng = null) => {
       planId,
     }));
     
-    console.log(`✅ ${type} ${places.value.length}개 로드 완료`);
+    console.log(`${type} ${places.value.length}개 로드 완료`);
     
     // 검색 좌표 업데이트
     lastSearchCoords.value = { lat: searchLat, lng: searchLng, type };
@@ -734,7 +734,7 @@ const addHotel = (hotel) => {
     placesByDay.value[day].push({ 
       ...hotel,
       title: hotel.title,
-      placeName: hotel.title,  // ⬅ 추가
+      placeName: hotel.title,  // 추가
       isHotel: true 
     });
   }
@@ -873,7 +873,7 @@ const saveAllDaysPlaces = async () => {
         runTime: p.runTime || null,
       }));
       
-      console.log('📤 전송 데이터:', mappedPlaces);
+      console.log('전송 데이터:', mappedPlaces);
       await axios.post("/api/places/batch", mappedPlaces);
     }
     alert("전체 일정 저장 완료!");
@@ -884,7 +884,7 @@ const saveAllDaysPlaces = async () => {
 };
 // 컴포넌트 마운트
 onMounted(async () => {
-  console.log("🚀 컴포넌트 초기화 시작");
+  console.log("컴포넌트 초기화 시작");
   
   // 1. Plan 정보 로드
   await loadPlanInfo();
