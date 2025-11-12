@@ -320,7 +320,7 @@
         </div>
       </div>
 
-      <!-- 🔹 버튼은 body 아래로 이동 -->
+      <!-- 버튼은 body 아래로 이동 -->
       <div class="sort-footer">
         <button class="sort-cancel-btn" @click="cancelSortPreview">취소</button>
         <button class="sort-btn" @click="applySortedPlaces">정렬 적용</button>
@@ -350,13 +350,10 @@ import { deletePoliLine, direction, sortDirection } from '@/utils/draw/direction
 
 const route = useRoute();
 const router = useRouter();
-// const planId = Number(route.query.planId);
-// const totalDays = Number(route.query.totalDays) || 1;
 
-//진짜 state는 여기 (일정수정에서 넘어온거 테스트중)
 const historyState = window.history.state || {};
 
-// 수정페이지에서 넘겨준 데이터 (일정수정에서 넘어온거 테스트중)
+// 수정페이지에서 넘겨준 데이터
 // sessionStorage에서 먼저 확인
 let previousData = null;
 let targetDay = null;
@@ -374,7 +371,6 @@ if (sessionData && sessionTargetDay) {
   }
 }
 const showSortModal = ref(false);
-// query fallback
 const planIdFromQuery = route.query.planId ? Number(route.query.planId) : null;
 const targetDayFromQuery = route.query.targetDay ? Number(route.query.targetDay) : null;
 
@@ -821,7 +817,7 @@ const selectPlace = (p) => {
 const addPlace = (p) => {
   const day = selectedDay.value;
   
-  // ✅ 중복 체크
+  // 중복 체크
   if (!placesByDay.value[day]) {
     placesByDay.value[day] = [];
   }
@@ -831,7 +827,7 @@ const addPlace = (p) => {
     return;
   }
   
-  // ✅ 장소 추가
+  // 장소 추가
   placesByDay.value[day].push({ 
     ...p, 
     dayNumber: day,
@@ -841,7 +837,7 @@ const addPlace = (p) => {
     fixed: false
   });
   
-  console.log(`✅ ${p.title} 추가 완료 (${day}일차)`);
+  console.log(`${p.title} 추가 완료 (${day}일차)`);
   updateMapMarkers();
 };
 
@@ -1099,19 +1095,21 @@ const saveAllDaysPlaces = async () => {
       await axios.post("/api/places/batch", mappedPlaces);
     }
     
+
+    
     alert("새로운 장소가 저장되었습니다!");
     
-    // ✅ sessionStorage 클리어
+    // sessionStorage 클리어
     sessionStorage.removeItem("editPlanData");
     sessionStorage.removeItem("editTargetDay");
     
-    // ✅ 일정수정 모드였다면 상세 페이지로
+    // 일정수정 모드였다면 상세 페이지로
     if (previousData) {
-      console.log("✅ 일정 상세 페이지로 이동");
+      console.log("일정 상세 페이지로 이동");
       router.push(`/mypage/travel/${planId}`);
     } else {
-      // ✅ 일반 모드였다면 마이페이지로
-      console.log("✅ 마이페이지로 이동");
+      // 일반 모드였다면 마이페이지로
+      console.log("마이페이지로 이동");
       let count = Number(sessionStorage.getItem("newPlan")) || 0;
       count++;
       sessionStorage.setItem("newPlan", count);
@@ -1128,24 +1126,24 @@ const saveAllDaysPlaces = async () => {
   }
 };
 onMounted(async () => {
-  console.log("🚀 컴포넌트 초기화 시작");
+  console.log("컴포넌트 초기화 시작");
   
   await loadPlanInfo();
   await loadDurations();
   
-  // ✅ 일정수정에서 넘어온 경우
+  // 일정수정에서 넘어온 경우
   if (previousData && targetDay) {
-    console.log("✅ 일정수정 모드!");
-    console.log("📦 previousData.dayList:", previousData.dayList);
+    console.log("일정수정 모드!");
+    console.log("previousData.dayList:", previousData.dayList);
     
-    // ✅ 모든 일차의 데이터를 로드 (중요!)
+    // 모든 일차의 데이터를 로드 (중요!)
     if (previousData.dayList && previousData.dayList.length > 0) {
       previousData.dayList.forEach((dayData) => {
         if (dayData.activities && dayData.activities.length > 0) {
           const dayNo = dayData.dayNo;
           
           placesByDay.value[dayNo] = dayData.activities.map((act, index) => {
-            console.log(`📍 ${dayNo}일차 - ${act.placeName}`);
+            console.log(`${dayNo}일차 - ${act.placeName}`);
             
             return {
               travelId: act.travelId,
@@ -1171,20 +1169,20 @@ onMounted(async () => {
             };
           });
           
-          console.log(`✅ ${dayNo}일차 장소 ${placesByDay.value[dayNo].length}개 로드됨`);
+          console.log(`${dayNo}일차 장소 ${placesByDay.value[dayNo].length}개 로드됨`);
         }
       });
       
-      // ✅ 선택된 일차만 targetDay로 설정
+      // 선택된 일차만 targetDay로 설정
       selectedDay.value = targetDay;
-      console.log(`✅ ${targetDay}일차로 이동`);
+      console.log(`${targetDay}일차로 이동`);
       
       // sessionStorage 정리
       sessionStorage.removeItem('editPlanData');
       sessionStorage.removeItem('editTargetDay');
     }
   } else {
-    console.log("⚠️ 일반 모드 (일정수정 아님)");
+    console.log("일반 모드 (일정수정 아님)");
   }
   
   initMap(startLocation.value);
@@ -1192,9 +1190,9 @@ onMounted(async () => {
   updateMapMarkers();
   await loadPlaces("restaurants");
   
-  console.log("✅ 초기화 완료");
-  console.log("📦 최종 placesByDay:", placesByDay.value);
-  console.log("📦 selectedDay:", selectedDay.value);
+  console.log("초기화 완료");
+  console.log("최종 placesByDay:", placesByDay.value);
+  console.log("selectedDay:", selectedDay.value);
 });
 // 경로 그리기
 const drawRoute = async () => {
@@ -2101,7 +2099,7 @@ const cancelSortPreview = () => {
 }
 
 
-/* 🔹 카드 스타일 (호텔 카드 느낌으로 통일) */
+/* 카드 스타일 (호텔 카드 느낌으로 통일) */
 .sort-card {
   background: #f9fafb;
   border: 1px solid #e5e7eb;
