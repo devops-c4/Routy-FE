@@ -1,7 +1,7 @@
 <template>
   <div class="chat-page">
     <div class="chat-header">
-      <h1>Routy ChatBot</h1>
+      <h1>Rooting</h1>
       <img src="../../assets/images/chatbot/chatbot2.png" alt="chatbot" />
     </div>
 
@@ -259,7 +259,7 @@ button {
 }
 
 .chat-header img {
-  width: 60px; /* 이미지 크기 조절 */
-  height: 60px;
+  width: 130px; /* 이미지 크기 조절 */
+  height: 70px;
 }
 </style>
