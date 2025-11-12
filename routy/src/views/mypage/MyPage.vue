@@ -6,7 +6,23 @@ import { jwtDecode } from 'jwt-decode' // 설치 안 돼 있으면: npm i jwt-de
 import BrowseTravelModal from '@/views/browse/BrowseTravelModal.vue'
 import TravelReviewModal from '@/views/mypage/TravelReviewModal.vue'
 
+
+
 const router = useRouter()
+
+const showBrowseModal = ref(false);
+function openBrowseModal(planId) {
+  selectedPlanId.value = planId;
+  showBrowseModal.value = true;
+}
+
+function onReviewSaved() {
+  // 닫기는 자식에서 emit('close')로 처리하니 여기선 갱신만
+  fetchAllTravelHistory?.(); // 있으면 호출
+  fetchAllBookmarks?.();     // 선택
+  // 혹은 상세 재조회
+  // refreshPlanDetail?.(selectedPlanId.value)
+}
 
 // 여행 기록에서 상세 페이지로 넘어갈때 사용되는 함수
 function goToPlanDetail(planId) {
@@ -493,19 +509,20 @@ function toggleBookmarks() {
     </div>
     <!-- 모달 컴포넌트 (페이지 하단) -->
     </div>
-        <BrowseTravelModal
-        v-if="showModal"
-        :route="selectedPlan"
-        @close="showModal = false"
-      />
+<BrowseTravelModal
+  v-if="showBrowseModal"
+  :planId="selectedPlanId"
+  @close="showBrowseModal = false"
+/>
 
        <!-- 리뷰 작성 모달 -->
   <TravelReviewModal
     v-if="showReviewModal"
     :plan-id="selectedPlanId"
     :title="selectedTitle"
-    @close="closeReviewModal"
-    @saved="() => { closeReviewModal(); refreshHistory() }"
+@close="showReviewModal = false"
+  @saved="onReviewSaved"
+  @openBrowse="openBrowseModal"
   />
 </template>
 
