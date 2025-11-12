@@ -11,37 +11,34 @@
         <!-- 왼쪽 패널 -->
         <aside class="left-panel">
           <div class="left-actions">
-            <div class="left-actions-grid">
-              <div></div> <!-- 2사분면 빈 공간 -->
+            <button class="top-btn" @click="endDaySchedule">{{ selectedDay }} 일차 일정 종료</button>
               
-              <button 
-                class="left-btn" 
-                @click="drawRoute"
-                :disabled="isDayCompleted"
-              >경로 그리기</button>
+              <div class = "middle-btns">
+                <button 
+                  class="left-btn" 
+                  @click="drawRoute"
+                  :disabled="isDayCompleted"
+                  title=
+"현재 선택한 장소들을 따라
+경로를 지도에 그립니다."
+                >경로 그리기</button>
 
-              <button 
-                class="left-btn"
-                :class="{ active: showHotelModal }"
-                @click="openHotelModal" 
-                :disabled="isDayCompleted"
-              >숙소 선택</button>
-
-              <button 
-                class="left-btn" 
-                @click="drawSort"
-                :disabled="isDayCompleted || isLoading">            
-                <span v-if="isLoading">⏳ 정렬 중...</span>
-                <span v-else>자동 정렬</span>
-              </button>
-            </div>
+                <button 
+                  class="left-btn" 
+                  @click="drawSort"
+                  :disabled="isDayCompleted || isLoading"
+                  title=
+"고정된 일정을 제외한 일정을
+최소의 이동시간이 되도록 재배치합니다.">            
+                  <span v-if="isLoading">⏳ 정렬 중...</span>
+                  <span v-else>자동 정렬</span>
+                </button>
+              </div>
             <!-- 로딩 스피너 -->
             <div v-if="isLoading" class="loading-overlay">
               <div class="spinner"></div>
               <p>자동 정렬 중입니다. 잠시만 기다려주세요...</p>
             </div>
-
-            <button class="end-btn" @click="endDaySchedule">일정 종료</button>
           </div>
 
           <div class="empty-guide" v-if="selectedPlaces.length === 0">
@@ -121,7 +118,16 @@
 
         <!-- 오른쪽 패널 -->
         <aside class="right-panel">
-          <div class="search-header">검색</div>
+          <div class="search-header">검색          
+            <button 
+                class="hotel-btn"
+                :class="{ active: showHotelModal }"
+                @click="openHotelModal" 
+                :disabled="isDayCompleted"
+              >숙소 선택</button>
+          </div>
+
+
           <div class="filter-bar">
             <button
               class="filter-btn"
@@ -217,6 +223,66 @@
       </div>
     </div>
   </div>
+
+  <!-- 변경 모달 -->
+  <div v-if="showSortModal" class="sort-modal-overlay">
+    <div class="sort-modal">
+      <div class="sort-header">
+        <h3>정렬 미리보기</h3>
+        <button class="close-btn" @click="cancelSortPreview">✕</button>
+      </div>
+
+      <!-- 🔹 본문 -->
+      <div class="sort-body">
+        <div class="curr-list">
+          <div class="list-title">정렬 전</div>
+          <div 
+            v-for="(place, i) in placesByDay[selectedDay]" 
+            :key="i" 
+            class="sort-card"
+            :class="{ 'fix-card': place.fixed, 'hovered': hoveredPlaceUrl === place.placeUrl && !place.fixed}"
+              @mouseenter="hoveredPlaceUrl = place.placeUrl"
+              @mouseleave="hoveredPlaceUrl = null">
+            <div class="sort_info">
+              <div class="sort-name">{{ place.title }}</div>
+              <div class="sort-category">{{ place.description }}</div>
+              <a 
+                :href="place.placeUrl"
+                target="_blank"
+                style="color:#155DFC; text-decoration:none;font-size:13px;"
+              >지도보기</a>
+            </div>
+          </div>
+        </div>
+        <div class="sort-list">
+          <div class="list-title">정렬 후</div>
+          <div
+            v-for="(place, i) in previewSorted"
+            :key="i"
+            class="sort-card"
+            :class="{ 'fix-card': place.fixed, 'hovered': hoveredPlaceUrl === place.placeUrl && !place.fixed}"
+              @mouseenter="hoveredPlaceUrl = place.placeUrl"
+              @mouseleave="hoveredPlaceUrl = null">
+            <div class="sort_info">
+              <div class="sort-name">{{ place.title }}</div>
+              <div class="sort-category">{{ place.description }}</div>
+              <a 
+                :href="place.placeUrl"
+                target="_blank"
+                style="color:#155DFC; text-decoration:none;font-size:13px;"
+              >지도보기</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🔹 버튼은 body 아래로 이동 -->
+      <div class="sort-footer">
+        <button class="sort-cancel-btn" @click="cancelSortPreview">취소</button>
+        <button class="sort-btn" @click="applySortedPlaces">정렬 적용</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -275,6 +341,8 @@ const targetDay = targetDayFromState || targetDayFromQuery;
 console.log("👀 historyState:", historyState);
 console.log("👀 previousData 최종:", previousData);
 console.log("👀 targetDay 최종:", targetDay);
+
+const hoveredPlaceUrl = ref(null);
 
 // 지도 관련
 const mapContainer = ref(null);
@@ -988,7 +1056,10 @@ const drawRoute = async () => {
 };
 
 // 자동 정렬
+
 const isLoading = ref(false);
+const showSortModal = ref(false); // 모달 보여주기
+const previewSorted = ref([]);    // 자동 정렬된 결과 임시 저장
 
 const drawSort = async () => {
   const currentPlaces = placesByDay.value[selectedDay.value];
@@ -1017,8 +1088,23 @@ const drawSort = async () => {
     };
   }).filter(Boolean);
   
-  placesByDay.value[selectedDay.value] = reorderedPlaces;
+  previewSorted.value = reorderedPlaces;    // 결과 임시 저장
   console.log("정렬 완료:", reorderedPlaces);
+
+  showSortModal.value = true; // 모달창 띄우기
+};
+
+const applySortedPlaces = () => {
+  placesByDay.value[selectedDay.value] = [...previewSorted.value];
+  console.log("정렬 완료");
+  showSortModal.value = false;
+};
+
+const cancelSortPreview = () => {
+  console.log("정렬 취소");
+  deletePoliLine();
+  showSortModal.value = false;
+  
 };
 </script>
 
@@ -1060,7 +1146,16 @@ const drawSort = async () => {
   justify-content: space-between;
 }
 
-.left-actions { padding: 16px; border-bottom: 1px solid rgba(0,0,0,0.1); }
+.left-actions { 
+  padding: 16px; 
+  border-bottom: 1px solid rgba(0,0,0,0.1); 
+
+  display: flex;
+  flex-direction: column;
+  height: 115px; /* 전체 컨테이너 높이 */
+  gap: 16px;     /* 상하 버튼 간격 */
+
+}
 .action-row { display: flex; gap: 8px; margin-bottom: 12px; }
 
 .left-btn {
@@ -1072,18 +1167,7 @@ const drawSort = async () => {
   background: white;
   color: #4A5565;
   transition: 0.2s;
-}
-
-.left-actions-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 8px;
-  padding: 16px;
-}
-.left-actions-grid .left-btn {
-  width: 100%;
-  height: 40px;
+  width: 48%;
 }
 
 .left-btn:hover:not(:disabled) {
@@ -1106,7 +1190,14 @@ const drawSort = async () => {
   cursor: not-allowed;
 }
 
-.end-btn {
+.middle-btns {
+  display: flex;
+  justify-content: space-between; /* 좌우 버튼 분리 */
+  gap: 16px;
+}
+
+
+.top-btn {
   width: 100%;
   height: 32px;
   border-radius: 8px;
@@ -1114,6 +1205,16 @@ const drawSort = async () => {
   color: white;
   border: none;
   cursor: pointer;
+}
+
+
+.hotel-btn {
+  border-radius: 4px;
+  border: 1px solid #D1D5DC;
+  background: white;
+  height: 40px;
+  width: 110px;
+  /* flex: 0; flex:1 제거! → 버튼이 늘어나지 않게 */
 }
 
 .info-box {
@@ -1390,6 +1491,10 @@ const drawSort = async () => {
   padding: 16px;
   border-bottom: 1px solid rgba(0,0,0,0.1);
   font-size: 16px;
+
+  display: flex;                /* 가로 정렬 */
+  justify-content: space-between; /* 좌측은 '검색', 우측은 버튼 */
+  align-items: center;          /* 수직 중앙정렬 */
 }
 
 .filter-bar {
@@ -1617,4 +1722,179 @@ const drawSort = async () => {
   filter: blur(3px);
   pointer-events: none;
 }
+
+
+
+
+/* 🔹 모달 전체 배경 */
+.sort-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1100;
+}
+
+/* 🔹 모달 카드 본체 */
+.sort-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 720px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.25s ease;
+}
+
+/* 🔹 상단 헤더 */
+.sort-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.sort-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+/* 🔹 모달 본문 */
+.sort-body {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  padding: 16px;
+  /* 높이 제한 */
+  max-height: 60vh; /* 모달 최대 높이의 60% */
+  overflow-y: auto; /* 세로 스크롤 */
+}
+
+/* 🔹 리스트 구역 (현재 vs 정렬 후) */
+.curr-list,
+.sort-list {
+  flex: 1;
+}
+
+/* 🔹 리스트 제목 */
+.list-title {
+  text-align: center; /* 제목 중앙 정렬 */
+  font-weight: 600;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+/* .sort-body > .curr-list >.list-title {
+  
+} */
+
+.sort-body > .sort-list >.list-title {
+  color: #155dfc;
+}
+
+
+/* 🔹 카드 스타일 (호텔 카드 느낌으로 통일) */
+.sort-card {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  transition: 0.2s ease;
+}
+
+.sort-card.hovered {
+  border-color: #155dfc;
+  background-color: #eef4ff;
+  transform: translateY(-2px);
+}
+
+.fix-card {
+  background-color: #4A5565;
+}
+
+
+
+/* .sort-card:hover {
+  border-color: #155dfc;
+  background: #eef4ff;
+} */
+
+.sort_info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sort-name {
+  font-weight: 500;
+  color: #111827;
+}
+
+.sort-index {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.sort-category {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+/* 🔹 버튼들 */
+.sort-btn,
+.sort-cancel-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: 0.2s ease;
+}
+
+.sort-btn {
+  background-color: #155dfc;
+  color: white;
+}
+
+.sort-btn:hover {
+  background-color: #0f47c9;
+}
+
+.sort-cancel-btn {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.sort-cancel-btn:hover {
+  background-color: #e5e7eb;
+}
+
+/* 🔹 footer 버튼 영역 (중앙 정렬 + 여백 추가) */
+.sort-footer {
+  display: flex;
+  justify-content: center; /* ✅ 버튼 중앙 정렬 */
+  align-items: center;
+  gap: 12px; /* ✅ 버튼 간격 */
+  padding: 20px 0 28px; /* ✅ 위아래 여백 (특히 리스트와 간격 확보) */
+  margin-top: 8px; /* ✅ 리스트와 살짝 띄우기 */
+  border-top: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+
+/* 🔹 모달 등장 애니메이션 */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 </style>

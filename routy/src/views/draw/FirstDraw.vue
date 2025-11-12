@@ -304,7 +304,10 @@ const selectCity = (region) => {
 const goNext = () => {
   router.push({
     path: "/draw/second",
-    query: { regionId: selectedCity.value.regionId, regionName: selectedCity.value.regionName },
+    query: { 
+      regionId: selectedCity.value.regionId, 
+      regionName: selectedCity.value.regionName
+    },
   });
 };
 
@@ -313,12 +316,12 @@ onMounted(async () => {
   kakao.maps.load(initMap); // SDK 비동기 로드 후 지도 초기화
 
   if (route.query.city) {
+
     city.value = route.query.city;
 
     var geocoder = new kakao.maps.services.Geocoder();
     
     geocoder.addressSearch(city.value, function(result, status) {
- 
         if (status === kakao.maps.services.Status.OK) {
 
             var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
