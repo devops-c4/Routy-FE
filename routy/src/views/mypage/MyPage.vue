@@ -45,8 +45,8 @@ const month = ref(now.getMonth()) // JS는 0부터라서 11이면 12월
 const profile = ref(null)
 const calendarPlans = ref([])        // 백엔드 calendar.plans
 const upcomingPlans = ref([])        // 백엔드 upcomingPlans
-const travelHistoryRaw = ref([])     // 백엔드 travelHistory
-const bookmarksRaw = ref([])         // 백엔드 bookmarks
+const travelHistoryRaw = ref([])     // ⬅ 전체 여행기록 여기
+const bookmarksRaw = ref([])         // ⬅ 전체 북마크 여기
 
 const loading = ref(false)
 const error = ref(null)
@@ -57,7 +57,7 @@ const ymd    = (y,m,d) => `${y}-${pad2(m+1)}-${pad2(d)}`
 const daysIn = (y,m) => new Date(y, m+1, 0).getDate()
 const startDow = (y,m) => new Date(y, m, 1).getDay()
 
-/* ====== 백엔드 호출 ====== */
+/* ====== 1. 월별 마이페이지 데이터 호출 (프로필/달력/다가오는 일정) ====== */
 const fetchMyPage = async () => {
   loading.value = true
   error.value = null
@@ -72,7 +72,7 @@ const fetchMyPage = async () => {
 
     const data = res.data
 
-    // 1) 프로필을 프론트에서 쓰기 좋은 모양으로 변환
+    // 1) 프로필
     profile.value = {
       profileImage: data.profile?.profileImage ?? '',
       avatarText: data.profile?.username
@@ -122,12 +122,43 @@ const fetchMyPage = async () => {
   }
 }
 
+/* ====== 2. 여행기록 전체 호출 ====== */
+/* 백엔드에서 전체를 주는 엔드포인트로 바꿔줘 */
+const fetchAllTravelHistory = async () => {
+  try {
+    const res = await axios.get('/api/mypage/travel-history', {
+      params: { userNo },
+    })
+    travelHistoryRaw.value = res.data ?? []
+  } catch (e) {
+    console.warn('전체 여행기록 호출 실패:', e)
+  }
+}
+
+/* ====== 3. 북마크 전체 호출 ====== */
+const fetchAllBookmarks = async () => {
+  try {
+    const res = await axios.get('/api/mypage/bookmarks', {
+      params: { userNo },
+    })
+    bookmarksRaw.value = res.data ?? []
+  } catch (e) {
+    console.warn('전체 북마크 호출 실패:', e)
+  }
+}
+
 /* 첫 진입 시 호출 */
-onMounted(() => {
-  fetchMyPage()
+onMounted(async () => {
+  // 1) 기본 마이페이지 (월별)
+  await fetchMyPage()
+  // 2) 전체 여행기록 + 전체 북마크
+  await Promise.all([
+    fetchAllTravelHistory(),
+    fetchAllBookmarks(),
+  ])
 })
 
-/* 달이 바뀔 때마다 다시 호출 */
+/* 달이 바뀔 때마다 다시 호출 (이때는 달력/다가오는 일정만 갱신하면 됨) */
 watch([year, month], () => {
   fetchMyPage()
 })
@@ -164,7 +195,7 @@ const viewSchedules = computed(() => {
   return allSchedules.value.filter(s => s.stateText !== '완료')
 })
 
-/* ====== 여행 기록 (백엔드 travelHistory 기준) ====== */
+/* ====== 여행 기록 (이제는 전체 travelHistoryRaw 기준) ====== */
 const travelRecords = computed(() => {
   return (travelHistoryRaw.value ?? []).map(t => ({
     id: t.planId,
@@ -174,7 +205,7 @@ const travelRecords = computed(() => {
   }))
 })
 
-/* "다가오는 여행 n건" 카운트 (필요하면 쓰기) */
+/* "다가오는 여행 n건" 카운트 */
 const upcomingCount = computed(() => {
   const today = new Date(); today.setHours(0,0,0,0)
   return upcomingPlans.value.filter(s => {
@@ -188,7 +219,7 @@ const blanks = computed(() => Array.from({ length: startDow(year.value, month.va
 const days   = computed(() => Array.from({ length: daysIn(year.value, month.value) }, (_, i) => i+1))
 const monthLabel = computed(() => `${year.value}년 ${month.value+1}월`)
 
-/* ✅ 달력 색칠: 이제 달력용 데이터(calendarPlans) 기준으로 칠한다 */
+/* 달력 색칠 */
 const dateColorMap = computed(() => {
   const map = {}
   const plans = calendarPlans.value ?? []
@@ -217,7 +248,7 @@ function nextMonth(){
   month.value === 11 ? (year.value++, month.value = 0 ) : month.value++ 
 }
 
-/* 북마크 카드용 변환 */
+/* 북마크 카드용 변환 (이제는 전체 bookmarksRaw 기준) */
 const bookmarks = computed(() =>
   (bookmarksRaw.value ?? []).map(b => ({
     id: b.planId, // ✅ 이 부분을 bookmarkId → planId 로 수정
@@ -253,20 +284,28 @@ function prevPage() {
   if (page.value > 1) page.value--
 }
 
-// 여행 기록 '더 보기' 기능
+// 여행 기록 '더 보기' 기능 (기존 로직은 남겨둠 - 필요없으면 템플릿에서만 안 쓰면 됨)
 const limitedTravelRecords = computed(() => {
   return isExpanded.value
     ? travelRecords.value // 전체 보기
     : travelRecords.value.slice(0, recordLimit.value)
 })
-function showMoreRecords() {
-  recordLimit.value += 3
-}
-
 function toggleRecords() {
   isExpanded.value = !isExpanded.value
 }
+
+// 북마크 전체/축약 토글 (기존 로직은 남겨둠 - 필요없으면 템플릿에서만 안 쓰면 됨)
+const bookmarkExpanded = ref(false)
+const limitedBookmarks = computed(() => {
+  return bookmarkExpanded.value
+    ? bookmarks.value
+    : bookmarks.value.slice(0, 4)
+})
+function toggleBookmarks() {
+  bookmarkExpanded.value = !bookmarkExpanded.value
+}
 </script>
+
 
 <template>
    <!-- 페이지 래퍼 -->
@@ -392,9 +431,10 @@ function toggleRecords() {
       <section class="card block">
         <header class="block__title">여행 기록</header>
 
-        <div class="thumb-row">
+        <!-- 원페이지-->
+        <div class="thumb-row scroll-box">
           <div
-            v-for="r in limitedTravelRecords"
+            v-for="r in travelRecords"
             :key="r.id"
             class="thumb bluegrad cursor-pointer hover:opacity-90 transition"
             @click="goToPlanDetail(r.id)"
@@ -405,11 +445,6 @@ function toggleRecords() {
           </div>
         </div>
 
-        <div class="block__footer" v-if="travelRecords.length > 3">
-          <button class="btn mini" type="button" @click="toggleRecords">
-            {{ isExpanded ? '접기' : '더 보기' }}
-          </button>
-        </div>
       </section>
 
       <!-- 북마크 -->
@@ -429,12 +464,6 @@ function toggleRecords() {
             <div class="bm-type">{{ b.type }}</div>
           </div>
         </div>
-
-        <div class="block__footer">
-          <button class="btn mini" type="button">
-            더 보기 ({{ Math.max(0, bookmarks.length-4) }}개 남음)
-          </button>
-        </div>
       </section>
 
     </div>
@@ -448,7 +477,6 @@ function toggleRecords() {
 </template>
 
 <style>
-/* ===== 전역 변수 & 섹션 간 여백(큰 박스 간 40px) ===== */
 :root{
   --gap-section: 40px;
   --main-gap: 32px;
@@ -507,9 +535,9 @@ function toggleRecords() {
 }
 
 .avatar-img {
-  width: 50%;               
+  width: 50%;
   height: 50%;
-  object-fit: contain;     
+  object-fit: contain;
 }
 
 .pinfo{ display:flex; flex-direction:column; gap:6px; }
@@ -601,6 +629,13 @@ function toggleRecords() {
 .pin{ font-size:18px; opacity:.9; position:absolute; left:12px; top:10px; }
 .thumb b{ font-weight:700; } .thumb small{ opacity:.95; }
 
+/* ✅ 내부 스크롤 공통 */
+/* .scroll-box {
+  max-height: 250px; 
+  overflow-y: auto;
+  padding-right: 4px;
+} */
+
 /* 버튼 */
 .btn{ border:1px solid #E5E7EB; background:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; }
 .btn.mini{ padding:6px 10px; font-size:12px; }
@@ -662,4 +697,3 @@ function toggleRecords() {
   .thumb-row, .bm-grid{ grid-template-columns:1fr; }
 }
 </style>
-
