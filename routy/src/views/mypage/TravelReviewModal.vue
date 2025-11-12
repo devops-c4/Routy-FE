@@ -61,22 +61,22 @@
 
       <!-- 별점 평가 -->
       <div class="section">
-        <label>별점 평가 (10점 만점)</label>
-        <div class="stars">
-          <span
-            v-for="i in 10"
-            :key="i"
-            class="star"
-            @mousemove="handleStarHover($event, i)"
-            @mouseleave="hoverRating = 0"
-            @click="confirmRating($event, i)"
-            :style="getStarStyle(i)"
-          >
-            ★
-          </span>
-          <span class="score">{{ displayRating }}/10점</span>
-        </div>
-      </div>
+  <label>별점 평가 (10점 만점)</label>
+  <div class="stars">
+    <span
+  v-for="i in 5"
+  :key="i"
+  class="star"
+  @mousemove="handleStarHover($event, i)"
+  @mouseleave="hoverRating = 0"
+  @click="confirmRating($event, i)"
+  :class="getStarClass(i)"
+>
+  ★
+</span>
+<span class="score">{{ displayRating }}/10점</span>
+  </div>
+</div>
    <div
         class="itinerary-section"
         v-if="computedDayList?.length"
@@ -282,21 +282,43 @@ async function onTogglePublic(e) {
 /** =========================
  * 별점
  * ======================= */
-function handleStarHover(_, index) {
+function handleStarHover(e, index) {
   if (isLocked.value) return;
-  hoverRating.value = index; // 1~10
+
+  const rect = e.target.getBoundingClientRect();
+  const offsetX = e.clientX - rect.left;
+  const ratio = offsetX / rect.width;
+
+  // 별 하나당 2점 (왼쪽 절반 = 1점)
+  hoverRating.value = (index - 1) * 2 + (ratio <= 0.5 ? 1 : 2);
 }
-function confirmRating(_, index) {
-  rating.value = index; // 1~10
+
+function confirmRating(e, index) {
+  const rect = e.target.getBoundingClientRect();
+  const offsetX = e.clientX - rect.left;
+  const ratio = offsetX / rect.width;
+
+  rating.value = (index - 1) * 2 + (ratio <= 0.5 ? 1 : 2);
   hoverRating.value = 0;
   isLocked.value = true;
 }
+
 function getStarStyle(index) {
-  const filled = displayRating.value;
+  const filled = (hoverRating.value || rating.value) / 2; // 별당 2점 기준
   return {
     color: index <= filled ? "#facc15" : "#d1d5db",
     cursor: "pointer",
   };
+}
+
+function getStarClass(index) {
+  const current = hoverRating.value || rating.value; // 0~10
+  const fullCut = index * 2;             // 이 별이 '가득'이 되려면 필요한 점수
+  const halfCut = (index - 1) * 2 + 1;   // 이 별이 '반쪽'이 되려면 필요한 점수
+
+  if (current >= fullCut) return 'full';
+  if (current >= halfCut) return 'half';
+  return 'empty';
 }
 
 /** =========================
@@ -487,7 +509,6 @@ input[type="file"] {
   cursor: pointer;
 }
 
-/* ====== 별점 평가 ====== */
 .stars {
   display: flex;
   align-items: center;
@@ -496,12 +517,36 @@ input[type="file"] {
   cursor: pointer;
   user-select: none;
 }
+
 .star {
+  position: relative;
+  display: inline-block;
+  line-height: 1;
+  color: #d1d5db; /* 기본 회색 (빈 별) */
   transition: transform 0.15s ease;
 }
+
 .star:hover {
   transform: scale(1.1);
 }
+
+/* 가득 채워진 별 */
+.star.full {
+  color: #facc15; /* 노란색 */
+}
+
+/* 반쪽 채워진 별 (왼쪽 절반만) */
+.star.half::before {
+  content: '★';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 50%;
+  overflow: hidden;
+  color: #facc15;
+}
+
+/* 점수 텍스트 */
 .score {
   margin-left: 8px;
   font-size: 14px;
