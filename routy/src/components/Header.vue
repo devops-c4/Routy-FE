@@ -63,6 +63,7 @@ import { useRouter } from "vue-router";
 import { logout, getLocalAuthStatus } from '@/api/auth';
 
 const router = useRouter();
+const props = defineProps({ id: [String, Number] })
 const isLoggedIn = ref(false);
 const LOGIN_STATUS_KEY = 'routy:isLoggedIn';
 const newPlanCount = ref(Number(sessionStorage.getItem("newPlan")) || 0);
@@ -155,7 +156,7 @@ const moveToChatBot = () => router.push('/chatbot');
 
 <style scoped>
 .navbar {
-  position: fixed;
+  /* position: fixed; */
   width: 100%;
   height: 50px;
   background: rgba(255, 255, 255, 0.8);

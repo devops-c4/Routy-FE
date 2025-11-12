@@ -111,7 +111,7 @@ const fetchMyPage = async () => {
     travelHistoryRaw.value = data.travelHistory ?? []
 
     // 5) 북마크
-    const bookmarkRes = await axios.get('/api/plans/bookmarks')
+    const bookmarkRes = await axios.get('/api/mypage/bookmarks')
     bookmarksRaw.value = bookmarkRes.data ?? []
 
   } catch (e) {
@@ -126,9 +126,8 @@ const fetchMyPage = async () => {
 /* 백엔드에서 전체를 주는 엔드포인트로 바꿔줘 */
 const fetchAllTravelHistory = async () => {
   try {
-    const res = await axios.get('/api/mypage/travel-history', {
-      params: { userNo },
-    })
+    const res = await axios.get('/api/mypage/travel-history') 
+    console.log('📦 여행기록 API 응답:', res.data)
     travelHistoryRaw.value = res.data ?? []
   } catch (e) {
     console.warn('전체 여행기록 호출 실패:', e)
@@ -138,9 +137,7 @@ const fetchAllTravelHistory = async () => {
 /* ====== 3. 북마크 전체 호출 ====== */
 const fetchAllBookmarks = async () => {
   try {
-    const res = await axios.get('/api/mypage/bookmarks', {
-      params: { userNo },
-    })
+    const res = await axios.get('/api/mypage/bookmarks')
     bookmarksRaw.value = res.data ?? []
   } catch (e) {
     console.warn('전체 북마크 호출 실패:', e)
@@ -199,8 +196,8 @@ const viewSchedules = computed(() => {
 const travelRecords = computed(() => {
   return (travelHistoryRaw.value ?? []).map(t => ({
     id: t.planId,
-    title: t.title,
-    desc: `${t.startTime} ~ ${t.endTime}`,
+    title: t.planTitle || t.title,
+    desc: `${t.startDate} ~ ${t.endDate}`,
     thumbnailUrl: t.thumbnailUrl ?? '',
   }))
 })
