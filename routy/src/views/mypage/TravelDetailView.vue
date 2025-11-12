@@ -50,7 +50,7 @@ async function togglePublic() {
       travel.value.is_public = 0
     }
   } catch (err) {
-    console.error('❌ 공유 상태 변경 중 오류:', err)
+    console.error('공유 상태 변경 중 오류:', err)
     alert('공유 상태 변경에 실패했습니다.')
   }
 }
@@ -64,7 +64,7 @@ onMounted(async () => {
     const dayList = travel.value.dayList || []
     expandedDays.value = dayList.map(() => false)
   } catch (err) {
-    console.error('❌ 여행 데이터를 불러오는 중 오류 발생:', err)
+    console.error('여행 데이터를 불러오는 중 오류 발생:', err)
   }
 })
 
@@ -99,7 +99,7 @@ async function handleDelete() {
     await apiClient.delete(`/api/plans/${planId}`)
     router.push('/mypage')
   } catch (err) {
-    console.error('❌ 일정 삭제 중 오류 발생:', err)
+    console.error('일정 삭제 중 오류 발생:', err)
     alert('삭제에 실패했어요. 잠시 후 다시 시도해주세요.')
   }
 }
@@ -193,6 +193,20 @@ async function handleDelete() {
             >
               <!-- 장소 이름 -->
               <div class="plan-title">{{ plan.placeName }}</div>
+
+              <!-- 시간 정보 -->
+              <div class="plan-time" v-if="plan.startTime || plan.endTime">
+                <i class="fa fa-clock"></i>
+                <span v-if="plan.startTime && plan.endTime">
+                  {{ plan.startTime }} - {{ plan.endTime }}
+                </span>
+                <span v-else-if="plan.startTime">
+                  {{ plan.startTime }} ~
+                </span>
+                <span v-else>
+                  ~ {{ plan.endTime }}
+                </span>
+              </div>
 
               <!-- 주소 -->
               <div class="plan-address" v-if="plan.addressName">
@@ -431,11 +445,32 @@ async function handleDelete() {
   transition: all 0.2s ease;
 }
 .plan:hover { background: #f1f5f9; }
+
 .plan-title {
   color: #101828;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 2px;
 }
+
+/* 시간 표시 스타일 - 장소명 바로 아래 */
+.plan-time {
+  color: #3b82f6;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(59, 130, 246, 0.08);
+  border-radius: 6px;
+  width: fit-content;
+  margin-bottom: 4px;
+}
+.plan-time i {
+  font-size: 11px;
+}
+
 .plan-address,
 .plan-category {
   color: #6a7282;
