@@ -13,15 +13,15 @@
         <div class="meta-info">
           <span class="meta-item">
             <span class="meta-icon">👤</span>
-            {{ route.user }}
+            {{ route.username }}
           </span>
           <span class="meta-item">
             <span class="meta-icon">📅</span>
-            {{ route.days }}
+            {{ route.days }}일
           </span>
           <span class="meta-item">
             <span class="meta-icon">📍</span>
-            {{ route.city }}
+            {{ route.destination }}
           </span>
         </div>
       </div>
@@ -29,32 +29,32 @@
       <!-- 통계 -->
       <div class="stats-bar">
         <div class="stat-item">
-          <span class="stat-icon">❤️</span>
-          <span class="stat-label">좋아요</span>
-          <span class="stat-value">{{ route.likes.toLocaleString() }}</span>
+          <button @click="toggleLike" class="like-btn">
+            ❤️좋아요 {{ likeCount }}
+          </button>
         </div>
         <div class="stat-item">
           <span class="stat-icon">👁️</span>
           <span class="stat-label">조회수</span>
-          <span class="stat-value">{{ route.views.toLocaleString() }}</span>
+          <span class="stat-value">{{ viewCount }}</span>
         </div>
         <div class="stat-item">
-          <span class="stat-icon">🔖</span>
-          <span class="stat-label">북마크</span>
-          <span class="stat-value">{{ route.shares }}</span>
+          <button @click="toggleBookmark" class="like-btn">
+            🔖 북마크 {{ bookmarkCount }}
+          </button>
         </div>
       </div>
 
       <!-- 여행 후기 -->
-      <div class="review-section">
+      <div class="review-section" v-if="route.review">
         <div class="review-header">
           <div class="user-info">
             <div class="user-avatar">
               <span>👤</span>
             </div>
             <div class="user-details">
-              <div class="user-name">{{ route.user }}님의 여행 후기</div>
-              <div class="review-date">{{ route.createdAt }}</div>
+              <div class="user-name">{{ route.review.username }}님의 여행 후기</div>
+              <div class="review-date">{{ route.review.createdAt }}</div>
             </div>
           </div>
           <div class="rating">
@@ -62,7 +62,7 @@
           </div>
         </div>
 
-        <div class="review-images">
+        <div v-if="route.review.images?.length" class="review-images">
           <img
             v-for="(img, idx) in route.review.images"
             :key="idx"
@@ -73,56 +73,73 @@
         </div>
 
         <div class="review-text">
-          {{ route.review.text }}
+          {{ route.review.content }}
         </div>
       </div>
 
       <!-- 상세 일정 -->
-      <div class="itinerary-section">
+      <div class="itinerary-section" v-if="route.dayList?.length">
         <h3 class="section-title">상세 일정</h3>
 
         <!-- Day 탭 -->
         <div class="day-tabs">
           <button
-            v-for="day in route.itinerary"
-            :key="day.day"
+            v-for="day in route.dayList"
+            :key="day.dayNo"
             class="day-tab"
-            :class="{ active: selectedDay === day.day }"
-            @click="selectedDay = day.day"
+            :class="{ active: selectedDay === day.dayNo }"
+            @click="selectedDay = day.dayNo"
           >
-            Day {{ day.day }}
-            <span class="place-count">{{ day.places.length }}</span>
+            Day {{ day.dayNo }}
+            <span class="place-count">{{ day.activities?.length || 0 }}</span>
           </button>
         </div>
 
         <!-- 장소 목록 -->
-        <div class="places-list">
+        <div class="places-list" v-if="selectedDayActivities?.length">
           <div
-            v-for="(place, idx) in selectedDayPlaces"
-            :key="idx"
+            v-for="(activity, idx) in selectedDayActivities"
+            :key="activity.travelId"
             class="place-item"
           >
             <div class="place-number">
               <span class="number">{{ idx + 1 }}</span>
-              <div v-if="idx < selectedDayPlaces.length - 1" class="connector"></div>
+              <div
+                v-if="idx < selectedDayActivities.length - 1"
+                class="connector"
+              ></div>
             </div>
+
             <div class="place-details">
               <div class="place-header">
                 <div class="place-name-wrapper">
-                  <span class="place-emoji">{{ place.emoji }}</span>
-                  <span class="place-name">{{ place.name }}</span>
-                </div>
-                <div class="place-time">
-                  <span class="time-icon">🕐</span>
-                  {{ place.time }}
+                  <span class="place-name">{{ activity.placeName }}</span>
+                  <span class="place-tag">{{ activity.tag }}</span>
                 </div>
               </div>
+
               <div class="place-address">
                 <span class="address-icon">📍</span>
-                {{ place.address }}
+                {{ activity.addressName }}
+              </div>
+
+              <!-- ✨ 더 보기 버튼 -->
+              <div class="place-footer">
+                <a
+                  :href="activity.placeUrl"
+                  target="_blank"
+                  class="btn-more"
+                >
+                  더 보기 →
+                </a>
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Day에 활동이 없을 때 -->
+        <div v-else class="no-activities">
+          등록된 일정이 없습니다.
         </div>
       </div>
 
@@ -130,7 +147,7 @@
       <div class="modal-footer">
         <div class="footer-date">{{ route.createdAt }} 생성</div>
         <div class="footer-actions">
-          <button class="btn-import">
+          <button class="btn-import" @click="importToMyPlans">
             <span class="btn-icon"></span>
             나의 일정으로 불러오기
           </button>
@@ -142,23 +159,100 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue' 
+import apiClient from '@/utils/axios'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
+
+// 부모로부터 전달받는 여행 데이터(route)
 const props = defineProps({
-  route: {
-    type: Object,
-    required: true
+  route: Object
+})
+const emit = defineEmits(['updateRoute', 'close'])
+
+// 상태 관리
+const likeCount = ref(0)
+const bookmarkCount = ref(0)
+const viewCount = ref(0)
+const isLiked = ref(false)
+const selectedDay = ref(1)
+
+// props.route가 바뀔 때마다 내부 데이터 갱신
+watch(
+  () => props.route,
+  (newVal) => {
+    if (newVal) {
+      likeCount.value = newVal.likeCount || 0
+      bookmarkCount.value = newVal.bookmarkCount || 0
+      viewCount.value = newVal.viewCount || 0
+    }
+  },
+  { immediate: true, deep: true }
+)
+
+// ✅ 좋아요 토글
+const toggleLike = async () => {
+  try {
+    const res = await apiClient.post(`/api/plans/${props.route.planId}/like`)
+    likeCount.value = res.data.likeCount
+    isLiked.value = !isLiked.value
+
+    // 부모에도 반영
+    emit('updateRoute', {
+      planId: props.route.planId,
+      likeCount: likeCount.value,
+      bookmarkCount: bookmarkCount.value
+    })
+  } catch (err) {
+    console.error('좋아요 요청 실패:', err)
   }
-});
+}
 
-defineEmits(['close']);
+// ✅ Day별 활동
+const selectedDayActivities = computed(() => {
+  const day = props.route.dayList?.find(d => d.dayNo === selectedDay.value)
+  return day ? day.activities : []
+})
 
-const selectedDay = ref(1);
+// ✅ 조회수 증가
+onMounted(async () => {
+  try {
+    viewCount.value++ // 즉시 반영
+    await apiClient.post(`/api/plans/${props.route.planId}/view`)
+  } catch (err) {
+    console.error('조회수 증가 실패:', err)
+  }
+})
 
-const selectedDayPlaces = computed(() => {
-  const day = props.route.itinerary.find(d => d.day === selectedDay.value);
-  return day ? day.places : [];
-});
+// ✅ 북마크 토글
+const toggleBookmark = async () => {
+  try {
+    const res = await apiClient.post(`/api/plans/${props.route.planId}/bookmark`)
+    bookmarkCount.value = res.data.bookmarkCount
+
+    // 부모에도 반영
+    emit('updateRoute', {
+      planId: props.route.planId,
+      likeCount: likeCount.value,
+      bookmarkCount: bookmarkCount.value
+    })
+  } catch (err) {
+    console.error('북마크 요청 실패:', err)
+  }
+}
+
+// ✅ 나의 일정으로 불러오기
+const importToMyPlans = async () => {
+  try {
+    const res = await apiClient.post(`/api/plans/${props.route.planId}/copy`)
+    alert('내 일정에 추가되었습니다!')
+    router.push(`/mypage/travel/${res.data.newPlanId}`)
+  } catch (err) {
+    console.error('일정 복사 실패:', err)
+    alert('복사에 실패했습니다.')
+  }
+}
 </script>
 
 <style scoped>
@@ -613,4 +707,52 @@ const selectedDayPlaces = computed(() => {
     justify-content: center;
   }
 }
+.place-footer {
+  text-align: right;
+  margin-top: 6px;
+}
+
+.btn-more {
+  display: inline-block;
+  font-size: 14px;
+  color: #0066ff;
+  text-decoration: none;
+  border: 1px solid #0066ff;
+  border-radius: 6px;
+  padding: 4px 10px;
+  transition: all 0.2s;
+}
+
+.btn-more:hover {
+  background-color: #0066ff;
+  color: #fff;
+}
+
+.place-tag {
+  display: inline-block;
+  background-color: #2563eb; /* 파란색 */
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 20px;
+  padding: 4px 10px;
+  margin-left: 8px;
+  vertical-align: middle;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+.like-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+.like-btn.active {
+  color: red;
+  transform: scale(1.2);
+}
+.like-btn:hover {
+  transform: scale(1.1);
+}
+
 </style>

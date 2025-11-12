@@ -1,6 +1,6 @@
 import axios from "axios";
 
-let polyline = []; // ✅ 배열로 초기화
+let polyline = [];
 let overlays = [];
 
 // 색상 자동 생성 (섹션별 구분)
@@ -15,7 +15,7 @@ function drawPoliLine(map, sections) {
     // 이전 폴리라인 제거
     deletePoliLine();
 
-    console.log('📍 섹션 개수:', sections.length);
+    console.log('섹션 개수:', sections.length);
 
     sections.forEach((section, sIdx) => {
         const color = getColor(sIdx);
@@ -31,18 +31,18 @@ function drawPoliLine(map, sections) {
                 path.push(new kakao.maps.LatLng(y, x));
             }
 
-            // ✅ road마다 개별 Polyline 생성
+            // road마다 개별 Polyline 생성
             const line = new kakao.maps.Polyline({
                 path: path,
                 strokeWeight: 5,
                 strokeColor: color,
                 strokeOpacity: 0.6,
                 strokeStyle: 'solid',
-                zIndex: sIdx, // 🔽 섹션 순서대로 zIndex 설정
+                zIndex: sIdx, // 섹션 순서대로 zIndex 설정
             });
 
             line.setMap(map);
-            polyline.push(line); // ✅ 배열에 추가
+            polyline.push(line); // 배열에 추가
         });
 
         // 섹션 중심 좌표에 오버레이
@@ -76,7 +76,7 @@ function drawPoliLine(map, sections) {
 // 그려져 있는 경로를 삭제하고 새로운 배열 생성
 export function deletePoliLine() {
     if (!polyline || polyline.length === 0) {
-        console.log("🟡 현재 지도에 표시된 경로가 없습니다.");
+        console.log("현재 지도에 표시된 경로가 없습니다.");
         return;
     }
 
@@ -149,12 +149,12 @@ export async function sortDirection(map, coords) {
         // 배열 인지 확인해서 배열이 아니면 종료
     // 배열이어도 길이가 0이면 종료
     if (!Array.isArray(coords) || coords.length === 0) {
-        alert("경로를 그리려면 최소 2개 이상의 장소가 필요합니다.");
+        alert("경로를 그리려면 최소 3개 이상의 장소가 필요합니다.");
         return; // 안전하게 함수 종료
     }
 
-    if(coords.length < 2) {
-        alert("경로를 그리려면 최소 2개 이상의 장소가 필요합니다.");
+    if(coords.length < 3) {
+        alert("경로를 그리려면 최소 3개 이상의 장소가 필요합니다.");
         return;
     }
 
@@ -170,6 +170,11 @@ export async function sortDirection(map, coords) {
         .map((c, i) => (c.fixed ? i : -1))
         .filter(i => i !== -1);
     
+    if(coords.length - fixPoints.length < 2) {
+        alert("현재 움질일 수 있는 카드가 없습니다.");
+        return;
+    }
+
     const payload = {
         waypoints: locations,
         fixPoints,

@@ -19,6 +19,43 @@ const expandedDays = ref([])
 const showAll = ref(false)
 const visibleCount = ref(3)
 
+// 삭제 버튼 클릭 할 경우
+const deletePlan = async () => {
+  if (!confirm('정말 삭제하시겠습니까?')) return
+
+  try {
+    await apiClient.patch(`/api/plans/${planId}/delete`)
+    alert('삭제되었습니다.')
+    router.push('/mypage')  
+  } catch (err) {
+    console.error(err)
+    alert('삭제 중 오류가 발생했습니다.')
+  }
+}
+
+// 공유하기 버튼 눌렀을 때
+async function togglePublic() {
+  try {
+    // 현재 상태
+    const currentStatus = travel.value.is_public  // 0 또는 1
+
+    await apiClient.patch(`/api/plans/${planId}/public`)
+
+    // 토글 후 예상 상태 기반 메시지 표시
+    if (currentStatus === 0) {
+      alert('일정이 공유되었습니다.')
+      travel.value.is_public = 1
+    } else {
+      alert('일정 공유가 취소되었습니다.')
+      travel.value.is_public = 0
+    }
+  } catch (err) {
+    console.error('공유 상태 변경 중 오류:', err)
+    alert('공유 상태 변경에 실패했습니다.')
+  }
+}
+
+
 // 백엔드 연동
 onMounted(async () => {
   try {
@@ -82,7 +119,8 @@ async function handleDelete() {
         </div>
         <div class="header-right">
           <button class="btn btn-outline-blue" @click="goToEditPage">수정</button>
-          <button class="btn btn-outline-red" @click="handleDelete">삭제</button>
+          <button class="btn btn-outline-green" @click="togglePublic">공유</button>
+          <button class="btn delete" @click="deletePlan">삭제</button>
         </div>
       </header>
 
@@ -516,4 +554,38 @@ async function handleDelete() {
   color: #6a7282;
   margin: 2px 0 0;
 }
+
+.btn.delete {
+  color: #ff4d4f; 
+  border: 1.5px solid #ff4d4f; 
+  background-color: transparent; 
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s ease-in-out;
+}
+
+
+.btn.delete:hover {
+  background-color: #ff4d4f;
+  color: white;
+}
+
+
+.btn-outline-green {
+  border: 1px solid #16a34a;   
+  color: #16a34a;              
+  background-color: transparent;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-outline-green:hover {
+  background-color: #16a34a;
+  color: #fff;
+}
+
 </style>
