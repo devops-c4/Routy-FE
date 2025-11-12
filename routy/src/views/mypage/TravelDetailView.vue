@@ -220,9 +220,9 @@ async function handleDelete() {
                 {{ plan.tag || plan.categoryGroupName }}
               </div>
 
-              <!-- 자세히 보기 링크 -->
+              <!-- 상세 보기 링크 -->
               <div class="plan-link" v-if="plan.placeUrl">
-                <a :href="plan.placeUrl" target="_blank">자세히 보기</a>
+                <a :href="plan.placeUrl" target="_blank">상세 보기</a>
               </div>
             </div>
 
