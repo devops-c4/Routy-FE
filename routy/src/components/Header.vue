@@ -155,7 +155,6 @@ const moveToChatBot = () => router.push('/chatbot');
 
 <style scoped>
 .navbar {
-  position: fixed;
   width: 100%;
   height: 50px;
   background: rgba(255, 255, 255, 0.8);
