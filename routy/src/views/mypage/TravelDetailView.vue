@@ -8,6 +8,7 @@ const route = useRoute()
 const router = useRouter()
 const showReviewModal = ref(false)
 
+
 // 현재 여행 ID
 const planId = Number(route.params.id)
 
@@ -18,6 +19,8 @@ const travel = ref(null)
 const expandedDays = ref([])
 const showAll = ref(false)
 const visibleCount = ref(3)
+
+const loading = ref(true)
 
 // 삭제 버튼 클릭 할 경우
 const deletePlan = async () => {
@@ -65,6 +68,8 @@ onMounted(async () => {
     expandedDays.value = dayList.map(() => false)
   } catch (err) {
     console.error('❌ 여행 데이터를 불러오는 중 오류 발생:', err)
+  } finally {
+    loading.value = false
   }
 })
 
@@ -119,7 +124,12 @@ async function handleDelete() {
         </div>
         <div class="header-right">
           <button class="btn btn-outline-blue" @click="goToEditPage">수정</button>
-          <button class="btn btn-outline-green" @click="togglePublic">공유</button>
+          <button 
+            class="btn btn-outline-green" 
+            @click="togglePublic"
+          >
+            {{ travel.is_public === 0 ? '공개' : '비공개' }}
+          </button>
           <button class="btn delete" @click="deletePlan">삭제</button>
         </div>
       </header>

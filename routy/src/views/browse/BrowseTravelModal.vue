@@ -82,17 +82,23 @@
         <h3 class="section-title">상세 일정</h3>
 
         <!-- Day 탭 -->
-        <div class="day-tabs">
-          <button
-            v-for="day in route.dayList"
-            :key="day.dayNo"
-            class="day-tab"
-            :class="{ active: selectedDay === day.dayNo }"
-            @click="selectedDay = day.dayNo"
-          >
-            Day {{ day.dayNo }}
-            <span class="place-count">{{ day.activities?.length || 0 }}</span>
-          </button>
+        <div class="day-tabs-wrapper">
+          <button class="arrow-btn left" @click="scrollDays('left')">‹</button>
+
+          <ul ref="dayListRef" class="day-tabs-scroll">
+            <li
+              v-for="day in uniqueDays"
+              :key="day.dayNo"
+              class="day-tab"
+              :class="{ active: selectedDay === day.dayNo }"
+              @click="selectedDay = day.dayNo"
+            >
+              Day {{ day.dayNo }}
+              <span class="place-count">{{ day.activities?.length || 0 }}</span>
+            </li>
+          </ul>
+
+          <button class="arrow-btn right" @click="scrollDays('right')">›</button>
         </div>
 
         <!-- 장소 목록 -->
@@ -123,7 +129,6 @@
                 {{ activity.addressName }}
               </div>
 
-              <!-- ✨ 더 보기 버튼 -->
               <div class="place-footer">
                 <a
                   :href="activity.placeUrl"
@@ -137,7 +142,6 @@
           </div>
         </div>
 
-        <!-- Day에 활동이 없을 때 -->
         <div v-else class="no-activities">
           등록된 일정이 없습니다.
         </div>
@@ -147,38 +151,52 @@
       <div class="modal-footer">
         <div class="footer-date">{{ route.createdAt }} 생성</div>
         <div class="footer-actions">
-          <button class="btn-import" @click="importToMyPlans">
-            <span class="btn-icon"></span>
+          <button class="btn-import" @click="openCalendar">
             나의 일정으로 불러오기
           </button>
           <button class="btn-close" @click="$emit('close')">닫기</button>
         </div>
       </div>
     </div>
+
+    <!-- ✅ 날짜 선택 모달 -->
+    <CalendarModal
+      v-if="showCalendar"
+      @close="showCalendar = false"
+      @confirm="importWithDate"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue' 
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import apiClient from '@/utils/axios'
 import { useRouter } from 'vue-router'
+import CalendarModal from '@/views/browse/CalendarModal.vue'
 
+// ✅ 라우터 & 모달 제어
 const router = useRouter()
+const showModal = ref(true)
 
-// 부모로부터 전달받는 여행 데이터(route)
+// ✅ 부모로부터 전달받는 여행 데이터(route)
 const props = defineProps({
   route: Object
 })
-const emit = defineEmits(['updateRoute', 'close'])
+const emit = defineEmits(['updateRoute', 'close', 'bookmarkAdded'])
 
-// 상태 관리
+// ✅ 상태 관리
 const likeCount = ref(0)
 const bookmarkCount = ref(0)
 const viewCount = ref(0)
 const isLiked = ref(false)
 const selectedDay = ref(1)
+const dayListRef = ref(null)
 
-// props.route가 바뀔 때마다 내부 데이터 갱신
+// ✅ 날짜 선택 모달 (캘린더)
+const showCalendar = ref(false)
+const selectedRange = ref({ startDate: '', endDate: '' })
+
+// ✅ props.route 변경 감시 → 내부 데이터 갱신
 watch(
   () => props.route,
   (newVal) => {
@@ -191,14 +209,18 @@ watch(
   { immediate: true, deep: true }
 )
 
+// ✅ 모달 열릴 때 body scroll 잠금, 닫힐 때 해제
+watch(showModal, (isOpen) => {
+  document.body.style.overflow = isOpen ? 'hidden' : ''
+})
+onUnmounted(() => (document.body.style.overflow = ''))
+
 // ✅ 좋아요 토글
 const toggleLike = async () => {
   try {
     const res = await apiClient.post(`/api/plans/${props.route.planId}/like`)
     likeCount.value = res.data.likeCount
     isLiked.value = !isLiked.value
-
-    // 부모에도 반영
     emit('updateRoute', {
       planId: props.route.planId,
       likeCount: likeCount.value,
@@ -209,16 +231,16 @@ const toggleLike = async () => {
   }
 }
 
-// ✅ Day별 활동
+// ✅ Day별 활동 목록 계산
 const selectedDayActivities = computed(() => {
-  const day = props.route.dayList?.find(d => d.dayNo === selectedDay.value)
+  const day = props.route.dayList?.find((d) => d.dayNo === selectedDay.value)
   return day ? day.activities : []
 })
 
 // ✅ 조회수 증가
 onMounted(async () => {
   try {
-    viewCount.value++ // 즉시 반영
+    viewCount.value++
     await apiClient.post(`/api/plans/${props.route.planId}/view`)
   } catch (err) {
     console.error('조회수 증가 실패:', err)
@@ -231,29 +253,73 @@ const toggleBookmark = async () => {
     const res = await apiClient.post(`/api/plans/${props.route.planId}/bookmark`)
     bookmarkCount.value = res.data.bookmarkCount
 
-    // 부모에도 반영
+    // ✅ 부모로 변경된 데이터 전달
     emit('updateRoute', {
       planId: props.route.planId,
-      likeCount: likeCount.value,
-      bookmarkCount: bookmarkCount.value
+      likeCount: props.route.likeCount,          // 현재 값 유지
+      bookmarkCount: res.data.bookmarkCount      // 새 값 전달
     })
   } catch (err) {
     console.error('북마크 요청 실패:', err)
   }
 }
 
-// ✅ 나의 일정으로 불러오기
-const importToMyPlans = async () => {
+// ✅ "나의 일정으로 불러오기" → 캘린더 모달 열기
+const openCalendar = () => {
+  showCalendar.value = true
+}
+
+// ✅ 날짜 선택 완료 후 일정 복사
+const importWithDate = async (dates) => {
+  showCalendar.value = false
   try {
-    const res = await apiClient.post(`/api/plans/${props.route.planId}/copy`)
-    alert('내 일정에 추가되었습니다!')
+    const res = await apiClient.post(`/api/plans/${props.route.planId}/copy`, {
+      startDate: dates.startDate,
+      endDate: dates.endDate
+    })
+    alert('선택한 날짜로 일정이 추가되었습니다!')
     router.push(`/mypage/travel/${res.data.newPlanId}`)
   } catch (err) {
     console.error('일정 복사 실패:', err)
     alert('복사에 실패했습니다.')
   }
 }
+
+// ✅ 기존 모달 닫기 함수
+function closeModal() {
+  showModal.value = false
+  document.body.style.overflow = ''
+  emit('close')
+}
+
+// ✅ Day 탭 스크롤 (좌우 버튼)
+const scrollDays = (direction) => {
+  if (!dayListRef.value || !props.route.dayList) return
+
+  const totalDays = props.route.dayList.length
+  const scrollAmount = 100
+  const behavior = { behavior: 'smooth' }
+
+  if (direction === 'left') {
+    dayListRef.value.scrollBy({ left: -scrollAmount, ...behavior })
+    if (selectedDay.value > 1) selectedDay.value--
+  } else {
+    dayListRef.value.scrollBy({ left: scrollAmount, ...behavior })
+    if (selectedDay.value < totalDays) selectedDay.value++
+  }
+}
+
+// ✅ 중복 제거된 Day 목록 계산
+const uniqueDays = computed(() => {
+  const seen = new Set()
+  return props.route.dayList?.filter(day => {
+    if (seen.has(day.dayNo)) return false
+    seen.add(day.dayNo)
+    return true
+  }) || []
+})
 </script>
+
 
 <style scoped>
 .modal-overlay {
@@ -754,5 +820,81 @@ const importToMyPlans = async () => {
 .like-btn:hover {
   transform: scale(1.1);
 }
+
+.day-tabs-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ececf0;
+  border-radius: 14px;
+  padding: 6px;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.arrow-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: #666;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.2s;
+}
+.arrow-btn:hover {
+  color: #000;
+}
+
+.day-tabs-scroll {
+  display: flex;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: none;
+  gap: 6px;
+  margin: 0 8px;
+  padding: 0;
+  flex: 1;
+  white-space: nowrap;
+}
+.day-tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.day-tab {
+  flex-shrink: 0;
+  min-width: 70px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: white;
+  font-size: 14px;
+  text-align: center;
+  font-weight: 500;
+  color: #0a0a0a;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.day-tab.active {
+  background: #155dfc;
+  color: #fff;
+}
+
+.place-count {
+  background: #fff;
+  color: #155dfc;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 
 </style>
