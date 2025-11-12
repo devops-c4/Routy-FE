@@ -1330,6 +1330,7 @@ const cancelSortPreview = () => {
   color: #4A5565;
   transition: 0.2s;
 }
+
 .left-actions-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
