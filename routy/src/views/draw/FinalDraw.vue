@@ -11,37 +11,34 @@
         <!-- 왼쪽 패널 -->
         <aside class="left-panel">
           <div class="left-actions">
-            <div class="left-actions-grid">
-              <div></div> <!-- 2사분면 빈 공간 -->
+            <button class="top-btn" @click="endDaySchedule">{{ selectedDay }} 일차 일정 종료</button>
               
-              <button 
-                class="left-btn" 
-                @click="drawRoute"
-                :disabled="isDayCompleted"
-              >경로 그리기</button>
+              <div class = "middle-btns">
+                <button 
+                  class="left-btn" 
+                  @click="drawRoute"
+                  :disabled="isDayCompleted"
+                  title=
+"현재 선택한 장소들을 따라
+경로를 지도에 그립니다."
+                >경로 그리기</button>
 
-              <button 
-                class="left-btn"
-                :class="{ active: showHotelModal }"
-                @click="openHotelModal" 
-                :disabled="isDayCompleted"
-              >숙소 선택</button>
-
-              <button 
-                class="left-btn" 
-                @click="drawSort"
-                :disabled="isDayCompleted || isLoading">            
-                <span v-if="isLoading">⏳ 정렬 중...</span>
-                <span v-else>자동 정렬</span>
-              </button>
-            </div>
+                <button 
+                  class="left-btn" 
+                  @click="drawSort"
+                  :disabled="isDayCompleted || isLoading"
+                  title=
+"고정된 일정을 제외한 일정을
+최소의 이동시간이 되도록 재배치합니다.">            
+                  <span v-if="isLoading">⏳ 정렬 중...</span>
+                  <span v-else>자동 정렬</span>
+                </button>
+              </div>
             <!-- 로딩 스피너 -->
             <div v-if="isLoading" class="loading-overlay">
               <div class="spinner"></div>
               <p>자동 정렬 중입니다. 잠시만 기다려주세요...</p>
             </div>
-
-            <button class="end-btn" @click="endDaySchedule">일정 종료</button>
           </div>
 
           <div class="empty-guide" v-if="selectedPlaces.length === 0">
@@ -60,15 +57,62 @@
               :disabled="isDayCompleted"
             >
               <template #item="{ element, index }">
-                <div class="selected-card" :class="{ fixed: element.fixed, hotel: element.isHotel, completed: isDayCompleted }">
-                  <div class="drag-handle" :class="{ disabled: element.fixed || isDayCompleted }">⋮⋮</div>
+                <div class="selected-card" :class="{ fixed: element.fixed, hotel: element.isHotel, completed: isDayCompleted }" @click="highlightPlace(element)">
+                  <div class="drag-section">
+                    <span class="day-badge-top">일정 {{ index + 1 }}</span>
+                    <div class="drag-handle" :class="{ disabled: element.fixed || isDayCompleted }">⋮⋮</div>
+                  </div>
+                  
                   <div class="card-content">
                     <div class="card-header">
-                      <span class="day-badge">일정 {{ index + 1 }}</span>
-                      <span v-if="element.isHotel" class="hotel-badge">숙소</span>
+                      <div class="title-section">
+                        <span class="card-title">{{ element.title }}</span>
+                        <span v-if="element.isHotel" class="hotel-badge">숙소</span>
+                      </div>
+                      <div class="card-category">{{ getLastCategory(element.description || element.categoryGroupName) }}</div>
                     </div>
-                    <div class="card-title">{{ element.title }}</div>
-                    <div class="card-category">{{ getLastCategory(element.description || element.categoryGroupName) }}</div>
+                    
+                    <!-- 시간 입력 버튼 -->
+                    <div class="time-toggle-section">
+                      <button 
+                        class="time-toggle-btn" 
+                        @click.stop="toggleTimeInput(element)"
+                        :disabled="isDayCompleted"
+                      >
+                        <span v-if="!element.showTimeInput">시간 입력</span>
+                        <span v-else>접기</span>
+                      </button>
+                      
+                      <!-- 시간 표시 (입력된 경우) -->
+                      <div v-if="element.startTime && element.endTime && !element.showTimeInput" class="time-display">
+                        {{ element.startTime }} ~ {{ element.endTime }}
+                      </div>
+                    </div>
+
+                    <!-- 시간 입력 필드 (펼쳤을 때만 표시) -->
+                    <div v-if="element.showTimeInput" class="time-input-container">
+                      <div class="time-input-row">
+                        <label class="time-label">시작</label>
+                        <input 
+                          type="time" 
+                          v-model="element.startTime"
+                          class="time-input"
+                          :disabled="isDayCompleted"
+                          @change="updatePlaceTime(element)"
+                        />
+                      </div>
+                      <div class="time-input-row">
+                        <label class="time-label">종료</label>
+                        <input 
+                          type="time" 
+                          v-model="element.endTime"
+                          class="time-input"
+                          :disabled="isDayCompleted"
+                          @change="updatePlaceTime(element)"
+                        />
+                      </div>
+                    </div>
+                    
                     <div class="card-actions">
                       <button class="action-btn fix-btn" :class="{ active: element.fixed }" @click="toggleFix(element)" :disabled="isDayCompleted">
                         고정
@@ -121,7 +165,16 @@
 
         <!-- 오른쪽 패널 -->
         <aside class="right-panel">
-          <div class="search-header">검색</div>
+          <div class="search-header">검색          
+            <button 
+                class="hotel-btn"
+                :class="{ active: showHotelModal }"
+                @click="openHotelModal" 
+                :disabled="isDayCompleted"
+              >숙소 선택</button>
+          </div>
+
+
           <div class="filter-bar">
             <button
               class="filter-btn"
@@ -192,9 +245,6 @@
       </div>
 
       <div class="hotel-body">
-        <!-- 추후에 숙소에 지도 넣을지 확장예정 -->
-        <!-- <div class="hotel-map" ref="hotelMapContainer"></div> -->
-
         <div class="hotel-list">
           <div
             v-for="(hotel, i) in hotels"
@@ -217,6 +267,66 @@
       </div>
     </div>
   </div>
+
+  <!-- 변경 모달 -->
+  <div v-if="showSortModal" class="sort-modal-overlay">
+    <div class="sort-modal">
+      <div class="sort-header">
+        <h3>정렬 미리보기</h3>
+        <button class="close-btn" @click="cancelSortPreview">✕</button>
+      </div>
+
+      <!-- 🔹 본문 -->
+      <div class="sort-body">
+        <div class="curr-list">
+          <div class="list-title">정렬 전</div>
+          <div 
+            v-for="(place, i) in placesByDay[selectedDay]" 
+            :key="i" 
+            class="sort-card"
+            :class="{ 'fix-card': place.fixed, 'hovered': hoveredPlaceUrl === place.placeUrl && !place.fixed}"
+              @mouseenter="hoveredPlaceUrl = place.placeUrl"
+              @mouseleave="hoveredPlaceUrl = null">
+            <div class="sort_info">
+              <div class="sort-name">{{ place.title }}</div>
+              <div class="sort-category">{{ place.description }}</div>
+              <a 
+                :href="place.placeUrl"
+                target="_blank"
+                style="color:#155DFC; text-decoration:none;font-size:13px;"
+              >지도보기</a>
+            </div>
+          </div>
+        </div>
+        <div class="sort-list">
+          <div class="list-title">정렬 후</div>
+          <div
+            v-for="(place, i) in previewSorted"
+            :key="i"
+            class="sort-card"
+            :class="{ 'fix-card': place.fixed, 'hovered': hoveredPlaceUrl === place.placeUrl && !place.fixed}"
+              @mouseenter="hoveredPlaceUrl = place.placeUrl"
+              @mouseleave="hoveredPlaceUrl = null">
+            <div class="sort_info">
+              <div class="sort-name">{{ place.title }}</div>
+              <div class="sort-category">{{ place.description }}</div>
+              <a 
+                :href="place.placeUrl"
+                target="_blank"
+                style="color:#155DFC; text-decoration:none;font-size:13px;"
+              >지도보기</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 버튼은 body 아래로 이동 -->
+      <div class="sort-footer">
+        <button class="sort-cancel-btn" @click="cancelSortPreview">취소</button>
+        <button class="sort-btn" @click="applySortedPlaces">정렬 적용</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -224,6 +334,7 @@ import { ref, computed, onMounted, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import axios from "axios";
 import draggable from "vuedraggable";
+
 
 // 마커 이미지 import
 import restaurantMarker from '@/assets/images/icons/markers/restaurant-marker.svg';
@@ -239,42 +350,38 @@ import { deletePoliLine, direction, sortDirection } from '@/utils/draw/direction
 
 const route = useRoute();
 const router = useRouter();
-// const planId = Number(route.query.planId);
-// const totalDays = Number(route.query.totalDays) || 1;
 
-//진짜 state는 여기 (일정수정에서 넘어온거 테스트중)
 const historyState = window.history.state || {};
 
-// 수정페이지에서 넘겨준 데이터 (일정수정에서 넘어온거 테스트중)
-const previousData =
-  historyState.previousData ??
-  route.state?.previousData ??
-  null;
+// 수정페이지에서 넘겨준 데이터
+// sessionStorage에서 먼저 확인
+let previousData = null;
+let targetDay = null;
 
-const targetDayFromState =
-  historyState.targetDay ??
-  route.state?.targetDay ??
-  null;
+const sessionData = sessionStorage.getItem('editPlanData');
+const sessionTargetDay = sessionStorage.getItem('editTargetDay');
 
-// query로 들어온 데이터 (기존 흐름용 fallback) (일정수정에서 넘어온거 테스트중)
-const planIdFromQuery = route.query.planId
-  ? Number(route.query.planId)
-  : null;
-const targetDayFromQuery = route.query.targetDay
-  ? Number(route.query.targetDay)
-  : null;
+if (sessionData && sessionTargetDay) {
+  try {
+    previousData = JSON.parse(sessionData);
+    targetDay = Number(sessionTargetDay);
+    console.log("sessionStorage에서 데이터 로드 성공");
+  } catch (e) {
+    console.error("sessionStorage 파싱 실패:", e);
+  }
+}
+const showSortModal = ref(false);
+const planIdFromQuery = route.query.planId ? Number(route.query.planId) : null;
+const targetDayFromQuery = route.query.targetDay ? Number(route.query.targetDay) : null;
 
-// 최종 확정 (state → query 순으로 우선순위) (일정수정에서 넘어온거 테스트중)
-const planId = previousData?.planId
-  ? Number(previousData.planId)
-  : planIdFromQuery;
+const planId = previousData?.planId ? Number(previousData.planId) : planIdFromQuery;
+targetDay = targetDay || targetDayFromQuery;
 
-const targetDay = targetDayFromState || targetDayFromQuery;
-
-// (일정수정에서 넘어온거 테스트중)
-console.log("👀 historyState:", historyState);
 console.log("👀 previousData 최종:", previousData);
 console.log("👀 targetDay 최종:", targetDay);
+console.log("👀 planId 최종:", planId);
+
+const hoveredPlaceUrl = ref(null);
 
 // 지도 관련
 const mapContainer = ref(null);
@@ -311,10 +418,30 @@ const selectedPlaces = computed(() => placesByDay.value[selectedDay.value] || []
 // 일차별 종료 상태
 const completedDays = ref(new Set());
 
-// 검색 중복 방지 (개선)
+// 검색 중복 방지
 const isSearching = ref(false);
 const lastSearchCoords = ref({ lat: null, lng: null, type: null });
 let mapIdleTimeout = null;
+
+// 시간 업데이트 함수
+const updatePlaceTime = (place) => {
+  console.log(`${place.title} 시간 업데이트:`, {
+    startTime: place.startTime,
+    endTime: place.endTime
+  });
+  
+  if (place.startTime && place.endTime) {
+    if (place.endTime <= place.startTime) {
+      alert('종료 시간은 시작 시간보다 늦어야 합니다.');
+      place.endTime = '';
+    }
+  }
+};
+
+// 시간 입력 토글
+const toggleTimeInput = (place) => {
+  place.showTimeInput = !place.showTimeInput;
+};
 
 // 이전 페이지로 이동
 const goPrev = () => {
@@ -368,7 +495,7 @@ const getMarkerImage = (imageUrl, size) => {
   return markerImage;
 };
 
-// 검색 결과 마커 생성 (최적화)
+// 검색 결과 마커 생성
 const createSearchMarker = (place, placeType) => {
   if (!map) return null;
   
@@ -390,7 +517,7 @@ const createSearchMarker = (place, placeType) => {
   return newMarker;
 };
 
-// 선택된 장소 마커 생성 (최적화)
+// 선택된 장소 마커 생성
 const createSelectedMarker = (place, placeType) => {
   if (!map) return null;
   
@@ -414,9 +541,40 @@ const createSelectedMarker = (place, placeType) => {
 };
 
 // 장소 선택/강조 함수
-const highlightPlace = (place, fromMarkerClick = false) => {
+const highlightPlace = async (place, fromMarkerClick = false) => {
+  // 지도 중심을 해당 장소로 이동 (줌 레벨도 조정)
+  if (map && place.latitude && place.longitude) {
+    const position = new kakao.maps.LatLng(place.latitude, place.longitude);
+    map.setCenter(position);
+    // 줌 레벨을 5로 설정하여 적절한 거리에서 보기
+    if (map.getLevel() > 5) {
+      map.setLevel(5);
+    }
+  }
+  
+  // 카테고리 판별 및 자동 전환
+  let targetType = 'attractions'; // 기본값
+  
+  if (place.categoryCode === 'FD6') {
+    targetType = 'restaurants';
+  } else if (place.categoryCode === 'CE7') {
+    targetType = 'cafes';
+  } else if (place.categoryCode === 'AT4') {
+    targetType = 'attractions';
+  }
+  
+  // 현재 카테고리와 다르면 카테고리 전환
+  if (currentType.value !== targetType) {
+    currentType.value = targetType;
+    // 해당 카테고리의 장소 검색
+    await loadPlaces(targetType, place.latitude, place.longitude);
+    // 검색 완료 후 약간의 지연을 주어 DOM 업데이트 대기
+    await nextTick();
+  }
+  
   selectedPlace.value = place;
   
+  // 오른쪽 리스트에서 해당 장소 찾아서 스크롤
   if (placeCardRefs.value[place.title] && placeListContainer.value) {
     const element = placeCardRefs.value[place.title];
     const container = placeListContainer.value;
@@ -434,7 +592,7 @@ const highlightPlace = (place, fromMarkerClick = false) => {
   }
 };
 
-// 마커 제거 (최적화)
+// 마커 제거
 const clearAllMarkers = () => {
   placeMarkers.value.forEach(marker => {
     kakao.maps.event.removeListener(marker, 'click');
@@ -455,7 +613,6 @@ const clearSearchResultMarkers = () => {
 const displaySearchResultMarkers = () => {
   clearSearchResultMarkers();
   
-  // 배치로 마커 생성
   const newMarkers = places.value.map(place => {
     let placeType;
     if (currentType.value === 'restaurants') {
@@ -479,7 +636,6 @@ const updateMapMarkers = () => {
   
   const currentDayPlaces = placesByDay.value[selectedDay.value] || [];
   
-  // 배치로 마커 생성
   const newMarkers = currentDayPlaces.map(place => {
     let placeType;
     if (place.isHotel) {
@@ -499,7 +655,7 @@ const updateMapMarkers = () => {
   console.log(`${selectedDay.value}일차 선택된 마커 ${placeMarkers.value.length}개 표시`);
 };
 
-// 지도 초기화 (개선)
+// 지도 초기화
 const initMap = (location) => {
   console.log("지도 초기화 시작:", location);
   
@@ -520,7 +676,6 @@ const initMap = (location) => {
     
     updateMapMarkers();
     
-    // 지도 이동 이벤트 (디바운싱 적용)
     kakao.maps.event.addListener(map, "idle", () => {
       if (mapIdleTimeout) {
         clearTimeout(mapIdleTimeout);
@@ -535,12 +690,12 @@ const initMap = (location) => {
           console.log("지도 이동 - 새 검색:", lat, lng);
           await loadPlaces(currentType.value, lat, lng);
         }
-      }, 800); // 800ms 디바운싱
+      }, 800);
     });
   });
 };
 
-// 좌표 변경 확인 (개선)
+// 좌표 변경 확인
 const hasSignificantChange = (newLat, newLng, newType) => {
   if (!lastSearchCoords.value.lat || lastSearchCoords.value.type !== newType) {
     return true;
@@ -549,7 +704,6 @@ const hasSignificantChange = (newLat, newLng, newType) => {
   const latDiff = Math.abs(newLat - lastSearchCoords.value.lat);
   const lngDiff = Math.abs(newLng - lastSearchCoords.value.lng);
   
-  // 0.008도 이상 변경 (약 800m)
   return latDiff > 0.008 || lngDiff > 0.008;
 };
 
@@ -580,7 +734,8 @@ const loadPlanInfo = async () => {
   }
 };
 
-// 장소 불러오기 (최적화)
+
+// 장소 불러오기
 const loadPlaces = async (type, lat = null, lng = null) => {
   if (isSearching.value) {
     console.log("⏸ 이미 검색 중...");
@@ -592,7 +747,6 @@ const loadPlaces = async (type, lat = null, lng = null) => {
   let searchLat = lat;
   let searchLng = lng;
   
-  // 검색 기준 좌표 결정
   if (!searchLat || !searchLng) {
     const currentDayPlaces = placesByDay.value[selectedDay.value] || [];
     if (currentDayPlaces.length > 0) {
@@ -605,7 +759,6 @@ const loadPlaces = async (type, lat = null, lng = null) => {
     }
   }
   
-  // 중복 검색 방지
   if (!hasSignificantChange(searchLat, searchLng, type)) {
     console.log("좌표/타입 변경 없음 - 검색 스킵");
     return;
@@ -618,7 +771,7 @@ const loadPlaces = async (type, lat = null, lng = null) => {
   try {
     const res = await axios.get(`/api/kakao/${type}`, { 
       params: { lat: searchLat, lng: searchLng },
-      timeout: 10000 // 10초 타임아웃
+      timeout: 10000
     });
     
     const kakaoPlaces = res.data.documents || [];
@@ -635,14 +788,15 @@ const loadPlaces = async (type, lat = null, lng = null) => {
       description: place.category_name,
       imageUrl: place.image_url || null,
       planId,
+      startTime: '',
+      endTime: '',
+      showTimeInput: false
     }));
     
     console.log(`${type} ${places.value.length}개 로드 완료`);
     
-    // 검색 좌표 업데이트
     lastSearchCoords.value = { lat: searchLat, lng: searchLng, type };
     
-    // nextTick으로 DOM 업데이트 후 마커 표시
     await nextTick();
     displaySearchResultMarkers();
     
@@ -661,52 +815,30 @@ const selectPlace = (p) => {
 
 // 장소 추가 (일정수정에서 넘어온거 테스트중)
 const addPlace = (p) => {
-  // 1) 일정수정 페이지에서 넘어온 경우인지 먼저 확인
-  if (previousData && targetDay) {
-    // targetDay는 1부터 들어오니까 index로 바꾸기
-    const dayIdx = targetDay - 1;
-
-    // 안전장치: dayList가 없거나 해당 day가 없으면 막기 (일정수정에서 넘어온거 테스트중)
-    if (!previousData.dayList || !previousData.dayList[dayIdx]) {
-      alert("추가할 일차 정보를 찾을 수 없습니다.");
-      return;
-    }
-    const targetDayObj = previousData.dayList[dayIdx];
-
-    // final 페이지에서 선택한 kakao place p를 (일정수정에서 넘어온거 테스트중)
-    // 수정페이지에서 쓰는 구조로 매핑
-    const newActivity = {
-      travelId: null, // 새로 추가니까 일단 null (일정수정에서 넘어온거 테스트중)
-      travelOrder: previousData.dayList[dayIdx].activities.length + 1,
-      title: p.title,
-      tag: p.categoryGroupName || p.categoryCode || "기타",
-      placeName: p.title,
-      addressName: p.addressName,
-      categoryGroupName: p.categoryGroupName,
-      placeUrl: p.placeUrl,
-    };
-
-    // 그 day의 activities에 끼워넣기
-  targetDayObj.activities.push(newActivity);
-
-router.push({
-  path: `/mypage/travel/${previousData.planId}/edit`,
-  state: {
-    updatedData: previousData,
-  },
-});
-
+  const day = selectedDay.value;
+  
+  // 중복 체크
+  if (!placesByDay.value[day]) {
+    placesByDay.value[day] = [];
+  }
+  
+  if (placesByDay.value[day].find((x) => x.title === p.title)) {
+    console.log(`${p.title}은(는) 이미 추가되어 있습니다.`);
     return;
   }
-
-  // 평소 final 페이지에서 쓰는 기존 로직 (원래 있던 거) 
-  const day = selectedDay.value;
-  if (!placesByDay.value[day]) placesByDay.value[day] = [];
-  if (!placesByDay.value[day].find((x) => x.title === p.title)) {
-    placesByDay.value[day].push({ ...p, dayNumber: day });
-    console.log(`${p.title} 추가`);
-    updateMapMarkers();
-  }
+  
+  // 장소 추가
+  placesByDay.value[day].push({ 
+    ...p, 
+    dayNumber: day,
+    startTime: p.startTime || '',
+    endTime: p.endTime || '',
+    showTimeInput: false,
+    fixed: false
+  });
+  
+  console.log(`${p.title} 추가 완료 (${day}일차)`);
+  updateMapMarkers();
 };
 
 // 장소 제거
@@ -718,7 +850,6 @@ const removePlace = (p) => {
     updateMapMarkers();
     deletePoliLine();
     
-    // 제거 후 재검색 (디바운싱)
     setTimeout(() => {
       lastSearchCoords.value = { lat: null, lng: null, type: null };
       loadPlaces(currentType.value);
@@ -783,14 +914,6 @@ const openHotelModal = async () => {
       addressName: p.road_address_name || p.address_name,
       placeUrl: p.place_url,
     }));
-    
-    // 숙소 지도 초기화
-    setTimeout(() => {
-      if (hotelMapContainer.value && window.kakao) {
-        const center = new kakao.maps.LatLng(startLocation.value.lat, startLocation.value.lng);
-        hotelMap = new kakao.maps.Map(hotelMapContainer.value, { center, level: 6 });
-      }
-    }, 100);
   } catch (e) {
     console.error("숙소 로드 실패:", e);
   }
@@ -799,6 +922,7 @@ const openHotelModal = async () => {
 const closeHotelModal = () => {
   showHotelModal.value = false;
 };
+
 const addHotel = (hotel) => {
   const day = selectedDay.value;
   if (!placesByDay.value[day]) placesByDay.value[day] = [];
@@ -807,8 +931,10 @@ const addHotel = (hotel) => {
     placesByDay.value[day].push({ 
       ...hotel,
       title: hotel.title,
-      placeName: hotel.title,  // 추가
-      isHotel: true 
+      placeName: hotel.title,
+      isHotel: true,
+      startTime: '',
+      endTime: ''
     });
   }
   
@@ -881,7 +1007,6 @@ const selectDay = (day) => {
 // 일차 변경 시 마커 업데이트
 watch(selectedDay, () => {
   updateMapMarkers();
-  // 일차 변경 시 검색 좌표 리셋
   lastSearchCoords.value = { lat: null, lng: null, type: null };
 });
 
@@ -918,23 +1043,43 @@ const getCategoryIcon = (categoryCode) => {
   return icons[categoryCode] || '📍';
 };
 
-// 저장
+// 저장 함수
+// 저장 함수 수정
 const saveAllDaysPlaces = async () => {
   try {
+    let hasNewPlaces = false;
+    
     for (const duration of durations.value) {
       const dayPlaces = placesByDay.value[duration.day] || [];
-      if (!dayPlaces.length) continue;
+      const newPlaces = dayPlaces.filter(p => !p.travelId);
       
-      // 필드명을 명시적으로 매핑
-      const mappedPlaces = dayPlaces.map((p, i) => ({
+      if (newPlaces.length === 0) {
+        console.log(`${duration.day}일차: 새로 추가된 장소 없음`);
+        continue;
+      }
+      
+      hasNewPlaces = true;
+      
+      // 시간 검증
+      for (const place of newPlaces) {
+        if (place.startTime && place.endTime) {
+          if (place.endTime <= place.startTime) {
+            alert(`${place.title}의 종료 시간이 시작 시간보다 이릅니다.`);
+            return;
+          }
+        }
+      }
+      
+      const existingCount = dayPlaces.filter(p => p.travelId).length;
+      
+      const mappedPlaces = newPlaces.map((p, i) => ({
         durationId: duration.durationId,
         planId,
-        travelOrder: i + 1,
+        travelOrder: existingCount + i + 1,
         estimatedTravelTime: p.estimatedTravelTime || 0,
-        
-        // title → placeName 변환
         placeName: p.title,
-        
+        startTime: p.startTime || null,
+        endTime: p.endTime || null,
         latitude: p.latitude,
         longitude: p.longitude,
         categoryCode: p.categoryCode,
@@ -946,49 +1091,118 @@ const saveAllDaysPlaces = async () => {
         runTime: p.runTime || null,
       }));
       
-      console.log('전송 데이터:', mappedPlaces);
+      console.log(`${duration.day}일차 새로 추가된 ${newPlaces.length}개 장소:`, mappedPlaces);
       await axios.post("/api/places/batch", mappedPlaces);
     }
-    alert("전체 일정 저장 완료!");
-    let count = Number(sessionStorage.getItem("newPlan")) || 0;
-    count++;
-    sessionStorage.setItem("newPlan",count);
+    
 
-    router.push("/mypage").then(() => {
-    window.location.reload();
-  });
+    
+    alert("새로운 장소가 저장되었습니다!");
+    
+    // sessionStorage 클리어
+    sessionStorage.removeItem("editPlanData");
+    sessionStorage.removeItem("editTargetDay");
+    
+    // 일정수정 모드였다면 상세 페이지로
+    if (previousData) {
+      console.log("일정 상세 페이지로 이동");
+      router.push(`/mypage/travel/${planId}`);
+    } else {
+      // 일반 모드였다면 마이페이지로
+      console.log("마이페이지로 이동");
+      let count = Number(sessionStorage.getItem("newPlan")) || 0;
+      count++;
+      sessionStorage.setItem("newPlan", count);
+      
+      router.push("/mypage").then(() => {
+        window.location.reload();
+      });
+    }
+    
   } catch (err) {
     console.error("저장 실패:", err);
     console.error("에러 상세:", err.response?.data);
+    alert("저장에 실패했습니다. 다시 시도해주세요.");
   }
 };
-// 컴포넌트 마운트
 onMounted(async () => {
   console.log("컴포넌트 초기화 시작");
   
-  // 1. Plan 정보 로드
   await loadPlanInfo();
-  
-  // 2. Duration 로드
   await loadDurations();
   
-  // 3. 지도 초기화
-  initMap(startLocation.value);
+  // 일정수정에서 넘어온 경우
+  if (previousData && targetDay) {
+    console.log("일정수정 모드!");
+    console.log("previousData.dayList:", previousData.dayList);
+    
+    // 모든 일차의 데이터를 로드 (중요!)
+    if (previousData.dayList && previousData.dayList.length > 0) {
+      previousData.dayList.forEach((dayData) => {
+        if (dayData.activities && dayData.activities.length > 0) {
+          const dayNo = dayData.dayNo;
+          
+          placesByDay.value[dayNo] = dayData.activities.map((act, index) => {
+            console.log(`${dayNo}일차 - ${act.placeName}`);
+            
+            return {
+              travelId: act.travelId,
+              travelOrder: index + 1,
+              estimatedTravelTime: 0,
+              title: act.placeName || "",
+              placeName: act.placeName || "",
+              latitude: act.latitude || 0,
+              longitude: act.longitude || 0,
+              categoryCode: act.categoryCode || "",
+              categoryGroupName: act.categoryGroupName || "",
+              addressName: act.addressName || "",
+              placeUrl: act.placeUrl || "",
+              description: act.categoryGroupName || "",
+              imageUrl: null,
+              planId: previousData.planId,
+              dayNumber: dayNo,
+              startTime: act.startTime || '',
+              endTime: act.endTime || '',
+              showTimeInput: false,
+              fixed: false,
+              isHotel: act.tag === '숙소'
+            };
+          });
+          
+          console.log(`${dayNo}일차 장소 ${placesByDay.value[dayNo].length}개 로드됨`);
+        }
+      });
+      
+      // 선택된 일차만 targetDay로 설정
+      selectedDay.value = targetDay;
+      console.log(`${targetDay}일차로 이동`);
+      
+      // sessionStorage 정리
+      sessionStorage.removeItem('editPlanData');
+      sessionStorage.removeItem('editTargetDay');
+    }
+  } else {
+    console.log("일반 모드 (일정수정 아님)");
+  }
   
-  // 4. 초기 장소 검색
+  initMap(startLocation.value);
   await nextTick();
+  updateMapMarkers();
   await loadPlaces("restaurants");
   
   console.log("초기화 완료");
+  console.log("최종 placesByDay:", placesByDay.value);
+  console.log("selectedDay:", selectedDay.value);
 });
-
 // 경로 그리기
 const drawRoute = async () => {
   await direction(map, placesByDay.value[selectedDay.value]);
 };
 
 // 자동 정렬
+
 const isLoading = ref(false);
+const previewSorted = ref([]);    // 자동 정렬된 결과 임시 저장
 
 const drawSort = async () => {
   const currentPlaces = placesByDay.value[selectedDay.value];
@@ -1017,20 +1231,52 @@ const drawSort = async () => {
     };
   }).filter(Boolean);
   
-  placesByDay.value[selectedDay.value] = reorderedPlaces;
+  previewSorted.value = reorderedPlaces;    // 결과 임시 저장
   console.log("정렬 완료:", reorderedPlaces);
+
+  showSortModal.value = true; // 모달창 띄우기
+};
+
+const applySortedPlaces = () => {
+  placesByDay.value[selectedDay.value] = [...previewSorted.value];
+  console.log("정렬 완료");
+  showSortModal.value = false;
+};
+
+const cancelSortPreview = () => {
+  console.log("정렬 취소");
+  deletePoliLine();
+  showSortModal.value = false;
+  
 };
 </script>
 
 <style scoped>
-.dot.purple { background: #d877e1; }
-.dot.brown { background: #d0a473; }
+.final-draw-page {
+  zoom: 0.8; /* 80% 크기 */
+}
+.step-container {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.step-content {
+  width: 100%;
+}
 
 .full-layout {
-  max-width: 1520px;
+  width: 95vw;
+  max-width: 1800px;
+  margin: 0 auto;
   border-radius: 14px;
   overflow: hidden;
 }
+
+.dot.purple { background: #d877e1; }
+.dot.brown { background: #d0a473; }
 
 /* 상단 바 */
 .top-bar {
@@ -1048,19 +1294,30 @@ const drawSort = async () => {
 /* 전체 레이아웃 */
 .main-layout {
   display: flex;
-  height: 860px;
+  height: calc(100vh - 60px);
+  min-height: 800px;
 }
 
 /* 왼쪽 패널 */
 .left-panel {
-  width: 320px;
+  width: 22%;
+  min-width: 300px;
+  max-width: 380px;
   border-right: 1px solid rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
-.left-actions { padding: 16px; border-bottom: 1px solid rgba(0,0,0,0.1); }
+.left-actions { 
+  padding: 16px; 
+  border-bottom: 1px solid rgba(0,0,0,0.1); 
+  display: flex;
+  flex-direction: column;
+  height: 115px; /* 전체 컨테이너 높이 */
+  gap: 16px;     /* 상하 버튼 간격 */
+
+}
 .action-row { display: flex; gap: 8px; margin-bottom: 12px; }
 
 .left-btn {
@@ -1081,9 +1338,11 @@ const drawSort = async () => {
   gap: 8px;
   padding: 16px;
 }
+
 .left-actions-grid .left-btn {
   width: 100%;
   height: 40px;
+  width: 48%;
 }
 
 .left-btn:hover:not(:disabled) {
@@ -1106,7 +1365,14 @@ const drawSort = async () => {
   cursor: not-allowed;
 }
 
-.end-btn {
+.middle-btns {
+  display: flex;
+  justify-content: space-between; /* 좌우 버튼 분리 */
+  gap: 16px;
+}
+
+
+.top-btn {
   width: 100%;
   height: 32px;
   border-radius: 8px;
@@ -1114,6 +1380,15 @@ const drawSort = async () => {
   color: white;
   border: none;
   cursor: pointer;
+}
+
+.hotel-btn {
+  border-radius: 4px;
+  border: 1px solid #D1D5DC;
+  background: white;
+  height: 40px;
+  width: 110px;
+  /* flex: 0; flex:1 제거! → 버튼이 늘어나지 않게 */
 }
 
 .info-box {
@@ -1145,10 +1420,13 @@ const drawSort = async () => {
   padding: 16px;
   transition: 0.2s ease;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  gap: 12px;
+  cursor: pointer;
 }
 
 .selected-card:hover {
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  border-color: #155DFC;
 }
 
 .selected-card.fixed {
@@ -1167,6 +1445,25 @@ const drawSort = async () => {
   border-left: 3px solid #10B981;
 }
 
+/* 드래그 섹션 (왼쪽) */
+.drag-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 48px;
+}
+
+.day-badge-top {
+  background: #F3F4F6;
+  color: #6B7280;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
 .drag-handle {
   display: flex;
   align-items: center;
@@ -1174,8 +1471,8 @@ const drawSort = async () => {
   font-size: 18px;
   color: #9CA3AF;
   cursor: grab;
-  padding-right: 12px;
   user-select: none;
+  flex: 1;
 }
 
 .drag-handle.disabled {
@@ -1188,26 +1485,38 @@ const drawSort = async () => {
   opacity: 0.4;
 }
 
+/* 카드 컨텐츠 (오른쪽) */
 .card-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 
 .card-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
 
-.day-badge {
-  background: #F3F4F6;
-  color: #6B7280;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 6px;
+.title-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1F2937;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hotel-badge {
@@ -1217,20 +1526,98 @@ const drawSort = async () => {
   font-weight: 500;
   padding: 4px 8px;
   border-radius: 6px;
-}
-
-.card-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1F2937;
-  line-height: 1.4;
+  flex-shrink: 0;
 }
 
 .card-category {
   font-size: 12px;
   color: #6B7280;
-  margin-top: 2px;
-  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+/* 시간 토글 섹션 */
+.time-toggle-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.time-toggle-btn {
+  padding: 6px 12px;
+  background: #F3F4F6;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.time-toggle-btn:hover:not(:disabled) {
+  background: #E5E7EB;
+  border-color: #9CA3AF;
+}
+
+.time-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.time-display {
+  font-size: 12px;
+  color: #155DFC;
+  font-weight: 500;
+  background: #EEF4FF;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* 시간 입력 스타일 */
+.time-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.time-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #F9FAFB;
+  border-radius: 6px;
+}
+
+.time-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6B7280;
+  white-space: nowrap;
+  min-width: 32px;
+}
+
+.time-input {
+  flex: 1;
+  height: 28px;
+  padding: 4px 6px;
+  border: 1px solid #D1D5DB;
+  border-radius: 4px;
+  font-size: 12px;
+  background: white;
+  transition: border-color 0.2s;
+}
+
+.time-input:focus {
+  outline: none;
+  border-color: #155DFC;
+}
+
+.time-input:disabled {
+  background: #F3F4F6;
+  cursor: not-allowed;
 }
 
 .card-actions {
@@ -1353,20 +1740,30 @@ const drawSort = async () => {
 
 .map-header {
   position: absolute;
-  top: 16px; left: 16px;
+  top: 16px; 
+  left: 16px;
   background: white;
   border-radius: 10px;
   padding: 8px 16px;
   box-shadow: 0 4px 6px -4px rgba(0,0,0,0.1);
-  display: flex; justify-content: space-between; align-items: center;
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center;
   width: calc(100% - 32px);
   z-index: 10;
 }
 
-.map-legend { display: flex; gap: 12px; font-size: 14px; }
+.map-legend { 
+  display: flex; 
+  gap: 12px; 
+  font-size: 14px; 
+}
 
 .dot {
-  display: inline-block; width: 12px; height: 12px; border-radius: 50%;
+  display: inline-block; 
+  width: 12px; 
+  height: 12px; 
+  border-radius: 50%;
 }
 
 .dot.orange { background: #FF6900; }
@@ -1375,12 +1772,16 @@ const drawSort = async () => {
 .dot.green { background: #10B981; }
 
 .map-canvas {
-  width: 100%; height: 100%; position: relative;
+  width: 100%; 
+  height: 100%; 
+  position: relative;
 }
 
 /* 오른쪽 패널 */
 .right-panel {
-  width: 384px;
+  width: 26%;
+  min-width: 350px;
+  max-width: 420px;
   border-left: 1px solid rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
@@ -1390,6 +1791,10 @@ const drawSort = async () => {
   padding: 16px;
   border-bottom: 1px solid rgba(0,0,0,0.1);
   font-size: 16px;
+
+  display: flex;                /* 가로 정렬 */
+  justify-content: space-between; /* 좌측은 '검색', 우측은 버튼 */
+  align-items: center;          /* 수직 중앙정렬 */
 }
 
 .filter-bar {
@@ -1473,8 +1878,17 @@ const drawSort = async () => {
 }
 
 .place-name { font-weight: 500; }
-.place-address { font-size: 12px; color: #6A7282; margin-bottom: 4px; }
-.place-meta { font-size: 12px; color: #4A5565; display: flex; gap: 12px; }
+.place-address { 
+  font-size: 12px; 
+  color: #6A7282; 
+  margin-bottom: 4px; 
+}
+.place-meta { 
+  font-size: 12px; 
+  color: #4A5565; 
+  display: flex; 
+  gap: 12px; 
+}
 
 .add-btn {
   background: #155DFC;
@@ -1538,14 +1952,6 @@ const drawSort = async () => {
   border: none;
   font-size: 20px;
   cursor: pointer;
-}
-
-.hotel-map {
-  width: 100%;
-  height: 300px;
-  border-radius: 10px;
-  background: #f3f4f6;
-  margin-bottom: 16px;
 }
 
 .hotel-body {
@@ -1617,4 +2023,179 @@ const drawSort = async () => {
   filter: blur(3px);
   pointer-events: none;
 }
+
+
+
+
+/* 모달 전체 배경 */
+.sort-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1100;
+}
+
+/* 모달 카드 본체 */
+.sort-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 720px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.25s ease;
+}
+
+/* 상단 헤더 */
+.sort-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.sort-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+/* 모달 본문 */
+.sort-body {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  padding: 16px;
+  /* 높이 제한 */
+  max-height: 60vh; /* 모달 최대 높이의 60% */
+  overflow-y: auto; /* 세로 스크롤 */
+}
+
+/* 리스트 구역 (현재 vs 정렬 후) */
+.curr-list,
+.sort-list {
+  flex: 1;
+}
+
+/* 리스트 제목 */
+.list-title {
+  text-align: center; /* 제목 중앙 정렬 */
+  font-weight: 600;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+/* .sort-body > .curr-list >.list-title {
+  
+} */
+
+.sort-body > .sort-list >.list-title {
+  color: #155dfc;
+}
+
+
+/* 카드 스타일 (호텔 카드 느낌으로 통일) */
+.sort-card {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  transition: 0.2s ease;
+}
+
+.sort-card.hovered {
+  border-color: #155dfc;
+  background-color: #eef4ff;
+  transform: translateY(-2px);
+}
+
+.fix-card {
+  background-color: #4A5565;
+}
+
+
+
+/* .sort-card:hover {
+  border-color: #155dfc;
+  background: #eef4ff;
+} */
+
+.sort_info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sort-name {
+  font-weight: 500;
+  color: #111827;
+}
+
+.sort-index {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.sort-category {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+/* 버튼들 */
+.sort-btn,
+.sort-cancel-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: 0.2s ease;
+}
+
+.sort-btn {
+  background-color: #155dfc;
+  color: white;
+}
+
+.sort-btn:hover {
+  background-color: #0f47c9;
+}
+
+.sort-cancel-btn {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.sort-cancel-btn:hover {
+  background-color: #e5e7eb;
+}
+
+/* footer 버튼 영역 (중앙 정렬 + 여백 추가) */
+.sort-footer {
+  display: flex;
+  justify-content: center; /* 버튼 중앙 정렬 */
+  align-items: center;
+  gap: 12px; /* 버튼 간격 */
+  padding: 20px 0 28px; /* 위아래 여백 (특히 리스트와 간격 확보) */
+  margin-top: 8px; /* 리스트와 살짝 띄우기 */
+  border-top: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+
+/* 모달 등장 애니메이션 */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 </style>

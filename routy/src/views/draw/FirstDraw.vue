@@ -23,12 +23,39 @@
         <div class="card-body">
           <!-- 왼쪽: 지역 선택 -->
           <div class="left-column">
-            <h4 class="section-title">지역 선택</h4>
+            <div class="region-header">
+              <h4 class="section-title">지역 선택</h4>
+              <div class="search-container">
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="도시명 검색"
+                  class="search-input-inline"
+                  @keyup.enter="handleEnter"
+                  @focus="showDropdown = true"
+                  @blur="hideDropdown"
+                  @input="showDropdown = true"
+                />
+
+
+                <ul v-if="showDropdown && filteredRegions.length > 0" class="autocomplete-dropdown">
+                  <li
+                    v-for="region in filteredRegions"
+                    :key="region.regionId"
+                    @mousedown.prevent="selectCity(region); searchQuery = region.regionName; showDropdown = false;"
+                  >
+                    {{ region.regionName }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+
             <div class="city-grid">
               <div
                 v-for="region in regions"
                 :key="region.regionId"
                 class="city-card"
+                :data-region-id="region.regionId"
                 :class="{ selected: selectedCity && selectedCity.regionId === region.regionId }"
                 @click="selectCity(region)"
               >
@@ -56,7 +83,7 @@
 <script setup>
 import "@/assets/css/draw.css";
 import "@/assets/css/step-common.css";
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import axios from "axios";
 import markerBigImage from "@/assets/images/icons/first-marker.png";
@@ -67,6 +94,42 @@ const route = useRoute();
 const regions = ref([]);
 const selectedCity = ref(null);
 const city = ref("");
+
+const searchQuery = ref("");
+const showDropdown = ref(false);
+
+const filteredRegions = computed(() => {
+  if (!searchQuery.value.trim()) return regions.value; 
+  return regions.value.filter(r =>
+    r.regionName.includes(searchQuery.value.trim())
+  );
+});
+
+const handleEnter = () => {
+  const matched = filteredRegions.value[0];
+  if (matched) {
+    selectCity(matched);
+
+    setTimeout(() => {
+      const cardEl = document.querySelector(
+        `.city-card[data-region-id="${matched.regionId}"]`
+      );
+      if (cardEl) {
+        cardEl.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    }, 100);
+  } 
+};
+
+const hideDropdown = () => {
+  // 블러 이벤트가 너무 빨라서 setTimeout으로 약간 지연시켜 닫기
+  setTimeout(() => {
+    showDropdown.value = false;
+  }, 150);
+};
 
 let map = null;
 let marker = null;
@@ -304,7 +367,10 @@ const selectCity = (region) => {
 const goNext = () => {
   router.push({
     path: "/draw/second",
-    query: { regionId: selectedCity.value.regionId, regionName: selectedCity.value.regionName },
+    query: { 
+      regionId: selectedCity.value.regionId, 
+      regionName: selectedCity.value.regionName
+    },
   });
 };
 
@@ -313,12 +379,12 @@ onMounted(async () => {
   kakao.maps.load(initMap); // SDK 비동기 로드 후 지도 초기화
 
   if (route.query.city) {
+
     city.value = route.query.city;
 
     var geocoder = new kakao.maps.services.Geocoder();
     
     geocoder.addressSearch(city.value, function(result, status) {
- 
         if (status === kakao.maps.services.Status.OK) {
 
             var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
@@ -432,5 +498,62 @@ onMounted(async () => {
   .map-box {
     height: 250px;
   }
+}
+
+.region-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 300px;
+}
+
+.search-input-inline {
+  flex: 1;
+  max-width: 220px;
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  transition: 0.2s;
+}
+
+.search-input-inline:focus {
+  border-color: #155dfc;
+  box-shadow: 0 0 3px rgba(21, 93, 252, 0.3);
+}
+
+.search-container {
+  position: relative;
+  flex: 1;
+}
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: 38px;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.autocomplete-dropdown li {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.autocomplete-dropdown li:hover {
+  background: #eff6ff;
+  color: #155dfc;
+  font-weight: 500;
 }
 </style>
