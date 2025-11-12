@@ -82,8 +82,8 @@
                         @click.stop="toggleTimeInput(element)"
                         :disabled="isDayCompleted"
                       >
-                        <span v-if="!element.showTimeInput">⏰ 시간 입력</span>
-                        <span v-else>🔼 접기</span>
+                        <span v-if="!element.showTimeInput">시간 입력</span>
+                        <span v-else>접기</span>
                       </button>
                       
                       <!-- 시간 표시 (입력된 경우) -->
