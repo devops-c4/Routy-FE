@@ -239,8 +239,42 @@ import { deletePoliLine, direction, sortDirection } from '@/utils/draw/direction
 
 const route = useRoute();
 const router = useRouter();
-const planId = Number(route.query.planId);
-const totalDays = Number(route.query.totalDays) || 1;
+// const planId = Number(route.query.planId);
+// const totalDays = Number(route.query.totalDays) || 1;
+
+//진짜 state는 여기 (일정수정에서 넘어온거 테스트중)
+const historyState = window.history.state || {};
+
+// 수정페이지에서 넘겨준 데이터 (일정수정에서 넘어온거 테스트중)
+const previousData =
+  historyState.previousData ??
+  route.state?.previousData ??
+  null;
+
+const targetDayFromState =
+  historyState.targetDay ??
+  route.state?.targetDay ??
+  null;
+
+// query로 들어온 데이터 (기존 흐름용 fallback) (일정수정에서 넘어온거 테스트중)
+const planIdFromQuery = route.query.planId
+  ? Number(route.query.planId)
+  : null;
+const targetDayFromQuery = route.query.targetDay
+  ? Number(route.query.targetDay)
+  : null;
+
+// 최종 확정 (state → query 순으로 우선순위) (일정수정에서 넘어온거 테스트중)
+const planId = previousData?.planId
+  ? Number(previousData.planId)
+  : planIdFromQuery;
+
+const targetDay = targetDayFromState || targetDayFromQuery;
+
+// (일정수정에서 넘어온거 테스트중)
+console.log("👀 historyState:", historyState);
+console.log("👀 previousData 최종:", previousData);
+console.log("👀 targetDay 최종:", targetDay);
 
 // 지도 관련
 const mapContainer = ref(null);
@@ -625,8 +659,47 @@ const selectPlace = (p) => {
   selectedPlace.value = p;
 };
 
-// 장소 추가
+// 장소 추가 (일정수정에서 넘어온거 테스트중)
 const addPlace = (p) => {
+  // 1) 일정수정 페이지에서 넘어온 경우인지 먼저 확인
+  if (previousData && targetDay) {
+    // targetDay는 1부터 들어오니까 index로 바꾸기
+    const dayIdx = targetDay - 1;
+
+    // 안전장치: dayList가 없거나 해당 day가 없으면 막기 (일정수정에서 넘어온거 테스트중)
+    if (!previousData.dayList || !previousData.dayList[dayIdx]) {
+      alert("추가할 일차 정보를 찾을 수 없습니다.");
+      return;
+    }
+    const targetDayObj = previousData.dayList[dayIdx];
+
+    // final 페이지에서 선택한 kakao place p를 (일정수정에서 넘어온거 테스트중)
+    // 수정페이지에서 쓰는 구조로 매핑
+    const newActivity = {
+      travelId: null, // 새로 추가니까 일단 null (일정수정에서 넘어온거 테스트중)
+      travelOrder: previousData.dayList[dayIdx].activities.length + 1,
+      title: p.title,
+      tag: p.categoryGroupName || p.categoryCode || "기타",
+      placeName: p.title,
+      addressName: p.addressName,
+      categoryGroupName: p.categoryGroupName,
+      placeUrl: p.placeUrl,
+    };
+
+    // 그 day의 activities에 끼워넣기
+  targetDayObj.activities.push(newActivity);
+
+router.push({
+  path: `/mypage/travel/${previousData.planId}/edit`,
+  state: {
+    updatedData: previousData,
+  },
+});
+
+    return;
+  }
+
+  // 평소 final 페이지에서 쓰는 기존 로직 (원래 있던 거) 
   const day = selectedDay.value;
   if (!placesByDay.value[day]) placesByDay.value[day] = [];
   if (!placesByDay.value[day].find((x) => x.title === p.title)) {
