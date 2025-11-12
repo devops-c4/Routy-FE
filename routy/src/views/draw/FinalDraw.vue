@@ -18,12 +18,18 @@
                   class="left-btn" 
                   @click="drawRoute"
                   :disabled="isDayCompleted"
+                  title=
+"현재 선택한 장소들을 따라
+경로를 지도에 그립니다."
                 >경로 그리기</button>
 
                 <button 
                   class="left-btn" 
                   @click="drawSort"
-                  :disabled="isDayCompleted || isLoading">            
+                  :disabled="isDayCompleted || isLoading"
+                  title=
+"고정된 일정을 제외한 일정을
+최소의 이동시간이 되도록 재배치합니다.">            
                   <span v-if="isLoading">⏳ 정렬 중...</span>
                   <span v-else>자동 정렬</span>
                 </button>
@@ -234,7 +240,9 @@
             v-for="(place, i) in placesByDay[selectedDay]" 
             :key="i" 
             class="sort-card"
-            :class="{ 'fix-card': place.fixed }">
+            :class="{ 'fix-card': place.fixed, 'hovered': hoveredPlaceUrl === place.placeUrl && !place.fixed}"
+              @mouseenter="hoveredPlaceUrl = place.placeUrl"
+              @mouseleave="hoveredPlaceUrl = null">
             <div class="sort_info">
               <div class="sort-name">{{ place.title }}</div>
               <div class="sort-category">{{ place.description }}</div>
@@ -252,7 +260,9 @@
             v-for="(place, i) in previewSorted"
             :key="i"
             class="sort-card"
-            :class="{ 'fix-card': place.fixed }">
+            :class="{ 'fix-card': place.fixed, 'hovered': hoveredPlaceUrl === place.placeUrl && !place.fixed}"
+              @mouseenter="hoveredPlaceUrl = place.placeUrl"
+              @mouseleave="hoveredPlaceUrl = null">
             <div class="sort_info">
               <div class="sort-name">{{ place.title }}</div>
               <div class="sort-category">{{ place.description }}</div>
@@ -297,7 +307,7 @@ const route = useRoute();
 const router = useRouter();
 const planId = Number(route.query.planId);
 const totalDays = Number(route.query.totalDays) || 1;
-
+const hoveredPlaceUrl = ref(null);
 
 // 지도 관련
 const mapContainer = ref(null);
@@ -1011,6 +1021,7 @@ const applySortedPlaces = () => {
 
 const cancelSortPreview = () => {
   console.log("정렬 취소");
+  deletePoliLine();
   showSortModal.value = false;
   
 };
@@ -1719,9 +1730,17 @@ const cancelSortPreview = () => {
   transition: 0.2s ease;
 }
 
+.sort-card.hovered {
+  border-color: #155dfc;
+  background-color: #eef4ff;
+  transform: translateY(-2px);
+}
+
 .fix-card {
   background-color: #4A5565;
 }
+
+
 
 /* .sort-card:hover {
   border-color: #155dfc;
