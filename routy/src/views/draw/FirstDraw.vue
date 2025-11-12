@@ -542,6 +542,7 @@ onMounted(async () => {
   max-height: 200px;
   overflow-y: auto;
   padding: 6px 0;
+  width: 190px;
 }
 
 .autocomplete-dropdown li {
