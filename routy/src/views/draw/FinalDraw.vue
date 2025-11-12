@@ -1273,6 +1273,7 @@ const cancelSortPreview = () => {
   background: white;
   color: #4A5565;
   transition: 0.2s;
+}
 
 .left-actions-grid {
   display: grid;
@@ -1339,7 +1340,6 @@ const cancelSortPreview = () => {
   border-bottom: 1px solid rgba(0,0,0,0.1);
 }
 
->>>>>>> d0870d17462c0de669e07feead056bbdfad2ada4
 .empty-guide {
   padding: 32px;
   color: #6A7282;
