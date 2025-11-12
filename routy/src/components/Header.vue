@@ -63,6 +63,7 @@ import { useRouter } from "vue-router";
 import { logout, getLocalAuthStatus } from '@/api/auth';
 
 const router = useRouter();
+const props = defineProps({ id: [String, Number] })
 const isLoggedIn = ref(false);
 const LOGIN_STATUS_KEY = 'routy:isLoggedIn';
 const newPlanCount = ref(Number(sessionStorage.getItem("newPlan")) || 0);

@@ -4,8 +4,25 @@ import axios from 'axios'
 import { useRouter } from 'vue-router'
 import { jwtDecode } from 'jwt-decode' // 설치 안 돼 있으면: npm i jwt-decode
 import BrowseTravelModal from '@/views/browse/BrowseTravelModal.vue'
+import TravelReviewModal from '@/views/mypage/TravelReviewModal.vue'
+
+
 
 const router = useRouter()
+
+const showBrowseModal = ref(false);
+function openBrowseModal(planId) {
+  selectedPlanId.value = planId;
+  showBrowseModal.value = true;
+}
+
+function onReviewSaved() {
+  // 닫기는 자식에서 emit('close')로 처리하니 여기선 갱신만
+  fetchAllTravelHistory?.(); // 있으면 호출
+  fetchAllBookmarks?.();     // 선택
+  // 혹은 상세 재조회
+  // refreshPlanDetail?.(selectedPlanId.value)
+}
 
 // 여행 기록에서 상세 페이지로 넘어갈때 사용되는 함수
 function goToPlanDetail(planId) {
@@ -20,6 +37,30 @@ function goToModifyUser() {
 // 북마크 모달 상태
 const showModal = ref(false)
 const selectedPlan = ref(null)
+
+// 리뷰 모달 상태
+const showReviewModal = ref(false)
+const selectedPlanId = ref(null)
+const selectedTitle = ref('')
+
+// 여행기록 카드 클릭 시 리뷰 모달 열기
+function openReviewModal(planId, title) {
+  selectedPlanId.value = planId
+  selectedTitle.value = title || ''
+  showReviewModal.value = true
+}
+
+// 리뷰 저장 후 리스트 갱신 훅 (필요 시)
+async function refreshHistory() {
+  await fetchAllTravelHistory()
+}
+
+// 리뷰 모달 닫기
+function closeReviewModal() {
+  showReviewModal.value = false
+  selectedPlanId.value = null
+  selectedTitle.value = ''
+}
 
 // 북마크 모달 열기 함수
 const openBookmarkModal = async (planId) => {
@@ -111,7 +152,7 @@ const fetchMyPage = async () => {
     travelHistoryRaw.value = data.travelHistory ?? []
 
     // 5) 북마크
-    const bookmarkRes = await axios.get('/api/plans/bookmarks')
+    const bookmarkRes = await axios.get('/api/mypage/bookmarks')
     bookmarksRaw.value = bookmarkRes.data ?? []
 
   } catch (e) {
@@ -126,9 +167,8 @@ const fetchMyPage = async () => {
 /* 백엔드에서 전체를 주는 엔드포인트로 바꿔줘 */
 const fetchAllTravelHistory = async () => {
   try {
-    const res = await axios.get('/api/mypage/travel-history', {
-      params: { userNo },
-    })
+    const res = await axios.get('/api/mypage/travel-history') 
+    console.log('📦 여행기록 API 응답:', res.data)
     travelHistoryRaw.value = res.data ?? []
   } catch (e) {
     console.warn('전체 여행기록 호출 실패:', e)
@@ -138,9 +178,7 @@ const fetchAllTravelHistory = async () => {
 /* ====== 3. 북마크 전체 호출 ====== */
 const fetchAllBookmarks = async () => {
   try {
-    const res = await axios.get('/api/mypage/bookmarks', {
-      params: { userNo },
-    })
+    const res = await axios.get('/api/mypage/bookmarks')
     bookmarksRaw.value = res.data ?? []
   } catch (e) {
     console.warn('전체 북마크 호출 실패:', e)
@@ -199,8 +237,8 @@ const viewSchedules = computed(() => {
 const travelRecords = computed(() => {
   return (travelHistoryRaw.value ?? []).map(t => ({
     id: t.planId,
-    title: t.title,
-    desc: `${t.startTime} ~ ${t.endTime}`,
+    title: t.planTitle || t.title,
+    desc: `${t.startDate} ~ ${t.endDate}`,
     thumbnailUrl: t.thumbnailUrl ?? '',
   }))
 })
@@ -251,7 +289,7 @@ function nextMonth(){
 /* 북마크 카드용 변환 (이제는 전체 bookmarksRaw 기준) */
 const bookmarks = computed(() =>
   (bookmarksRaw.value ?? []).map(b => ({
-    id: b.planId, // ✅ 이 부분을 bookmarkId → planId 로 수정
+    id: b.planId, //  이 부분을 bookmarkId → planId 로 수정
     title: b.planTitle,
     type: '여행일정',
     count: b.bookmarkCount ?? 0,
@@ -437,7 +475,9 @@ function toggleBookmarks() {
             v-for="r in travelRecords"
             :key="r.id"
             class="thumb bluegrad cursor-pointer hover:opacity-90 transition"
-            @click="goToPlanDetail(r.id)"
+            @click="openReviewModal(r.id, r.title)"
+            tabindex="0"
+            
           >
             <span class="pin">📍</span>
             <b>{{ r.title }}</b>
@@ -467,13 +507,23 @@ function toggleBookmarks() {
       </section>
 
     </div>
-    <!-- ✅ 모달 컴포넌트 (페이지 하단) -->
+    <!-- 모달 컴포넌트 (페이지 하단) -->
     </div>
-        <BrowseTravelModal
-        v-if="showModal"
-        :route="selectedPlan"
-        @close="showModal = false"
-      />
+<BrowseTravelModal
+  v-if="showBrowseModal"
+  :planId="selectedPlanId"
+  @close="showBrowseModal = false"
+/>
+
+       <!-- 리뷰 작성 모달 -->
+  <TravelReviewModal
+    v-if="showReviewModal"
+    :plan-id="selectedPlanId"
+    :title="selectedTitle"
+@close="showReviewModal = false"
+  @saved="onReviewSaved"
+  @openBrowse="openBrowseModal"
+  />
 </template>
 
 <style>
@@ -617,11 +667,11 @@ function toggleBookmarks() {
 .block{ padding:12px 12px 14px; }
 .block__title{ padding:4px 4px 8px 6px; font-weight:700; }
 .thumb-row{
-  display:grid; grid-template-columns:repeat(3,1fr);
-  gap: var(--gap-card);
+  display:grid;   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
 }
 .thumb{
-  height:140px; border-radius:14px; padding:14px; color:#fff;
+  height:70px; border-radius:14px; padding:14px; color:#fff;
   display:flex; flex-direction:column; justify-content:flex-end; gap:2px;
   box-shadow:inset 0 0 1px rgba(255,255,255,.25); position:relative;
 }
@@ -629,7 +679,7 @@ function toggleBookmarks() {
 .pin{ font-size:18px; opacity:.9; position:absolute; left:12px; top:10px; }
 .thumb b{ font-weight:700; } .thumb small{ opacity:.95; }
 
-/* ✅ 내부 스크롤 공통 */
+/* 내부 스크롤 공통 */
 /* .scroll-box {
   max-height: 250px; 
   overflow-y: auto;
