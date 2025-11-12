@@ -4,6 +4,7 @@ import axios from 'axios'
 import { useRouter } from 'vue-router'
 import { jwtDecode } from 'jwt-decode' // 설치 안 돼 있으면: npm i jwt-decode
 import BrowseTravelModal from '@/views/browse/BrowseTravelModal.vue'
+import TravelReviewModal from '@/views/mypage/TravelReviewModal.vue'
 
 const router = useRouter()
 
@@ -20,6 +21,30 @@ function goToModifyUser() {
 // 북마크 모달 상태
 const showModal = ref(false)
 const selectedPlan = ref(null)
+
+// 리뷰 모달 상태
+const showReviewModal = ref(false)
+const selectedPlanId = ref(null)
+const selectedTitle = ref('')
+
+// 여행기록 카드 클릭 시 리뷰 모달 열기
+function openReviewModal(planId, title) {
+  selectedPlanId.value = planId
+  selectedTitle.value = title || ''
+  showReviewModal.value = true
+}
+
+// 리뷰 저장 후 리스트 갱신 훅 (필요 시)
+async function refreshHistory() {
+  await fetchAllTravelHistory()
+}
+
+// 리뷰 모달 닫기
+function closeReviewModal() {
+  showReviewModal.value = false
+  selectedPlanId.value = null
+  selectedTitle.value = ''
+}
 
 // 북마크 모달 열기 함수
 const openBookmarkModal = async (planId) => {
@@ -248,7 +273,7 @@ function nextMonth(){
 /* 북마크 카드용 변환 (이제는 전체 bookmarksRaw 기준) */
 const bookmarks = computed(() =>
   (bookmarksRaw.value ?? []).map(b => ({
-    id: b.planId, // ✅ 이 부분을 bookmarkId → planId 로 수정
+    id: b.planId, //  이 부분을 bookmarkId → planId 로 수정
     title: b.planTitle,
     type: '여행일정',
     count: b.bookmarkCount ?? 0,
@@ -434,7 +459,9 @@ function toggleBookmarks() {
             v-for="r in travelRecords"
             :key="r.id"
             class="thumb bluegrad cursor-pointer hover:opacity-90 transition"
-            @click="goToPlanDetail(r.id)"
+            @click="openReviewModal(r.id, r.title)"
+            tabindex="0"
+            
           >
             <span class="pin">📍</span>
             <b>{{ r.title }}</b>
@@ -464,13 +491,22 @@ function toggleBookmarks() {
       </section>
 
     </div>
-    <!-- ✅ 모달 컴포넌트 (페이지 하단) -->
+    <!-- 모달 컴포넌트 (페이지 하단) -->
     </div>
         <BrowseTravelModal
         v-if="showModal"
         :route="selectedPlan"
         @close="showModal = false"
       />
+
+       <!-- 리뷰 작성 모달 -->
+  <TravelReviewModal
+    v-if="showReviewModal"
+    :plan-id="selectedPlanId"
+    :title="selectedTitle"
+    @close="closeReviewModal"
+    @saved="() => { closeReviewModal(); refreshHistory() }"
+  />
 </template>
 
 <style>
