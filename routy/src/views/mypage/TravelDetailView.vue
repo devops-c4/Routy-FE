@@ -8,6 +8,7 @@ const route = useRoute()
 const router = useRouter()
 const showReviewModal = ref(false)
 
+
 // 현재 여행 ID
 const planId = Number(route.params.id)
 
@@ -18,6 +19,8 @@ const travel = ref(null)
 const expandedDays = ref([])
 const showAll = ref(false)
 const visibleCount = ref(3)
+
+const loading = ref(true)
 
 // 삭제 버튼 클릭 할 경우
 const deletePlan = async () => {
@@ -64,7 +67,9 @@ onMounted(async () => {
     const dayList = travel.value.dayList || []
     expandedDays.value = dayList.map(() => false)
   } catch (err) {
-    console.error('여행 데이터를 불러오는 중 오류 발생:', err)
+    console.error('❌ 여행 데이터를 불러오는 중 오류 발생:', err)
+  } finally {
+    loading.value = false
   }
 })
 
