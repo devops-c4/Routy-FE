@@ -12,9 +12,16 @@
         <div class="route-section">
           <span class="route-item" @click="moveToDraw">여행 루트 그리기</span>
           <span class="route-item" @click="moveToBrowse">여행 루트 둘러보기</span>
-          <span class="route-item" @click="moveToChatBot">
+          <span class="route-item chatbot-wrapper" 
+            @click="moveToChatBot"
+            @mouseover="showChatTooltip = true"
+            @mouseleave="showChatTooltip = false"
+          >
             <img class="chatbot-icon" src="../assets/images/chatbot/chatbot1.png" alt="chatbot"/>
-          </img></span>
+            <div v-if="showChatTooltip" class="chat-tooltip">
+              Rooting에게 물어봐!
+            </div>
+          </span>
         </div>
       </div>
 
@@ -28,8 +35,22 @@
         
         <!-- 로그인 후 -->
         <template v-else>
+          <div class="tooltip-wrapper">
+            <img
+              class="newPlanCountImage"
+              @click="moveToMyPage2"
+              v-if="newPlanCount != 0"
+              src="../assets/images/icons/planCalling.png"
+              @mouseover="showTooltip = true"
+              @mouseleave="showTooltip = false"
+            />
+            <div v-if="showTooltip" class="tooltip-msg">
+              새로운 여행 일정이 {{newPlanCount}}개 있어요
+            </div>
+          </div>
           <span class="menu-item" @click="moveToMyPage">마이페이지</span>
           <span class="menu-item" @click="showLogoutConfirm">로그아웃</span>
+          
         </template>
       </div>
     </div>
@@ -44,6 +65,9 @@ import { logout, getLocalAuthStatus } from '@/api/auth';
 const router = useRouter();
 const isLoggedIn = ref(false);
 const LOGIN_STATUS_KEY = 'routy:isLoggedIn';
+const newPlanCount = ref(Number(sessionStorage.getItem("newPlan")) || 0);
+const showTooltip = ref(false)
+const showChatTooltip = ref(false)
 
 // 로그인 상태 확인 (localStorage 기반)
 const checkAuthStatus = () => {
@@ -63,6 +87,10 @@ onMounted(() => {
   console.log('🟢 [Header] 컴포넌트 마운트됨');
   checkAuthStatus();
   window.addEventListener('login-status-changed', handleLoginStatusChange);
+
+  const newCount = Number(sessionStorage.getItem("newPlan")) || 0;
+  newPlanCount.value = newCount;
+  
 });
 
 // 컴포넌트 언마운트 시 이벤트 리스너 제거
@@ -78,6 +106,14 @@ const moveToBrowse = () => router.push("/browse");
 const moveToRegister = () => router.push('/signup');
 const moveToLogin = () => router.push('/login');
 const moveToMyPage = () => router.push('/mypage');
+const moveToMyPage2 = () => {
+  newPlanCount.value = 0;
+  sessionStorage.setItem('newPlan',0);
+  showTooltip.value = false
+  router.push("/mypage").then(() => {
+    window.location.reload();
+  });
+}
 
 // 로그아웃 확인창 표시
 const showLogoutConfirm = () => {
@@ -119,6 +155,7 @@ const moveToChatBot = () => router.push('/chatbot');
 
 <style scoped>
 .navbar {
+  position: fixed;
   width: 100%;
   height: 50px;
   background: rgba(255, 255, 255, 0.8);
@@ -126,6 +163,7 @@ const moveToChatBot = () => router.push('/chatbot');
   justify-content: center;
   align-items: center;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  z-index: 1000;
 }
 
 .nav-content {
@@ -194,15 +232,70 @@ const moveToChatBot = () => router.push('/chatbot');
 }
 
 .chatbot-icon {
-  width: 50px; /* 크기 조절 (20~32px 사이 추천) */
-  height: 50px;
-  object-fit: contain; /* 비율 유지하며 크기 맞춤 */
-  vertical-align: middle; /* 텍스트 기준으로 가운데 정렬 */
+  width: 80px; 
+  height: 80px;
+  object-fit: contain; 
+  vertical-align: middle; 
   cursor: pointer;
   transition: transform 0.2s ease;
 }
 
 .chatbot-icon:hover {
-  transform: scale(1.1); /* 살짝 확대되는 효과 */
+  transform: scale(1.1); 
+}
+
+.tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip-msg {
+  position: absolute;
+  bottom: -35px; 
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.75);
+  color: white;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  animation: fadeIn 0.2s ease-in;
+}
+
+.chatbot-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.chat-tooltip {
+  position: absolute;
+  bottom: -20px; /* 아이콘 아래에 표시 */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.75);
+  color: white;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  animation: fadeIn 0.2s ease-in;
+}
+
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-5px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.newPlanCountImage {
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.newPlanCountImage:hover {
+  transform: scale(1.1);
 }
 </style>

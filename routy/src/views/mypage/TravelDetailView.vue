@@ -19,6 +19,43 @@ const expandedDays = ref([])
 const showAll = ref(false)
 const visibleCount = ref(3)
 
+// 삭제 버튼 클릭 할 경우
+const deletePlan = async () => {
+  if (!confirm('정말 삭제하시겠습니까?')) return
+
+  try {
+    await apiClient.patch(`/api/plans/${planId}/delete`)
+    alert('삭제되었습니다.')
+    router.push('/mypage')  
+  } catch (err) {
+    console.error(err)
+    alert('삭제 중 오류가 발생했습니다.')
+  }
+}
+
+// 공유하기 버튼 눌렀을 때
+async function togglePublic() {
+  try {
+    // 현재 상태
+    const currentStatus = travel.value.is_public  // 0 또는 1
+
+    await apiClient.patch(`/api/plans/${planId}/public`)
+
+    // 토글 후 예상 상태 기반 메시지 표시
+    if (currentStatus === 0) {
+      alert('일정이 공유되었습니다.')
+      travel.value.is_public = 1
+    } else {
+      alert('일정 공유가 취소되었습니다.')
+      travel.value.is_public = 0
+    }
+  } catch (err) {
+    console.error('공유 상태 변경 중 오류:', err)
+    alert('공유 상태 변경에 실패했습니다.')
+  }
+}
+
+
 // 백엔드 연동
 onMounted(async () => {
   try {
@@ -27,7 +64,7 @@ onMounted(async () => {
     const dayList = travel.value.dayList || []
     expandedDays.value = dayList.map(() => false)
   } catch (err) {
-    console.error('❌ 여행 데이터를 불러오는 중 오류 발생:', err)
+    console.error('여행 데이터를 불러오는 중 오류 발생:', err)
   }
 })
 
@@ -62,7 +99,7 @@ async function handleDelete() {
     await apiClient.delete(`/api/plans/${planId}`)
     router.push('/mypage')
   } catch (err) {
-    console.error('❌ 일정 삭제 중 오류 발생:', err)
+    console.error('일정 삭제 중 오류 발생:', err)
     alert('삭제에 실패했어요. 잠시 후 다시 시도해주세요.')
   }
 }
@@ -82,7 +119,8 @@ async function handleDelete() {
         </div>
         <div class="header-right">
           <button class="btn btn-outline-blue" @click="goToEditPage">수정</button>
-          <button class="btn btn-outline-red" @click="handleDelete">삭제</button>
+          <button class="btn btn-outline-green" @click="togglePublic">공유</button>
+          <button class="btn delete" @click="deletePlan">삭제</button>
         </div>
       </header>
 
@@ -155,6 +193,20 @@ async function handleDelete() {
             >
               <!-- 장소 이름 -->
               <div class="plan-title">{{ plan.placeName }}</div>
+
+              <!-- 시간 정보 -->
+              <div class="plan-time" v-if="plan.startTime || plan.endTime">
+                <i class="fa fa-clock"></i>
+                <span v-if="plan.startTime && plan.endTime">
+                  {{ plan.startTime }} - {{ plan.endTime }}
+                </span>
+                <span v-else-if="plan.startTime">
+                  {{ plan.startTime }} ~
+                </span>
+                <span v-else>
+                  ~ {{ plan.endTime }}
+                </span>
+              </div>
 
               <!-- 주소 -->
               <div class="plan-address" v-if="plan.addressName">
@@ -393,11 +445,32 @@ async function handleDelete() {
   transition: all 0.2s ease;
 }
 .plan:hover { background: #f1f5f9; }
+
 .plan-title {
   color: #101828;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 2px;
 }
+
+/* 시간 표시 스타일 - 장소명 바로 아래 */
+.plan-time {
+  color: #3b82f6;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(59, 130, 246, 0.08);
+  border-radius: 6px;
+  width: fit-content;
+  margin-bottom: 4px;
+}
+.plan-time i {
+  font-size: 11px;
+}
+
 .plan-address,
 .plan-category {
   color: #6a7282;
@@ -481,4 +554,38 @@ async function handleDelete() {
   color: #6a7282;
   margin: 2px 0 0;
 }
+
+.btn.delete {
+  color: #ff4d4f; 
+  border: 1.5px solid #ff4d4f; 
+  background-color: transparent; 
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s ease-in-out;
+}
+
+
+.btn.delete:hover {
+  background-color: #ff4d4f;
+  color: white;
+}
+
+
+.btn-outline-green {
+  border: 1px solid #16a34a;   
+  color: #16a34a;              
+  background-color: transparent;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-outline-green:hover {
+  background-color: #16a34a;
+  color: #fff;
+}
+
 </style>

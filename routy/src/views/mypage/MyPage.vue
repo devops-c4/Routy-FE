@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
 import { jwtDecode } from 'jwt-decode' // 설치 안 돼 있으면: npm i jwt-decode
+import BrowseTravelModal from '@/views/browse/BrowseTravelModal.vue'
 
 const router = useRouter()
 
@@ -16,27 +17,24 @@ function goToModifyUser() {
   router.push('/mypage/modify')
 }
 
+// 북마크 모달 상태
+const showModal = ref(false)
+const selectedPlan = ref(null)
+
+// 북마크 모달 열기 함수
+const openBookmarkModal = async (planId) => {
+  try {
+    const res = await axios.get(`/api/plans/public/${planId}`)
+    selectedPlan.value = res.data
+    showModal.value = true
+  } catch (err) {
+    console.error('모달 데이터 로드 실패:', err)
+  }
+}
+
 const recordLimit = ref(3)    // 한 페이지당 갯수
 const isExpanded = ref(false) // '접기' 기능
 
-/* ====== JWT에서 userNo 꺼내기 ====== */
-let userNo = null
-try {
-  const token = document.cookie
-    .split('; ')
-    .find(row => row.startsWith('token='))
-    ?.split('=')[1]
-
-  if (token) {
-    const decoded = jwtDecode(token)
-    // 서버에서 JWT에 sub 또는 user_no 로 저장되어 있음
-    userNo = decoded.sub || decoded.user_no
-  } else {
-    console.warn('JWT 토큰이 존재하지 않습니다.')
-  }
-} catch (err) {
-  console.error('JWT 파싱 실패:', err)
-}
 
 /* ====== 달력 상태 ====== */
 const now = new Date()
@@ -66,7 +64,6 @@ const fetchMyPage = async () => {
   try {
     const res = await axios.get('/api/mypage', {
       params: {
-        userNo,
         year: year.value,
         month: month.value + 1, // 백엔드는 1~12
       },
@@ -110,10 +107,12 @@ const fetchMyPage = async () => {
       status: p.status,
     }))
 
-    // ⚠️ 여기서는 여행기록/북마크를 '참고용'으로만 받고,
-    // 진짜 전체는 아래 fetchAll~ 에서 다시 덮어쓸 거라서 그냥 둬도 되고 무시해도 됨
-    // travelHistoryRaw.value = data.travelHistory ?? []
-    // bookmarksRaw.value = data.bookmarks ?? []
+    // 4) 여행 기록 - 이제 이걸 실제로 써먹자
+    travelHistoryRaw.value = data.travelHistory ?? []
+
+    // 5) 북마크
+    const bookmarkRes = await axios.get('/api/plans/bookmarks')
+    bookmarksRaw.value = bookmarkRes.data ?? []
 
   } catch (e) {
     console.error(e)
@@ -252,12 +251,13 @@ function nextMonth(){
 /* 북마크 카드용 변환 (이제는 전체 bookmarksRaw 기준) */
 const bookmarks = computed(() =>
   (bookmarksRaw.value ?? []).map(b => ({
-    id: b.bookmarkId,
+    id: b.planId, // ✅ 이 부분을 bookmarkId → planId 로 수정
     title: b.planTitle,
     type: '여행일정',
     count: b.bookmarkCount ?? 0,
   }))
 )
+
 
 /* 날짜 포맷 */
 function formatDateRange(start, end) {
@@ -451,9 +451,13 @@ function toggleBookmarks() {
       <section class="card bookmarks section">
         <header class="block__title">북마크</header>
 
-        <!-- 원페이지-->
-        <div class="bm-grid scroll-box">
-          <div class="bm-card" v-for="b in bookmarks" :key="b.id">
+        <div class="bm-grid">
+          <div
+            class="bm-card"
+            v-for="b in bookmarks"
+            :key="b.id"
+            @click="openBookmarkModal(b.id)" 
+          >
             <div class="bm-icon">🔖</div>
             <span class="bm-count">{{ b.count }}</span>
             <div class="bm-title">{{ b.title }}</div>
@@ -461,9 +465,15 @@ function toggleBookmarks() {
           </div>
         </div>
       </section>
+
     </div>
-  </div>
-  
+    <!-- ✅ 모달 컴포넌트 (페이지 하단) -->
+    </div>
+        <BrowseTravelModal
+        v-if="showModal"
+        :route="selectedPlan"
+        @close="showModal = false"
+      />
 </template>
 
 <style>
