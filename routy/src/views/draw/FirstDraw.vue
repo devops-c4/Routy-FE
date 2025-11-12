@@ -23,12 +23,23 @@
         <div class="card-body">
           <!-- 왼쪽: 지역 선택 -->
           <div class="left-column">
-            <h4 class="section-title">지역 선택</h4>
+            <div class="region-header">
+              <h4 class="section-title">지역 선택</h4>
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="도시명 검색"
+                class="search-input-inline"
+                @keyup.enter="handleEnter"
+              />
+            </div>
+
             <div class="city-grid">
               <div
                 v-for="region in regions"
                 :key="region.regionId"
                 class="city-card"
+                :data-region-id="region.regionId"
                 :class="{ selected: selectedCity && selectedCity.regionId === region.regionId }"
                 @click="selectCity(region)"
               >
@@ -56,7 +67,7 @@
 <script setup>
 import "@/assets/css/draw.css";
 import "@/assets/css/step-common.css";
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import axios from "axios";
 import markerBigImage from "@/assets/images/icons/first-marker.png";
@@ -67,6 +78,34 @@ const route = useRoute();
 const regions = ref([]);
 const selectedCity = ref(null);
 const city = ref("");
+
+const searchQuery = ref("");
+
+const filteredRegions = computed(() => {
+  if (!searchQuery.value.trim()) return regions.value; 
+  return regions.value.filter(r =>
+    r.regionName.includes(searchQuery.value.trim())
+  );
+});
+
+const handleEnter = () => {
+  const matched = filteredRegions.value[0];
+  if (matched) {
+    selectCity(matched);
+
+    setTimeout(() => {
+      const cardEl = document.querySelector(
+        `.city-card[data-region-id="${matched.regionId}"]`
+      );
+      if (cardEl) {
+        cardEl.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    }, 100);
+  } 
+};
 
 let map = null;
 let marker = null;
@@ -435,5 +474,29 @@ onMounted(async () => {
   .map-box {
     height: 250px;
   }
+}
+
+.region-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 300px;
+}
+
+.search-input-inline {
+  flex: 1;
+  max-width: 220px;
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  transition: 0.2s;
+}
+
+.search-input-inline:focus {
+  border-color: #155dfc;
+  box-shadow: 0 0 3px rgba(21, 93, 252, 0.3);
 }
 </style>
