@@ -950,11 +950,13 @@ const saveAllDaysPlaces = async () => {
       await axios.post("/api/places/batch", mappedPlaces);
     }
     alert("전체 일정 저장 완료!");
-        // 1) 우선 라우터로 시도
-    await router.push({ path: '/mypage' }).catch(() => {
-      // 2) 혹시 라우터가 거부하면 그냥 강제로 이동
-      window.location.href = '/mypage'
-    })
+    let count = Number(sessionStorage.getItem("newPlan")) || 0;
+    count++;
+    sessionStorage.setItem("newPlan",count);
+
+    router.push("/mypage").then(() => {
+    window.location.reload();
+  });
   } catch (err) {
     console.error("저장 실패:", err);
     console.error("에러 상세:", err.response?.data);
