@@ -27,7 +27,7 @@ onMounted(async () => {
     const dayList = travel.value.dayList || []
     expandedDays.value = dayList.map(() => false)
   } catch (err) {
-    console.error('❌ 여행 데이터를 불러오는 중 오류 발생:', err)
+    console.error('여행 데이터를 불러오는 중 오류 발생:', err)
   }
 })
 
@@ -54,6 +54,18 @@ function toggleMore() {
   showAll.value = !showAll.value
   visibleCount.value = showAll.value ? dayList.length : 3
 }
+async function handleDelete() {
+    const ok = confirm('이 일정을 정말 삭제할까요?')
+  if (!ok) return
+
+  try {
+    await apiClient.delete(`/api/plans/${planId}`)
+    router.push('/mypage')
+  } catch (err) {
+    console.error('일정 삭제 중 오류 발생:', err)
+    alert('삭제에 실패했어요. 잠시 후 다시 시도해주세요.')
+  }
+}
 </script>
 
 <template>
@@ -70,7 +82,7 @@ function toggleMore() {
         </div>
         <div class="header-right">
           <button class="btn btn-outline-blue" @click="goToEditPage">수정</button>
-          <button class="btn btn-outline-red">삭제</button>
+          <button class="btn btn-outline-red" @click="handleDelete">삭제</button>
         </div>
       </header>
 
@@ -108,7 +120,7 @@ function toggleMore() {
           </div>
         </div>
 
-        <div class="info-footer">
+        <!-- <div class="info-footer">
           <p class="date">{{ travel.startDate }} ~ {{ travel.endDate }}</p>
           <button
             v-if="travel.reviewWritable"
@@ -117,7 +129,7 @@ function toggleMore() {
           >
             리뷰 작성하기
           </button>
-        </div>
+        </div> -->
       </section>
 
       <!-- 일정 카드 리스트 -->
@@ -141,10 +153,10 @@ function toggleMore() {
               :key="i"
               class="plan"
             >
-              <!-- ✅ 장소 이름 -->
+              <!-- 장소 이름 -->
               <div class="plan-title">{{ plan.placeName }}</div>
 
-              <!-- ✅ 시간 정보 -->
+              <!-- 시간 정보 -->
               <div class="plan-time" v-if="plan.startTime || plan.endTime">
                 <i class="fa fa-clock"></i>
                 <span v-if="plan.startTime && plan.endTime">
@@ -158,19 +170,19 @@ function toggleMore() {
                 </span>
               </div>
 
-              <!-- ✅ 주소 -->
+              <!-- 주소 -->
               <div class="plan-address" v-if="plan.addressName">
                 <i class="fa fa-map-marker-alt"></i>
                 {{ plan.addressName }}
               </div>
 
-              <!-- ✅ 태그 / 카테고리 -->
+              <!-- 태그 / 카테고리 -->
               <div class="plan-category" v-if="plan.tag || plan.categoryGroupName">
                 <i class="fa fa-tag"></i>
                 {{ plan.tag || plan.categoryGroupName }}
               </div>
 
-              <!-- ✅ 자세히 보기 링크 -->
+              <!-- 자세히 보기 링크 -->
               <div class="plan-link" v-if="plan.placeUrl">
                 <a :href="plan.placeUrl" target="_blank">자세히 보기</a>
               </div>
@@ -403,7 +415,7 @@ function toggleMore() {
   margin-bottom: 2px;
 }
 
-/* ✅ 시간 표시 스타일 - 장소명 바로 아래 */
+/* 시간 표시 스타일 - 장소명 바로 아래 */
 .plan-time {
   color: #3b82f6;
   font-size: 12px;
