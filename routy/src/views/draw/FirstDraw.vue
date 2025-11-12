@@ -25,13 +25,29 @@
           <div class="left-column">
             <div class="region-header">
               <h4 class="section-title">지역 선택</h4>
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="도시명 검색"
-                class="search-input-inline"
-                @keyup.enter="handleEnter"
-              />
+              <div class="search-container">
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="도시명 검색"
+                  class="search-input-inline"
+                  @keyup.enter="handleEnter"
+                  @focus="showDropdown = true"
+                  @blur="hideDropdown"
+                  @input="showDropdown = true"
+                />
+
+
+                <ul v-if="showDropdown && filteredRegions.length > 0" class="autocomplete-dropdown">
+                  <li
+                    v-for="region in filteredRegions"
+                    :key="region.regionId"
+                    @mousedown.prevent="selectCity(region); searchQuery = region.regionName; showDropdown = false;"
+                  >
+                    {{ region.regionName }}
+                  </li>
+                </ul>
+              </div>
             </div>
 
             <div class="city-grid">
@@ -80,6 +96,7 @@ const selectedCity = ref(null);
 const city = ref("");
 
 const searchQuery = ref("");
+const showDropdown = ref(false);
 
 const filteredRegions = computed(() => {
   if (!searchQuery.value.trim()) return regions.value; 
@@ -105,6 +122,13 @@ const handleEnter = () => {
       }
     }, 100);
   } 
+};
+
+const hideDropdown = () => {
+  // 블러 이벤트가 너무 빨라서 setTimeout으로 약간 지연시켜 닫기
+  setTimeout(() => {
+    showDropdown.value = false;
+  }, 150);
 };
 
 let map = null;
@@ -498,5 +522,38 @@ onMounted(async () => {
 .search-input-inline:focus {
   border-color: #155dfc;
   box-shadow: 0 0 3px rgba(21, 93, 252, 0.3);
+}
+
+.search-container {
+  position: relative;
+  flex: 1;
+}
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: 38px;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.autocomplete-dropdown li {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.autocomplete-dropdown li:hover {
+  background: #eff6ff;
+  color: #155dfc;
+  font-weight: 500;
 }
 </style>
