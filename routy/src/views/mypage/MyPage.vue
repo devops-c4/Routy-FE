@@ -607,11 +607,11 @@ function toggleBookmarks() {
 .block{ padding:12px 12px 14px; }
 .block__title{ padding:4px 4px 8px 6px; font-weight:700; }
 .thumb-row{
-  display:grid; grid-template-columns:repeat(3,1fr);
-  gap: var(--gap-card);
+  display:grid;   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
 }
 .thumb{
-  height:140px; border-radius:14px; padding:14px; color:#fff;
+  height:70px; border-radius:14px; padding:14px; color:#fff;
   display:flex; flex-direction:column; justify-content:flex-end; gap:2px;
   box-shadow:inset 0 0 1px rgba(255,255,255,.25); position:relative;
 }
@@ -619,7 +619,7 @@ function toggleBookmarks() {
 .pin{ font-size:18px; opacity:.9; position:absolute; left:12px; top:10px; }
 .thumb b{ font-weight:700; } .thumb small{ opacity:.95; }
 
-/* ✅ 내부 스크롤 공통 */
+/* 내부 스크롤 공통 */
 /* .scroll-box {
   max-height: 250px; 
   overflow-y: auto;
