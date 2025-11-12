@@ -12,9 +12,16 @@
         <div class="route-section">
           <span class="route-item" @click="moveToDraw">여행 루트 그리기</span>
           <span class="route-item" @click="moveToBrowse">여행 루트 둘러보기</span>
-          <span class="route-item" @click="moveToChatBot">
+          <span class="route-item chatbot-wrapper" 
+            @click="moveToChatBot"
+            @mouseover="showChatTooltip = true"
+            @mouseleave="showChatTooltip = false"
+          >
             <img class="chatbot-icon" src="../assets/images/chatbot/chatbot1.png" alt="chatbot"/>
-          </img></span>
+            <div v-if="showChatTooltip" class="chat-tooltip">
+              Rooting에게 물어봐!
+            </div>
+          </span>
         </div>
       </div>
 
@@ -60,6 +67,7 @@ const isLoggedIn = ref(false);
 const LOGIN_STATUS_KEY = 'routy:isLoggedIn';
 const newPlanCount = ref(Number(sessionStorage.getItem("newPlan")) || 0);
 const showTooltip = ref(false)
+const showChatTooltip = ref(false)
 
 // 로그인 상태 확인 (localStorage 기반)
 const checkAuthStatus = () => {
@@ -147,6 +155,7 @@ const moveToChatBot = () => router.push('/chatbot');
 
 <style scoped>
 .navbar {
+  position: fixed;
   width: 100%;
   height: 50px;
   background: rgba(255, 255, 255, 0.8);
@@ -154,6 +163,7 @@ const moveToChatBot = () => router.push('/chatbot');
   justify-content: center;
   align-items: center;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  z-index: 1000;
 }
 
 .nav-content {
@@ -222,8 +232,8 @@ const moveToChatBot = () => router.push('/chatbot');
 }
 
 .chatbot-icon {
-  width: 50px; 
-  height: 50px;
+  width: 80px; 
+  height: 80px;
   object-fit: contain; 
   vertical-align: middle; 
   cursor: pointer;
@@ -252,6 +262,26 @@ const moveToChatBot = () => router.push('/chatbot');
   white-space: nowrap;
   animation: fadeIn 0.2s ease-in;
 }
+
+.chatbot-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.chat-tooltip {
+  position: absolute;
+  bottom: -20px; /* 아이콘 아래에 표시 */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.75);
+  color: white;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  animation: fadeIn 0.2s ease-in;
+}
+
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateX(-50%) translateY(-5px); }
