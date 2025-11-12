@@ -147,7 +147,7 @@
       <div class="modal-footer">
         <div class="footer-date">{{ route.createdAt }} 생성</div>
         <div class="footer-actions">
-          <button class="btn-import">
+          <button class="btn-import" @click="importToMyPlans">
             <span class="btn-icon"></span>
             나의 일정으로 불러오기
           </button>
@@ -161,6 +161,9 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue' 
 import apiClient from '@/utils/axios'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 // 부모로부터 전달받는 여행 데이터(route)
 const props = defineProps({
@@ -187,8 +190,6 @@ watch(
   },
   { immediate: true, deep: true }
 )
-
-
 
 // ✅ 좋아요 토글
 const toggleLike = async () => {
@@ -238,6 +239,18 @@ const toggleBookmark = async () => {
     })
   } catch (err) {
     console.error('북마크 요청 실패:', err)
+  }
+}
+
+// ✅ 나의 일정으로 불러오기
+const importToMyPlans = async () => {
+  try {
+    const res = await apiClient.post(`/api/plans/${props.route.planId}/copy`)
+    alert('내 일정에 추가되었습니다!')
+    router.push(`/mypage/travel/${res.data.newPlanId}`)
+  } catch (err) {
+    console.error('일정 복사 실패:', err)
+    alert('복사에 실패했습니다.')
   }
 }
 </script>
