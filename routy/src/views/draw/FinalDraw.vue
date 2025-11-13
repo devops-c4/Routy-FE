@@ -18,14 +18,18 @@
                   class="left-btn" 
                   @click="drawRoute"
                   :disabled="isDayCompleted"
-                  title="현재 선택한 장소들을 따라 경로를 지도에 그립니다."
+                  title=
+"현재 선택한 장소들을 따라
+경로를 지도에 그립니다."
                 >경로 그리기</button>
 
                 <button 
                   class="left-btn" 
                   @click="drawSort"
                   :disabled="isDayCompleted || isLoading"
-                  title="고정된 일정을 제외한 일정을 최소의 이동시간이 되도록 재배치합니다.">            
+                  title=
+"고정된 일정을 제외한 일정을
+최소의 이동시간이 되도록 재배치합니다.">            
                   <span v-if="isLoading">⏳ 정렬 중...</span>
                   <span v-else>자동 정렬</span>
                 </button>
@@ -169,44 +173,43 @@
                 :disabled="isDayCompleted"
               >숙소 선택</button>
           </div>
-
-          <!-- 테마 추천 섹션 -->
-          <div v-if="selectedTheme && themeRecommendations.length > 0" class="theme-section">
-            <div class="section-header" @click="toggleTheme">
-              <div class="header-left">
-                <h3>{{ themeNames[selectedTheme] }} 추천 TOP {{ themeRecommendations.length }}</h3>
-                <span class="badge">선택한 테마</span>
-              </div>
-              <button class="toggle-btn">
-                {{ isThemeExpanded ? '▲' : '▼' }}
-              </button>
-            </div>
-            
-            <div v-if="isLoadingTheme" class="loading-theme">
-              로딩 중...
-            </div>
-            
-            <div v-show="isThemeExpanded && !isLoadingTheme" class="theme-place-list">
-              <div 
-                v-for="(place, index) in themeRecommendations" 
-                :key="index"
-                class="theme-place-card"
-                @click="selectPlace(place)"
-                :class="{ active: selectedPlace && selectedPlace.title === place.title }"
-              >
-                <div class="rank-badge">{{ index + 1 }}</div>
-                <div class="place-icon">{{ getCategoryIcon(place.categoryCode) }}</div>
-                <div class="theme-place-info">
-                  <h4 class="theme-place-name">{{ place.title }}</h4>
-                  <p class="theme-category">{{ place.categoryGroupName }}</p>
-                  <p class="theme-address">{{ place.addressName }}</p>
-                </div>
-                <button class="add-btn" @click.stop="addPlace(place)" :disabled="isDayCompleted">
-                  추가
-                </button>
-              </div>
-            </div>
-          </div>
+        <!-- 테마 추천 섹션 -->
+<div v-if="selectedTheme && themeRecommendations.length > 0" class="theme-section">
+  <div class="section-header" @click="toggleTheme">
+    <div class="header-left">
+      <h3>{{ themeNames[selectedTheme] }} 추천 TOP {{ themeRecommendations.length }}</h3>
+      <span class="badge">선택한 테마</span>
+    </div>
+    <button class="toggle-btn">
+      {{ isThemeExpanded ? '▲' : '▼' }}
+    </button>
+  </div>
+  
+  <div v-if="isLoadingTheme" class="loading-theme">
+    로딩 중...
+  </div>
+  
+  <div v-show="isThemeExpanded && !isLoadingTheme" class="theme-place-list">
+    <div 
+      v-for="(place, index) in themeRecommendations" 
+      :key="index"
+      class="theme-place-card"
+      @click="selectPlace(place)"
+      :class="{ active: selectedPlace && selectedPlace.title === place.title }"
+    >
+      <div class="rank-badge">{{ index + 1 }}</div>
+      <div class="place-icon">{{ getCategoryIcon(place.categoryCode) }}</div>
+      <div class="theme-place-info">
+        <h4 class="theme-place-name">{{ place.title }}</h4>
+        <p class="theme-category">{{ place.categoryGroupName }}</p>
+        <p class="theme-address">{{ place.addressName }}</p>
+      </div>
+      <button class="add-btn" @click.stop="addPlace(place)" :disabled="isDayCompleted">
+        추가
+      </button>
+    </div>
+  </div>
+</div>
 
           <div class="filter-bar">
             <button
@@ -235,6 +238,7 @@
               @click="selectPlace(p)"
               :class="{ active: selectedPlace && selectedPlace.title === p.title }"
             >
+              <!-- 이미지 추가 -->
               <div class="place-image-wrapper">
                 <img 
                   v-if="p.imageUrl"
@@ -308,6 +312,7 @@
         <button class="close-btn" @click="cancelSortPreview">✕</button>
       </div>
 
+      <!-- 🔹 본문 -->
       <div class="sort-body">
         <div class="curr-list">
           <div class="list-title">정렬 전</div>
@@ -321,7 +326,7 @@
             <div class="sort_info">
               <div class="sort-name">{{ place.title }}</div>
               <div class="sort-category">{{ place.description }}</div>
-              <a
+              <a 
                 :href="place.placeUrl"
                 target="_blank"
                 style="color:#155DFC; text-decoration:none;font-size:13px;"
@@ -351,6 +356,7 @@
         </div>
       </div>
 
+      <!-- 버튼은 body 아래로 이동 -->
       <div class="sort-footer">
         <button class="sort-cancel-btn" @click="cancelSortPreview">취소</button>
         <button class="sort-btn" @click="applySortedPlaces">정렬 적용</button>
@@ -364,6 +370,7 @@ import { ref, computed, onMounted, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import apiClient from "@/utils/axios";
 import draggable from "vuedraggable";
+
 
 // 마커 이미지 import
 import restaurantMarker from '@/assets/images/icons/markers/restaurant-marker.svg';
@@ -380,23 +387,26 @@ import { deletePoliLine, direction, sortDirection, isPolyLine } from '@/composab
 const route = useRoute();
 const router = useRouter();
 
-// 테마 관련 상태
+// === 테마 추천 관련 상태 ===
 const selectedTheme = ref('');
 const themeRecommendations = ref([]);
 const isLoadingTheme = ref(false);
 const isThemeExpanded = ref(true);
 
 const themeNames = {
-  'restaurant': '맛집',
-  'cafe': '카페',
-  'tourist': '관광지'
+  restaurant: '맛집',
+  cafe: '카페',
+  tourist: '관광지'
 };
 
 const toggleTheme = () => {
   isThemeExpanded.value = !isThemeExpanded.value;
 };
 
+const historyState = window.history.state || {};
+
 // 수정페이지에서 넘겨준 데이터
+// sessionStorage에서 먼저 확인
 let previousData = null;
 let targetDay = null;
 
@@ -412,25 +422,18 @@ if (sessionData && sessionTargetDay) {
     console.error("sessionStorage 파싱 실패:", e);
   }
 }
-
 const showSortModal = ref(false);
 const planIdFromQuery = route.query.planId ? Number(route.query.planId) : null;
 const targetDayFromQuery = route.query.targetDay ? Number(route.query.targetDay) : null;
 
-// totalDays 추가!
-const totalDaysFromQuery = route.query.totalDays ? Number(route.query.totalDays) : null;
-const totalDays = totalDaysFromQuery || previousData?.dayList?.length || 1;
-
 const planId = previousData?.planId ? Number(previousData.planId) : planIdFromQuery;
 targetDay = targetDay || targetDayFromQuery;
 
-// 테마 정보 가져오기
 selectedTheme.value = route.query.theme || localStorage.getItem('selectedTheme') || '';
 
-console.log("👀 previousData:", previousData);
-console.log("👀 targetDay:", targetDay);
-console.log("👀 planId:", planId);
-console.log("👀 totalDays:", totalDays); // 로그 추가!
+console.log("👀 previousData 최종:", previousData);
+console.log("👀 targetDay 최종:", targetDay);
+console.log("👀 planId 최종:", planId);
 console.log("👀 selectedTheme:", selectedTheme.value);
 
 const hoveredPlaceUrl = ref(null);
@@ -485,7 +488,7 @@ const loadThemeRecommendations = async () => {
   isLoadingTheme.value = true;
   
   try {
-    const response = await axios.get('/api/kakao/theme-search', {
+    const response = await apiClient.get('/api/kakao/theme-search', {
       params: {
         query: startLocation.value.name,
         theme: selectedTheme.value
@@ -674,13 +677,17 @@ const highlightPlace = async (place, fromMarkerClick = false) => {
     targetType = 'attractions';
   }
   
+  // 현재 카테고리와 다르면 카테고리 전환
   if (currentType.value !== targetType) {
     currentType.value = targetType;
+    // 해당 카테고리의 장소 검색
     await loadPlaces(targetType, place.latitude, place.longitude);
+    // 검색 완료 후 약간의 지연을 주어 DOM 업데이트 대기
     await nextTick();
   }
   
   
+  // 오른쪽 리스트에서 해당 장소 찾아서 스크롤
   if (placeCardRefs.value[place.title] && placeListContainer.value) {
     const element = placeCardRefs.value[place.title];
     const container = placeListContainer.value;
@@ -931,6 +938,7 @@ const loadPlanInfo = async () => {
   }
 };
 
+
 // 장소 불러오기
 const loadPlaces = async (type, lat = null, lng = null) => {
   deletePoliLine();
@@ -945,20 +953,14 @@ const loadPlaces = async (type, lat = null, lng = null) => {
   let searchLng = lng;
   
   if (!searchLat || !searchLng) {
-    if (map) {
-      const center = map.getCenter();
-      searchLat = center.getLat();
-      searchLng = center.getLng();
+    const currentDayPlaces = placesByDay.value[selectedDay.value] || [];
+    if (currentDayPlaces.length > 0) {
+      const lastPlace = currentDayPlaces[currentDayPlaces.length - 1];
+      searchLat = lastPlace.latitude;
+      searchLng = lastPlace.longitude;
     } else {
-      const currentDayPlaces = placesByDay.value[selectedDay.value] || [];
-      if (currentDayPlaces.length > 0) {
-        const lastPlace = currentDayPlaces[currentDayPlaces.length - 1];
-        searchLat = lastPlace.latitude;
-        searchLng = lastPlace.longitude;
-      } else {
-        searchLat = startLocation.value.lat;  
-        searchLng = startLocation.value.lng;
-      }
+      searchLat = startLocation.value.lat;  
+      searchLng = startLocation.value.lng;
     }
   }
   
@@ -1020,10 +1022,11 @@ const selectPlace = (p) => {
   }
 };
 
-// 장소 추가
-const addPlace = async (p) => {
+// 장소 추가 (일정수정에서 넘어온거 테스트중)
+const addPlace = (p) => {
   const day = selectedDay.value;
   
+  // 중복 체크
   if (!placesByDay.value[day]) {
     placesByDay.value[day] = [];
   }
@@ -1033,6 +1036,7 @@ const addPlace = async (p) => {
     return;
   }
   
+  // 장소 추가
   placesByDay.value[day].push({ 
     ...p, 
     dayNumber: day,
@@ -1154,7 +1158,7 @@ const focusHotelOnMap = (hotel) => {
   hotelMap.panTo(pos);
 };
 
-// Duration 불러오기 (자동 생성 기능 추가)
+// Duration 불러오기
 const loadDurations = async () => {
   try {
     durations.value = [];
@@ -1163,7 +1167,6 @@ const loadDurations = async () => {
     let fetched = [];
     
     if (res.data && res.data.length > 0) {
-      // Duration이 있으면 그대로 사용
       fetched = res.data
         .filter((d) => {
           if (uniqueDays.has(d.day)) return false;
@@ -1175,48 +1178,18 @@ const loadDurations = async () => {
           planId: d.planId,
           day: d.day,
         }));
-      
-      console.log("DB에서 Duration 로드:", fetched);
     } else {
-      // Duration이 없으면 생성!
-      console.warn("Duration이 없습니다. 생성합니다...");
-      console.log("생성할 일수:", totalDays);
-      
-      try {
-        const createRes = await axios.post(`/api/plans/${planId}/durations`, {
-          totalDays: totalDays
-        });
-        
-        fetched = createRes.data.map((d) => ({
-          durationId: d.durationId,
-          planId: d.planId,
-          day: d.day,
-        }));
-        
-        console.log("✅ Duration 생성 완료:", fetched);
-      } catch (createErr) {
-        console.error("Duration 생성 실패:", createErr);
-        // 생성 실패 시 기본 Duration 설정
-        fetched = Array.from({ length: totalDays }, (_, i) => ({
-          durationId: i + 1,
-          planId,
-          day: i + 1,
-        }));
-        console.warn("임시 Duration 사용:", fetched);
-      }
+      fetched = Array.from({ length: totalDays }, (_, i) => ({
+        durationId: i + 1,
+        planId,
+        day: i + 1,
+      }));
     }
     
     durations.value = fetched.sort((a, b) => a.day - b.day);
-    console.log("최종 Duration:", durations.value);
+    console.log("Duration 로드 완료:", durations.value);
   } catch (err) {
     console.error("Duration 로드 실패:", err);
-    // 에러 시 기본 Duration 설정
-    durations.value = Array.from({ length: totalDays }, (_, i) => ({
-      durationId: i + 1,
-      planId,
-      day: i + 1,
-    }));
-    console.warn("에러 발생, 임시 Duration 사용:", durations.value);
   }
 };
 
@@ -1282,7 +1255,8 @@ const getCategoryIcon = (categoryCode) => {
   return icons[categoryCode] || '📍';
 };
 
-// 저장 함수 (로그 추가)
+// 저장 함수
+// 저장 함수 수정
 const saveAllDaysPlaces = async () => {
   try {
     let hasNewPlaces = false;
@@ -1298,9 +1272,7 @@ const saveAllDaysPlaces = async () => {
       
       hasNewPlaces = true;
       
-      // 로그 추가
-      console.log(`${duration.day}일차 저장 데이터:`, newPlaces);
-      
+      // 시간 검증
       for (const place of newPlaces) {
         if (place.startTime && place.endTime) {
           if (place.endTime <= place.startTime) {
@@ -1335,20 +1307,20 @@ const saveAllDaysPlaces = async () => {
       await apiClient.post("/api/places/batch", mappedPlaces);
     }
     
-    if (!hasNewPlaces) {
-      alert("새로 추가된 장소가 없습니다.");
-      return;
-    }
+
     
     alert("새로운 장소가 저장되었습니다!");
     
+    // sessionStorage 클리어
     sessionStorage.removeItem("editPlanData");
     sessionStorage.removeItem("editTargetDay");
     
+    // 일정수정 모드였다면 상세 페이지로
     if (previousData) {
       console.log("일정 상세 페이지로 이동");
       router.push(`/mypage/travel/${planId}`);
     } else {
+      // 일반 모드였다면 마이페이지로
       console.log("마이페이지로 이동");
       let count = Number(sessionStorage.getItem("newPlan")) || 0;
       count++;
@@ -1365,7 +1337,6 @@ const saveAllDaysPlaces = async () => {
     alert("저장에 실패했습니다. 다시 시도해주세요.");
   }
 };
-
 onMounted(async () => {
   console.log("🚀 컴포넌트 초기화 시작");
   
@@ -1445,8 +1416,9 @@ const drawRoute = async () => {
 };
 
 // 자동 정렬
+
 const isLoading = ref(false);
-const previewSorted = ref([]);
+const previewSorted = ref([]);    // 자동 정렬된 결과 임시 저장
 
 const drawSort = async () => {
   selectedPlace.value = null;
@@ -1476,10 +1448,10 @@ const drawSort = async () => {
     };
   }).filter(Boolean);
   
-  previewSorted.value = reorderedPlaces;
+  previewSorted.value = reorderedPlaces;    // 결과 임시 저장
   console.log("정렬 완료:", reorderedPlaces);
 
-  showSortModal.value = true;
+  showSortModal.value = true; // 모달창 띄우기
 };
 
 const applySortedPlaces = () => {
@@ -1492,11 +1464,14 @@ const applySortedPlaces = () => {
 const cancelSortPreview = () => {
   console.log("정렬 취소");
   showSortModal.value = false;
+  
 };
 </script>
 
 <style scoped>
-/* 기존 스타일 그대로 유지 */
+.final-draw-page {
+  zoom: 0.8; /* 80% 크기 */
+}
 .step-container {
   width: 100%;
   min-height: 100vh;
@@ -1556,9 +1531,11 @@ const cancelSortPreview = () => {
   border-bottom: 1px solid rgba(0,0,0,0.1); 
   display: flex;
   flex-direction: column;
-  height: 115px;
-  gap: 16px;
+  height: 115px; /* 전체 컨테이너 높이 */
+  gap: 16px;     /* 상하 버튼 간격 */
+
 }
+.action-row { display: flex; gap: 8px; margin-bottom: 12px; }
 
 .left-btn {
   flex: 1;
@@ -1569,6 +1546,20 @@ const cancelSortPreview = () => {
   background: white;
   color: #4A5565;
   transition: 0.2s;
+}
+
+.left-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  padding: 16px;
+}
+
+.left-actions-grid .left-btn {
+  width: 100%;
+  height: 40px;
+  width: 48%;
 }
 
 .left-btn:hover:not(:disabled) {
@@ -1593,9 +1584,10 @@ const cancelSortPreview = () => {
 
 .middle-btns {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* 좌우 버튼 분리 */
   gap: 16px;
 }
+
 
 .top-btn {
   width: 100%;
@@ -1613,6 +1605,12 @@ const cancelSortPreview = () => {
   background: white;
   height: 40px;
   width: 110px;
+  /* flex: 0; flex:1 제거! → 버튼이 늘어나지 않게 */
+}
+
+.info-box {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
 }
 
 .empty-guide {
@@ -2010,12 +2008,12 @@ const cancelSortPreview = () => {
   padding: 16px;
   border-bottom: 1px solid rgba(0,0,0,0.1);
   font-size: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+
+  display: flex;                /* 가로 정렬 */
+  justify-content: space-between; /* 좌측은 '검색', 우측은 버튼 */
+  align-items: center;          /* 수직 중앙정렬 */
 }
 
-/* 🔥 테마 추천 섹션 스타일 */
 .theme-section {
   background: linear-gradient(135deg, #155DFC 0%, #0f47c9 100%);
   border-bottom: 1px solid rgba(0,0,0,0.1);
@@ -2171,6 +2169,7 @@ const cancelSortPreview = () => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 
 .filter-bar {
   display: flex;
@@ -2399,6 +2398,9 @@ const cancelSortPreview = () => {
   pointer-events: none;
 }
 
+
+
+
 /* 모달 전체 배경 */
 .sort-modal-overlay {
   position: fixed;
@@ -2438,15 +2440,15 @@ const cancelSortPreview = () => {
   font-weight: 600;
   color: #111827;
 }
-
 /* 모달 본문 */
 .sort-body {
   display: flex;
   gap: 20px;
   justify-content: space-between;
   padding: 16px;
-  max-height: 60vh;
-  overflow-y: auto;
+  /* 높이 제한 */
+  max-height: 60vh; /* 모달 최대 높이의 60% */
+  overflow-y: auto; /* 세로 스크롤 */
 }
 
 /* 리스트 구역 (현재 vs 정렬 후) */
@@ -2457,17 +2459,22 @@ const cancelSortPreview = () => {
 
 /* 리스트 제목 */
 .list-title {
-  text-align: center;
+  text-align: center; /* 제목 중앙 정렬 */
   font-weight: 600;
   margin-top: 8px;
   margin-bottom: 8px;
 }
 
+/* .sort-body > .curr-list >.list-title {
+  
+} */
+
 .sort-body > .sort-list >.list-title {
   color: #155dfc;
 }
 
-/* 카드 스타일 */
+
+/* 카드 스타일 (호텔 카드 느낌으로 통일) */
 .sort-card {
   background: #f9fafb;
   border: 1px solid #e5e7eb;
@@ -2488,6 +2495,13 @@ const cancelSortPreview = () => {
 .fix-card {
   background-color: #4A5565;
 }
+
+
+
+/* .sort-card:hover {
+  border-color: #155dfc;
+  background: #eef4ff;
+} */
 
 .sort_info {
   display: flex;
@@ -2539,21 +2553,75 @@ const cancelSortPreview = () => {
   background-color: #e5e7eb;
 }
 
-/* footer 버튼 영역 */
+/* footer 버튼 영역 (중앙 정렬 + 여백 추가) */
 .sort-footer {
   display: flex;
-  justify-content: center;
+  justify-content: center; /* 버튼 중앙 정렬 */
   align-items: center;
-  gap: 12px;
-  padding: 20px 0 28px;
-  margin-top: 8px;
+  gap: 12px; /* 버튼 간격 */
+  padding: 20px 0 28px; /* 위아래 여백 (특히 리스트와 간격 확보) */
+  margin-top: 8px; /* 리스트와 살짝 띄우기 */
   border-top: 1px solid #e5e7eb;
   background-color: #f9fafb;
 }
+
 
 /* 모달 등장 애니메이션 */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.custom-overlay {
+  position: relative;
+  background: white;
+  border: 2px solid #3B82F6;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #333;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+  text-align: left;
+  width: 200px;
+  transition: all 0.2s ease;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.overlay-header strong {
+  color: #1E40AF;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.overlay-close {
+  background: transparent;
+  border: none;
+  color: #666;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.overlay-close:hover {
+  color: #000;
+}
+
+.overlay-body {
+  color: #555;
+  font-size: 12px;
+  line-height: 1.4;
 }
 </style>
