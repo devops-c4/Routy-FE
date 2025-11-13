@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 import { jwtDecode } from 'jwt-decode' // 설치 안 돼 있으면: npm i jwt-decode
 import BrowseTravelModal from '@/views/browse/BrowseTravelModal.vue'
 import TravelReviewModal from '@/views/mypage/TravelReviewModal.vue'
-
+import BookmarkCard from '@/views/mypage/BookmarkCard.vue'
 
 
 const router = useRouter()
@@ -493,17 +493,13 @@ function toggleBookmarks() {
         <header class="block__title">북마크</header>
 
         <div class="bm-grid">
-          <div
-            class="bm-card"
+          <!-- ✅ BookmarkCard 컴포넌트로 교체 -->
+          <BookmarkCard
             v-for="b in bookmarks"
             :key="b.id"
-            @click="openBookmarkModal(b.id)" 
-          >
-            <div class="bm-icon">🔖</div>
-            <span class="bm-count">{{ b.count }}</span>
-            <div class="bm-title">{{ b.title }}</div>
-            <div class="bm-type">{{ b.type }}</div>
-          </div>
+            :item="b"
+            @openModal="openBookmarkModal"
+          />
         </div>
       </section>
 
@@ -511,11 +507,10 @@ function toggleBookmarks() {
     <!-- 모달 컴포넌트 (페이지 하단) -->
       </div>
       <BrowseTravelModal
-        v-if="showBrowseModal"
-        :planId="selectedPlanId"
-        @close="showBrowseModal = false"
+        v-if="showModal"
+        :route="selectedPlan"
+        @close="showModal = false"
       />
-
        <!-- 리뷰 작성 모달 -->
       <TravelReviewModal
         v-if="showReviewModal"
