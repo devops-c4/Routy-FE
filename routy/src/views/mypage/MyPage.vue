@@ -5,8 +5,13 @@ import { useRouter } from 'vue-router'
 import { jwtDecode } from 'jwt-decode' // 설치 안 돼 있으면: npm i jwt-decode
 import BrowseTravelModal from '@/views/browse/BrowseTravelModal.vue'
 import TravelReviewModal from '@/views/mypage/TravelReviewModal.vue'
+import apiClient from '@/utils/axios'
 
 
+// 리뷰 이미지 썸네일 캐시 (planId -> url)
+const reviewThumbMap = ref({})
+
+const isHttp = (u) => typeof u === 'string' && /^https?:\/\//i.test(u)
 
 const router = useRouter()
 
@@ -50,9 +55,53 @@ function openReviewModal(planId, title) {
   showReviewModal.value = true
 }
 
+// 썸네일이 비어 있는 기록들에 대해 첫 리뷰이미지(S3 URL) 가져오기
+async function hydrateThumbnails() {
+  const list = travelHistoryRaw.value ?? []
+  console.log('🔎 hydrate start: records=', list.length)
+
+  const targets = list.filter(t =>
+    t?.planId &&
+    (!t.thumbnailUrl || !isHttp(t.thumbnailUrl)) &&
+    !reviewThumbMap.value[t.planId]
+  )
+  console.log('🎯 hydrate targets=', targets.map(t => t.planId))
+
+  for (const t of targets) {
+    const pid = t.planId
+    try {
+      const res = await apiClient.get(`/api/plans/${pid}/reviews/form`)
+      const f0 = res.data?.files?.[0] || null
+
+      // S3 절대 URL만 채택, 아니면 폐기
+      const firstUrl =
+        (isHttp(f0?.filePath) ? f0.filePath : null) ??
+        (isHttp(f0?.url) ? f0.url : null) ??
+        null
+
+      console.log('📬 reviews/form resp:', pid, {
+        hasFiles: !!res.data?.files?.length,
+        firstUrl,
+        raw: f0
+      })
+
+      if (firstUrl) {
+        reviewThumbMap.value = { ...reviewThumbMap.value, [pid]: firstUrl }
+        console.log('✅ 썸네일 주입:', pid, firstUrl)
+      } else {
+        console.log('⚠️ 파일 없음 or 비정상 URL:', pid)
+      }
+    } catch (e) {
+      console.warn('❌ reviews/form 실패:', pid, e?.response?.status, e?.response?.data || e?.message)
+    }
+  }
+}
+
 // 리뷰 저장 후 리스트 갱신 훅 (필요 시)
 async function refreshHistory() {
   await fetchAllTravelHistory()
+   // 재하이드
+  hydrateThumbnails()
 }
 
 // 리뷰 모달 닫기
@@ -170,8 +219,10 @@ const fetchAllTravelHistory = async () => {
     const res = await apiClient.get('/api/mypage/travel-history') 
     console.log('📦 여행기록 API 응답:', res.data)
     travelHistoryRaw.value = res.data ?? []
+    // 목록 갱신 후 썸네일 하이드레이션
+    await hydrateThumbnails()
   } catch (e) {
-    console.warn('전체 여행기록 호출 실패:', e)
+    console.warn('전체 여행기록 호출 실패:', e?.response?.status, e?.response?.data || e?.message)
   }
 }
 
@@ -190,10 +241,8 @@ onMounted(async () => {
   // 1) 기본 마이페이지 (월별)
   await fetchMyPage()
   // 2) 전체 여행기록 + 전체 북마크
-  await Promise.all([
-    fetchAllTravelHistory(),
-    fetchAllBookmarks(),
-  ])
+  await fetchAllTravelHistory()  // 여기서 목록 로드 + 내부에서 hydrateThumbnails 호출
+  await fetchAllBookmarks()
 })
 
 /* 달이 바뀔 때마다 다시 호출 (이때는 달력/다가오는 일정만 갱신하면 됨) */
@@ -234,13 +283,29 @@ const viewSchedules = computed(() => {
 })
 
 /* ====== 여행 기록 (이제는 전체 travelHistoryRaw 기준) ====== */
+// const travelRecords = computed(() => {
+//   return (travelHistoryRaw.value ?? []).map(t => ({
+//     id: t.planId,
+//     title: t.planTitle || t.title,
+//     desc: `${t.startDate} ~ ${t.endDate}`,
+//     thumbnailUrl: t.thumbnailUrl ?? '',
+//   }))
+// })
 const travelRecords = computed(() => {
-  return (travelHistoryRaw.value ?? []).map(t => ({
-    id: t.planId,
-    title: t.planTitle || t.title,
-    desc: `${t.startDate} ~ ${t.endDate}`,
-    thumbnailUrl: t.thumbnailUrl ?? '',
-  }))
+  return (travelHistoryRaw.value ?? []).map(t => {
+    const pid = t?.planId
+
+    // 캐시 → 백엔드 썸네일 → 없으면 ''
+    const rawThumb = reviewThumbMap.value[pid] || t.thumbnailUrl || ''
+    const thumb = isHttp(rawThumb) ? rawThumb : '' // 절대 URL만 사용
+
+    return {
+      id: pid,
+      title: t.planTitle || t.title,
+      desc: `${t.startDate} ~ ${t.endDate}`,
+      thumbnailUrl: thumb,
+    }
+  })
 })
 
 /* "다가오는 여행 n건" 카운트 */
@@ -480,9 +545,20 @@ function toggleBookmarks() {
             tabindex="0"
             
           >
+
+            <!-- 배경 이미지 레이어 (있을 때만) -->
+             <div class="thumb-img-wrapper">
+          <div
+            v-if="r.thumbnailUrl"
+            class="thumb-bg"
+            :style="{ backgroundImage: `url(${r.thumbnailUrl})` }"
+            ></div>
             <span class="pin">📍</span>
+            </div>
+            <div class="thumb-info">
             <b>{{ r.title }}</b>
             <small>{{ r.desc }}</small>
+            </div>
           </div>
         </div>
 
@@ -517,6 +593,7 @@ function toggleBookmarks() {
       />
 
        <!-- 리뷰 작성 모달 -->
+
       <TravelReviewModal
         v-if="showReviewModal"
         :plan-id="selectedPlanId"
@@ -525,6 +602,7 @@ function toggleBookmarks() {
           @saved="onReviewSaved"
           @openBrowse="openBrowseModal"
       />
+
 </template>
 
 <style>
@@ -675,9 +753,17 @@ function toggleBookmarks() {
   gap: 16px;
 }
 .thumb{
-  height:70px; border-radius:14px; padding:14px; color:#fff;
+  height:200px; border-radius:14px; padding:0; color:#fff;
   display:flex; flex-direction:column; justify-content:flex-end; gap:2px;
   box-shadow:inset 0 0 1px rgba(255,255,255,.25); position:relative;
+  overflow: hidden;
+}
+/* 배경 이미지 레이어 */
+.thumb-bg{
+  position:absolute; inset:0;
+  background-size: cover; background-position: center;
+  filter: brightness(0.7);
+  border-radius: 14px;
 }
 .bluegrad{ background:linear-gradient(180deg, #60A5FA 0%, #3B82F6 100%); }
 .pin{ font-size:18px; opacity:.9; position:absolute; left:12px; top:10px; }
@@ -749,5 +835,19 @@ function toggleBookmarks() {
 @media (max-width: 600px){
   .calendar, .schedule{ min-height: 360px; }
   .thumb-row, .bm-grid{ grid-template-columns:1fr; }
+}
+
+.thumb-img-wrapper {
+  position: relative;
+  flex: 0 0 70%;
+  overflow: hidden;
+}
+.thumb-info {
+  flex: 1;
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: #fff;
 }
 </style>

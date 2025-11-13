@@ -83,7 +83,7 @@
 <script setup>
 import "@/assets/css/draw.css";
 import "@/assets/css/step-common.css";
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import apiClient from "@/utils/axios";
 import markerBigImage from "@/assets/images/icons/first-marker.png";
@@ -407,9 +407,25 @@ onMounted(async () => {
     
     
     const matched = regions.value.find((r) => route.query.city.includes(r.regionName));
-    if (matched) selectedCity.value = matched;
+    if (matched) {
+      selectedCity.value = matched;
+
+      setTimeout(() => {
+      const cardEl = document.querySelector(
+        `.city-card[data-region-id="${selectedCity.value.regionId}"]`
+      );
+      if (cardEl) {
+        cardEl.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    }, 100);
+    }
+
   }
 });
+
 </script>
 
 <style scoped>
@@ -454,6 +470,7 @@ onMounted(async () => {
   margin: 0 auto;
   max-height: 400px;
   overflow-y: scroll;
+  padding-right: 15px;
 }
 .city-card {
   height: 80px;
@@ -471,7 +488,7 @@ onMounted(async () => {
 .city-card.selected {
   background: #eff6ff;
   border: 2px solid #155dfc;
-  box-shadow: 0px 0px 0px 2px #155dfc;
+  box-shadow: inset 0 0 0 2px #155dfc;
 }
 .right-column {
   flex: 1;
@@ -542,6 +559,7 @@ onMounted(async () => {
   max-height: 200px;
   overflow-y: auto;
   padding: 6px 0;
+  width: 190px;
 }
 
 .autocomplete-dropdown li {
