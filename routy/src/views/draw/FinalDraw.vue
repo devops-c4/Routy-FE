@@ -173,7 +173,43 @@
                 :disabled="isDayCompleted"
               >숙소 선택</button>
           </div>
-
+        <!-- 테마 추천 섹션 -->
+<div v-if="selectedTheme && themeRecommendations.length > 0" class="theme-section">
+  <div class="section-header" @click="toggleTheme">
+    <div class="header-left">
+      <h3>{{ themeNames[selectedTheme] }} 추천 TOP {{ themeRecommendations.length }}</h3>
+      <span class="badge">선택한 테마</span>
+    </div>
+    <button class="toggle-btn">
+      {{ isThemeExpanded ? '▲' : '▼' }}
+    </button>
+  </div>
+  
+  <div v-if="isLoadingTheme" class="loading-theme">
+    로딩 중...
+  </div>
+  
+  <div v-show="isThemeExpanded && !isLoadingTheme" class="theme-place-list">
+    <div 
+      v-for="(place, index) in themeRecommendations" 
+      :key="index"
+      class="theme-place-card"
+      @click="selectPlace(place)"
+      :class="{ active: selectedPlace && selectedPlace.title === place.title }"
+    >
+      <div class="rank-badge">{{ index + 1 }}</div>
+      <div class="place-icon">{{ getCategoryIcon(place.categoryCode) }}</div>
+      <div class="theme-place-info">
+        <h4 class="theme-place-name">{{ place.title }}</h4>
+        <p class="theme-category">{{ place.categoryGroupName }}</p>
+        <p class="theme-address">{{ place.addressName }}</p>
+      </div>
+      <button class="add-btn" @click.stop="addPlace(place)" :disabled="isDayCompleted">
+        추가
+      </button>
+    </div>
+  </div>
+</div>
 
           <div class="filter-bar">
             <button
@@ -351,6 +387,22 @@ import { deletePoliLine, direction, sortDirection, isPolyLine } from '@/composab
 const route = useRoute();
 const router = useRouter();
 
+// === 테마 추천 관련 상태 ===
+const selectedTheme = ref('');
+const themeRecommendations = ref([]);
+const isLoadingTheme = ref(false);
+const isThemeExpanded = ref(true);
+
+const themeNames = {
+  restaurant: '맛집',
+  cafe: '카페',
+  tourist: '관광지'
+};
+
+const toggleTheme = () => {
+  isThemeExpanded.value = !isThemeExpanded.value;
+};
+
 const historyState = window.history.state || {};
 
 // 수정페이지에서 넘겨준 데이터
@@ -377,9 +429,12 @@ const targetDayFromQuery = route.query.targetDay ? Number(route.query.targetDay)
 const planId = previousData?.planId ? Number(previousData.planId) : planIdFromQuery;
 targetDay = targetDay || targetDayFromQuery;
 
+selectedTheme.value = route.query.theme || localStorage.getItem('selectedTheme') || '';
+
 console.log("👀 previousData 최종:", previousData);
 console.log("👀 targetDay 최종:", targetDay);
 console.log("👀 planId 최종:", planId);
+console.log("👀 selectedTheme:", selectedTheme.value);
 
 const hoveredPlaceUrl = ref(null);
 
@@ -422,6 +477,65 @@ const completedDays = ref(new Set());
 const isSearching = ref(false);
 const lastSearchCoords = ref({ lat: null, lng: null, type: null });
 let mapIdleTimeout = null;
+
+// 테마별 추천 장소 로드
+const loadThemeRecommendations = async () => {
+  if (!selectedTheme.value) {
+    console.log("선택된 테마 없음");
+    return;
+  }
+  
+  isLoadingTheme.value = true;
+  
+  try {
+    const response = await apiClient.get('/api/kakao/theme-search', {
+      params: {
+        query: startLocation.value.name,
+        theme: selectedTheme.value
+      }
+    });
+    
+    // 테마에 따른 categoryCode 강제 설정
+    let forcedCategoryCode = 'AT4';
+    
+    if (selectedTheme.value === 'restaurant') {
+      forcedCategoryCode = 'FD6';
+    } else if (selectedTheme.value === 'cafe') {
+      forcedCategoryCode = 'CE7';
+    } else if (selectedTheme.value === 'tourist') {
+      forcedCategoryCode = 'AT4';
+    }
+    
+    const kakaoPlaces = response.data.documents || [];
+    themeRecommendations.value = kakaoPlaces.map((place, index) => ({
+      travelOrder: index + 1,
+      estimatedTravelTime: 0,
+      title: place.place_name,
+      latitude: parseFloat(place.y),
+      longitude: parseFloat(place.x),
+      categoryCode: forcedCategoryCode,
+      categoryGroupName: place.category_group_name || themeNames[selectedTheme.value],
+      addressName: place.road_address_name || place.address_name,
+      placeUrl: place.place_url,
+      description: place.category_name,
+      imageUrl: null,
+      planId,
+      startTime: '',
+      endTime: '',
+      showTimeInput: false
+    }));
+    
+    console.log(`테마 추천 ${themeRecommendations.value.length}개 로드 완료`);
+    console.log(`강제 설정된 categoryCode: ${forcedCategoryCode}`);
+    console.log(`첫 번째 장소:`, themeRecommendations.value[0]);
+    
+  } catch (error) {
+    console.error('테마 추천 로딩 실패:', error);
+    themeRecommendations.value = [];
+  } finally {
+    isLoadingTheme.value = false;
+  }
+};
 
 // 시간 업데이트 함수
 const updatePlaceTime = (place) => {
@@ -550,7 +664,6 @@ const createSelectedMarker = (place, placeType) => {
 
 // 마커 강조 + 오버레이 표시
 const highlightPlace = async (place, fromMarkerClick = false) => {
-
   selectedPlace.value = place;
   // 카테고리 판별 및 자동 전환
   let targetType = 'attractions'; // 기본값
@@ -572,23 +685,36 @@ const highlightPlace = async (place, fromMarkerClick = false) => {
     await nextTick();
   }
   
-  
-  // 오른쪽 리스트에서 해당 장소 찾아서 스크롤
-  if (placeCardRefs.value[place.title] && placeListContainer.value) {
-    const element = placeCardRefs.value[place.title];
-    const container = placeListContainer.value;
-    
-    const elementTop = element.offsetTop;
-    const elementHeight = element.offsetHeight;
-    const containerHeight = container.clientHeight;
-    
-    const scrollPosition = elementTop - (containerHeight / 2) + (elementHeight / 2);
-    
-    container.scrollTo({
-      top: scrollPosition,
-      behavior: 'smooth'
-    });
+  const currentPlaces = placesByDay.value[selectedDay.value];
+  const currentPlace = (currentPlaces || []).find(p => p.placeUrl === place.placeUrl);
+  if(currentPlace){
+
+    // 지도 중심을 해당 장소로 이동 (줌 레벨도 조정)
+    if (place.latitude && place.longitude) {
+      const position = new kakao.maps.LatLng(place.latitude, place.longitude);
+      map.setCenter(position);
+      // 줌 레벨을 5로 설정하여 적절한 거리에서 보기
+      if (map.getLevel() > 5) {
+        map.setLevel(5);
+      }
+    }
   }
+  // 오른쪽 리스트에서 해당 장소 찾아서 스크롤
+  // if (placeCardRefs.value[place.title] && placeListContainer.value) {
+  //   const element = placeCardRefs.value[place.title];
+  //   const container = placeListContainer.value;
+    
+  //   const elementTop = element.offsetTop;
+  //   const elementHeight = element.offsetHeight;
+  //   const containerHeight = container.clientHeight;
+    
+  //   const scrollPosition = elementTop - (containerHeight / 2) + (elementHeight / 2);
+    
+  //   container.scrollTo({
+  //     top: scrollPosition,
+  //     behavior: 'smooth'
+  //   });
+  // }
 };
 
 // 마커 제거
@@ -660,32 +786,13 @@ const animateMarkerBounce = (marker, height = 15, speed = 0.004) => {
 watch(selectedPlace, async (newPlace, oldPlace) => {
   if(activeMarker.value) {    // 이미 마커가 있으면
     try {                     // 해당 마커를 원본 크기로 돌리기
-      // const prev = activeMarker.value;
+      const prev = activeMarker.value;
       // if(prev._origImage) {
         // prev.setImage(prev._origImage);
       // } else if (prev._imageUrl) {
         // prev.setImage(getMarkerImage(prev._origImage, { width: 60, height: 60 }));
       // }
       prev.setZIndex(100);
-
-       // 애니메이션 취소
-      if(activeMarkerAnimation.value) {
-        const startPos = clickedMarker.getPosition();
-        let startTime = null;
-
-        const animate = (timestamp) => {
-        if (!startTime) startTime = timestamp;
-          const progress = timestamp - startTime;
-          const delta = Math.sin(progress * 0.004) * 20; // 높이 20, 속도 조절
-          clickedMarker.setPosition(new kakao.maps.LatLng(startPos.getLat() + delta * 0.00001, startPos.getLng()));
-
-          // selectedPlace가 바뀌면 자동 종료
-          if(activeMarker.value === clickedMarker) {
-            activeMarkerAnimation.value = requestAnimationFrame(animate);
-          }
-        };
-        activeMarkerAnimation.value = requestAnimationFrame(animate);
-      }
     } catch (e) {
       console.warn("prev marker restore failed", e);
     }
@@ -695,7 +802,22 @@ watch(selectedPlace, async (newPlace, oldPlace) => {
     // 클릭한 마커 찾기 (selected markers 배열 우선)
   const clickedMarker = (placeMarkers.value || []).find(m => m.getTitle() === newPlace.title)
                       || (searchResultMarkers.value || []).find(m => m.getTitle() === newPlace.title);
-
+   // 애니메이션 취소
+  if(activeMarkerAnimation.value) {
+    const startPos = clickedMarker.getPosition();
+    let startTime = null;
+    const animate = (timestamp) => {
+    if (!startTime) startTime = timestamp;
+      const progress = timestamp - startTime;
+      const delta = Math.sin(progress * 0.004) * 20; // 높이 20, 속도 조절
+      clickedMarker.setPosition(new kakao.maps.LatLng(startPos.getLat() + delta * 0.00001, startPos.getLng()));
+      // selectedPlace가 바뀌면 자동 종료
+      if(activeMarker.value === clickedMarker) {
+        activeMarkerAnimation.value = requestAnimationFrame(animate);
+      }
+    };
+    activeMarkerAnimation.value = requestAnimationFrame(animate);
+  }
 
   if (clickedMarker) {
     // 확대할 이미지 생성: 같은 이미지 URL 사용하되 큰 사이즈로
@@ -715,7 +837,32 @@ watch(selectedPlace, async (newPlace, oldPlace) => {
   }
 
   // if(isPolyLine) displaySearchResultMarkers();
+
   await nextTick();
+  if (!newPlace) return;
+  //스크롤
+  // 오른쪽 리스트에서 해당 장소 찾아서 스크롤 
+  const element = placeCardRefs.value[newPlace.title];
+  const container = placeListContainer.value;
+  if (element && container) {
+    // container와 element의 화면상 rect
+    const containerRect = container.getBoundingClientRect();
+    const elementRect = element.getBoundingClientRect();
+
+    // element의 top이 container의 top으로부터 몇 px 떨어져있는지
+    const offsetFromContainerTop = elementRect.top - containerRect.top;
+
+    // 현재 컨테이너의 스크롤 위치를 기준으로 목표 스크롤값 계산
+    const currentScroll = container.scrollTop;
+    const scrollPosition = Math.round(
+      currentScroll + offsetFromContainerTop - (container.clientHeight / 2) + (element.clientHeight / 2)
+    );
+
+    container.scrollTo({
+      top: scrollPosition,
+      behavior: 'smooth'
+    });
+  }
 });
 
 // 선택된 장소 마커 표시
@@ -1224,17 +1371,20 @@ const saveAllDaysPlaces = async () => {
   }
 };
 onMounted(async () => {
-  console.log("컴포넌트 초기화 시작");
+  console.log("🚀 컴포넌트 초기화 시작");
   
   await loadPlanInfo();
   await loadDurations();
   
-  // 일정수정에서 넘어온 경우
+  // 테마 추천 로드
+  if (selectedTheme.value) {
+    await loadThemeRecommendations();
+  }
+  
   if (previousData && targetDay) {
     console.log("일정수정 모드!");
     console.log("previousData.dayList:", previousData.dayList);
     
-    // 모든 일차의 데이터를 로드 (중요!)
     if (previousData.dayList && previousData.dayList.length > 0) {
       previousData.dayList.forEach((dayData) => {
         if (dayData.activities && dayData.activities.length > 0) {
@@ -1271,11 +1421,9 @@ onMounted(async () => {
         }
       });
       
-      // 선택된 일차만 targetDay로 설정
       selectedDay.value = targetDay;
-      console.log(`${targetDay}일차로 이동`);
+      console.log(`{targetDay}일차로 이동`);
       
-      // sessionStorage 정리
       sessionStorage.removeItem('editPlanData');
       sessionStorage.removeItem('editTargetDay');
     }
@@ -1292,6 +1440,7 @@ onMounted(async () => {
   console.log("최종 placesByDay:", placesByDay.value);
   console.log("selectedDay:", selectedDay.value);
 });
+
 // 경로 그리기
 const drawRoute = async () => {
   await direction(map, placesByDay.value[selectedDay.value]);
@@ -1897,6 +2046,163 @@ const cancelSortPreview = () => {
   justify-content: space-between; /* 좌측은 '검색', 우측은 버튼 */
   align-items: center;          /* 수직 중앙정렬 */
 }
+
+.theme-section {
+  background: linear-gradient(135deg, #155DFC 0%, #0f47c9 100%);
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  padding: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-header:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.section-header h3 {
+  font-size: 15px;
+  font-weight: bold;
+  margin: 0;
+}
+
+.badge {
+  background: rgba(255, 255, 255, 0.25);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.toggle-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.loading-theme {
+  color: white;
+  text-align: center;
+  padding: 20px;
+}
+
+.theme-place-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 320px;
+  }
+}
+
+.theme-place-card {
+  background: white;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  gap: 10px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.theme-place-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.theme-place-card.active {
+  border: 2px solid #155dfc;
+  background: #eef4ff;
+}
+
+.rank-badge {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #fff;
+  font-weight: bold;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
+}
+
+.place-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.theme-place-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.theme-place-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #1F2937;
+}
+
+.theme-category {
+  font-size: 11px;
+  color: #6B7280;
+  margin: 2px 0;
+}
+
+.theme-address {
+  font-size: 11px;
+  color: #9CA3AF;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 
 .filter-bar {
   display: flex;
