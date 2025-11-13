@@ -23,14 +23,14 @@
           <span class="info-text">{{ user }}</span>
         </div>
         <div class="info-item">
-          <span class="info-icon">📅</span>
+          <img src="@/assets/images/icons/calendar.svg" class="icon" />
           <span class="info-text">{{ days }}</span>
         </div>
         <div class="info-item">
-          <span class="info-icon">📍</span>
+         <img src="@/assets/images/icons/location.svg" class="icon" />
           <span class="info-text">
-            {{ destination }}
-            <span class="sub-info">{{ places }}개 일정</span>
+          {{ destination }}
+          <span class="sub-info">{{ places }}개 일정</span>
           </span>
         </div>
       </div>
@@ -39,15 +39,15 @@
 
       <div class="stats-row">
         <div class="stat-group">
-          <span class="stat-icon heart">❤️</span>
+          <img src="@/assets/images/icons/heart.svg" class="icon" />
           <span class="stat-value">{{ formatNumber(likes) }}</span>
         </div>
         <div class="stat-group">
-          <span class="stat-icon eye">👁️</span>
+          <img src="@/assets/images/icons/view.svg" class="icon" />
           <span class="stat-value">{{ formatNumber(views) }}</span>
         </div>
         <div class="stat-group">
-          <span class="stat-icon bookmark">🔖</span>
+          <img src="@/assets/images/icons/bookmark.svg" class="icon" />
           <span class="stat-value">{{ formatNumber(shares) }}</span>
         </div>
       </div>
