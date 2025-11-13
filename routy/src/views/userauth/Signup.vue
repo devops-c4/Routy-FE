@@ -375,7 +375,7 @@ const register = async () => {
   };
 
   try {
-    const res = await apiClient.post('http://localhost:8080/user/register', data);
+    const res = await apiClient.post('/api/auth/register', data);
     
     console.log('🟢 [Signup.vue] 회원가입 성공:', res.data);
     alert(res.data.message);

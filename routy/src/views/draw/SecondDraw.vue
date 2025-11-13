@@ -120,7 +120,7 @@ const goNext = () => {
   }
 
   if (new Date(endDate.value) < new Date(startDate.value)) {
-    alert('종료일은 시작일보다 늦어야 합니다!')
+    alert('종료일이 시작일보다 빠릅니다!')
     return
   }
 
