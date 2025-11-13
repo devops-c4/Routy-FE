@@ -1,12 +1,10 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import apiClient from '@/utils/axios'
 import { useRouter } from 'vue-router'
 import { jwtDecode } from 'jwt-decode' // 설치 안 돼 있으면: npm i jwt-decode
 import BrowseTravelModal from '@/views/browse/BrowseTravelModal.vue'
 import TravelReviewModal from '@/views/mypage/TravelReviewModal.vue'
 import apiClient from '@/utils/axios'
-
 
 // 리뷰 이미지 썸네일 캐시 (planId -> url)
 const reviewThumbMap = ref({})
