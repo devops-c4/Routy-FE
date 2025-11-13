@@ -92,10 +92,9 @@
             <span v-for="n in 5" :key="n" class="star">⭐</span>
           </div>
         </div>
-
-        <div v-if="route.review.images?.length" class="review-images">
+        <div v-if="travel?.review?.images?.length" class="review-images">
           <img
-            v-for="(img, idx) in route.review.images"
+            v-for="(img, idx) in travel.review.images"
             :key="idx"
             :src="img"
             :alt="`여행 사진 ${idx + 1}`"
@@ -279,6 +278,14 @@ onMounted(async () => {
   try {
     const res = await apiClient.get(`/api/plans/public/${props.route.planId}`)
     travel.value = res.data
+
+    // 🔥 reviewImagesRaw → reviewImages 배열 변환 (중요!!)
+    if (travel.value.reviewImagesRaw) {
+      travel.value.reviewImages = travel.value.reviewImagesRaw.split(',');
+    } else if (travel.value.review?.images) {
+      // 모달 조회 쿼리는 review.images로 내려오니까 여기도 split 필요
+      travel.value.review.images = travel.value.review.images.split(',');
+    }
 
     // ✅ 뷰카운트 기본값
     if (travel.value.viewCount === undefined) {

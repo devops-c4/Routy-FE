@@ -2,10 +2,18 @@
   <div class="travel-card">
     <!-- 지도 이미지 영역 -->
     <div class="map-image">
-      <svg class="map-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M9 20L3 17V4L9 7M9 20L15 17M9 20V7M15 17L21 20V7L15 4M15 17V4M9 7L15 4" 
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+      <!-- 리뷰 썸네일이 있을 때 -->
+      <div v-if="reviewImages && reviewImages.length > 0" class="thumb-img-wrapper">
+        <div class="thumb-bg" :style="{ backgroundImage: `url('${reviewImages[0]}')` }"></div>
+        <span class="pin"></span>
+      </div>
+
+      <!-- 기본 SVG -->
+      <svg v-else class="map-icon" viewBox="0 0 24 24" fill="none">
+        <path d="M9 20L3 ..." stroke="currentColor" stroke-width="2"/>
       </svg>
+
     </div>
 
     <!-- 카드 내용 -->
@@ -56,19 +64,23 @@
 </template>
 
 <script setup>
-defineProps({
+const props = defineProps({
   city: String,
   date: String,
   title: String,
   user: String,
-  days: String,
+  days: [String, Number],
   places: Number,
   likes: Number,
   views: Number,
   shares: Number,
-    destination: String,  
-  places: Number 
+  destination: String,
+  reviewImages: {
+    type: Array,
+    default: () => [],
+  }
 });
+
 
 const formatNumber = (num) => {
   if (num >= 1000) {
@@ -107,11 +119,23 @@ const formatNumber = (num) => {
   overflow: hidden;
 }
 
+.thumb-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2; 
+}
+
+/* 리뷰 이미지 없을 때만 보이는 기본 아이콘 */
 .map-icon {
   width: 80px;
   height: 80px;
   color: #93c5fd;
   opacity: 0.5;
+  z-index: 1;
 }
 
 /* 카드 내용 */
