@@ -1,23 +1,20 @@
 <template>
   <div class="navbar">
     <div class="nav-content">
-      <!-- 왼쪽 섹션 -->
       <div class="left-section">
-        <!-- 로고 -->
         <div class="logo-section">
           <img class="logo-img" src="@/assets/images/icons/logo.png" alt="logo" @click="moveToHome"/>
         </div>
 
-        <!-- 로고 옆 텍스트 메뉴 -->
         <div class="route-section">
-          <span class="route-item" @click="moveToDraw">여행 루트 그리기</span>
-          <span class="route-item" @click="moveToBrowse">여행 루트 둘러보기</span>
+          <span class="route-item" :class="{ active: currentRoute === 'draw' }" @click="moveToDraw">여행 루트 그리기</span>
+          <span class="route-item" :class="{ active: currentRoute === 'browse' }" @click="moveToBrowse">여행 루트 둘러보기</span>
           <span class="route-item chatbot-wrapper" 
             @click="moveToChatBot"
-            @mouseover="showChatTooltip = true"
-            @mouseleave="showChatTooltip = false"
+            @mouseover="handleChatbotHover(true)"
+            @mouseleave="handleChatbotHover(false)"
           >
-            <img class="chatbot-icon" src="../assets/images/chatbot/chatbot1.png" alt="chatbot"/>
+            <img class="chatbot-icon" :src="chatbotIconSrc" alt="chatbot"/>
             <div v-if="showChatTooltip" class="chat-tooltip">
               Rooting에게 물어봐!
             </div>
@@ -25,27 +22,24 @@
         </div>
       </div>
 
-      <!-- 오른쪽 메뉴 - 로그인 상태에 따라 분기 -->
       <div class="menu-section">
-        <!-- 로그인 전 -->
         <template v-if="!isLoggedIn">
           <span class="menu-item" @click="moveToRegister">회원가입</span>
           <span class="menu-item" @click="moveToLogin">로그인</span>
         </template>
         
-        <!-- 로그인 후 -->
         <template v-else>
           <div class="tooltip-wrapper">
             <img
               class="newPlanCountImage"
               @click="moveToMyPage2"
               v-if="newPlanCount != 0"
-              src="../assets/images/icons/planCalling.png"
+              src="../assets/images/icons/planCalling2.png"
               @mouseover="showTooltip = true"
               @mouseleave="showTooltip = false"
             />
             <div v-if="showTooltip" class="tooltip-msg">
-              새로운 여행 일정이 {{newPlanCount}}개 있어요
+              새로운 여행 루트가 {{newPlanCount}}개 있어요!
             </div>
           </div>
           <span class="menu-item" @click="moveToMyPage">마이페이지</span>
@@ -58,9 +52,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue'; // computed 추가
 import { useRouter } from "vue-router";
 import { logout, getLocalAuthStatus } from '@/api/auth';
+import { useRoute } from "vue-router";
+const route = useRoute();
+
+const currentRoute = computed(() => {
+  if (route.path.startsWith('/draw')) return 'draw';
+  if (route.path.startsWith('/browse')) return 'browse';
+  return '';
+});
+
+// 챗봇 이미지 임포트
+import defaultChatbotIcon from '@/assets/images/chatbot/chatbot1.png';
+import hoverChatbotIcon from '@/assets/images/chatbot/chatbot1-hover.png';
 
 const router = useRouter();
 const props = defineProps({ id: [String, Number] })
@@ -69,6 +75,27 @@ const LOGIN_STATUS_KEY = 'routy:isLoggedIn';
 const newPlanCount = ref(Number(sessionStorage.getItem("newPlan")) || 0);
 const showTooltip = ref(false)
 const showChatTooltip = ref(false)
+
+// 챗봇 이미지 호버 상태 관리용 ref
+const isChatbotHovered = ref(false); 
+
+// 챗봇 이미지 경로를 동적으로 반환하는 computed 속성
+const chatbotIconSrc = computed(() => {
+  if (isChatbotHovered.value) {
+    // import한 변수를 반환합니다.
+    return hoverChatbotIcon; 
+  } else {
+    // import한 변수를 반환합니다.
+    return defaultChatbotIcon;
+  }
+});
+
+// 챗봇 호버 이벤트 핸들러
+const handleChatbotHover = (isHovering) => {
+  isChatbotHovered.value = isHovering;
+  showChatTooltip.value = isHovering; // 툴팁도 같이 보이게
+};
+
 
 // 로그인 상태 확인 (localStorage 기반)
 const checkAuthStatus = () => {
@@ -232,15 +259,17 @@ const moveToChatBot = () => router.push('/chatbot');
 }
 
 .chatbot-icon {
-  width: 80px; 
-  height: 80px;
+  width: 70px; 
+  height: 70px;
   object-fit: contain; 
   vertical-align: middle; 
   cursor: pointer;
-  transition: transform 0.2s ease;
+  /* transition은 JavaScript로 src 변경하므로 제거 */
+  /* transition: transform 0.2s ease; */
 }
 
-.chatbot-icon:hover {
+/* 호버 시 transform 효과는 CSS로 유지 */
+.chatbot-wrapper:hover .chatbot-icon {
   transform: scale(1.1); 
 }
 
@@ -291,13 +320,37 @@ const moveToChatBot = () => router.push('/chatbot');
 }
 
 .newPlanCountImage {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   cursor: pointer;
   transition: transform 0.2s ease;
 }
 
 .newPlanCountImage:hover {
   transform: scale(1.1);
+}
+
+
+.route-item:hover {
+  color: #155dfc;
+  font-weight: 500;
+}
+
+/* 현재 페이지에 적용되는 active 상태 */
+.route-item.active {
+  color: #155dfc;
+  font-weight: 600;
+}
+
+.logo-img {
+  width: 95px;
+  height: 90px;
+  cursor: pointer;
+  transition: transform 0.25s ease, filter 0.25s ease;
+}
+
+.logo-img:hover {
+  transform: scale(1.07);
+  filter: brightness(1.15) saturate(1.2);
 }
 </style>
