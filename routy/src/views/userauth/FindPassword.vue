@@ -99,7 +99,7 @@ const validationNum = async () => {
   const data = new FormData();
   data.append("mail",email.value)
 
-  await apiClient.post('http://localhost:8080/validation/sendmail',data).then(
+  await apiClient.post('/api/auth/sendmail',data).then(
     (res) => {
       console.log(res.data)
       if(res.data == 0){

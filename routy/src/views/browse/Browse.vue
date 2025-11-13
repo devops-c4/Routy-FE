@@ -112,7 +112,7 @@ const applyFilter = () => {
 //  1. 지역 목록 불러오기
 const fetchRegions = async () => {
   try {
-    const response = await apiClient.get('http://localhost:8080/api/plans/regions')
+    const response = await apiClient.get('/api/plans/regions')
     regions.value = response.data
   } catch (error) {
     console.error('지역 목록 불러오기 실패:', error)
@@ -125,7 +125,7 @@ const fetchPublicPlans = async (append = false) => {
   loading.value = true;
 
   try {
-    const res = await apiClient.get('http://localhost:8080/api/plans/public', {
+    const res = await apiClient.get('/api/plans/public', {
       params: {
         sort: sortType.value,
         regionId: selectedRegion.value,
@@ -196,13 +196,13 @@ const openModal = async (route) => {
   selectedRoute.value = null
   try {
     // ✅ 최신 데이터로 다시 요청
-    const res = await apiClient.get(`http://localhost:8080/api/plans/public/${route.planId}`)
+    const res = await apiClient.get(`/api/plans/public/${route.planId}`)
     selectedRoute.value = res.data
     document.body.style.overflow = 'hidden'
     
 
     // ✅ 조회수 증가 요청 (작성자 제외)
-    await apiClient.post(`http://localhost:8080/api/plans/${route.planId}/view`)
+    await apiClient.post(`/api/plans/${route.planId}/view`)
 
     // ✅ 부모 리스트에서 해당 카드 카운트도 즉시 반영
     const target = routes.value.find(r => r.planId === route.planId)
