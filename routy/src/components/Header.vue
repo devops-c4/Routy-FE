@@ -261,6 +261,7 @@ const moveToChatBot = () => router.push('/chatbot');
   border-radius: 6px;
   white-space: nowrap;
   animation: fadeIn 0.2s ease-in;
+  z-index: 2000;
 }
 
 .chatbot-wrapper {
@@ -280,6 +281,7 @@ const moveToChatBot = () => router.push('/chatbot');
   border-radius: 6px;
   white-space: nowrap;
   animation: fadeIn 0.2s ease-in;
+  z-index: 2000;
 }
 
 
