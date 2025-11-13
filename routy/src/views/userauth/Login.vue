@@ -3,7 +3,7 @@
     <div class="main-content">
       <div class="welcome-section">
         <h1>로그인</h1>
-        <p>TravelPlan에 다시 오신 것을 환영합니다</p>
+        <p>Routy에 다시 오신 것을 환영합니다</p>
       </div>
       <div class="form-container">
         

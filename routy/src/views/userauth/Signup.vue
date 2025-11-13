@@ -4,7 +4,7 @@
     <div class="main-content">
       <div class="welcome-section">
         <h1>환영합니다</h1>
-        <p>여행의 시작, TravelPlan과 함께하세요</p>
+        <p>여행의 시작, Routy과 함께하세요</p>
       </div>
 
       <!-- 폼 -->
@@ -375,7 +375,7 @@ const register = async () => {
   };
 
   try {
-    const res = await apiClient.post('http://localhost:8080/user/register', data);
+    const res = await apiClient.post('/api/auth/register', data);
     
     console.log('🟢 [Signup.vue] 회원가입 성공:', res.data);
     alert(res.data.message);
