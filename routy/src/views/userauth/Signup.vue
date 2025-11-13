@@ -4,7 +4,7 @@
     <div class="main-content">
       <div class="welcome-section">
         <h1>환영합니다</h1>
-        <p>여행의 시작, TravelPlan과 함께하세요</p>
+        <p>여행의 시작, Routy과 함께하세요</p>
       </div>
 
       <!-- 폼 -->

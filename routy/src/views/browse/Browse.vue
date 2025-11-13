@@ -70,6 +70,7 @@
           :likes="route.likeCount"
           :views="route.viewCount"
           :shares="route.bookmarkCount"
+          :reviewImages="route.reviewImages"
           @click="openModal(route)"
         />
       </div>
@@ -122,6 +123,7 @@ const fetchRegions = async () => {
 const fetchPublicPlans = async (append = false) => {
   if (loading.value) return
   loading.value = true
+
   try {
     const res = await apiClient.get('http://localhost:8080/api/plans/public', {
       params: {
@@ -132,16 +134,31 @@ const fetchPublicPlans = async (append = false) => {
         days: selectedDays.value,
       },
     })
+
     const data = res.data.content || res.data
-    if (append) routes.value.push(...data)
-    else routes.value = data
-    hasMore.value = data.length === size
+
+    const parsedData = data.map(plan => {
+      return {
+        ...plan,
+        reviewImages: plan.review?.images || []   // 중요한 부분
+      }
+    })
+
+    console.log("🔥 FETCHED DATA:", parsedData)  // ★ 여기에 찍힌다
+
+    if (append) routes.value.push(...parsedData)
+    else routes.value = parsedData
+
+    hasMore.value = parsedData.length === size
+
   } catch (err) {
     console.error('공개 일정 목록 불러오기 실패:', err)
   } finally {
     loading.value = false
   }
 }
+
+
 
 // 3. 더 보기 버튼
 const loadMore = () => {
