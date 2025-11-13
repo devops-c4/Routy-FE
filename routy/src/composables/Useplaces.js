@@ -1,5 +1,5 @@
 import { ref, nextTick } from 'vue';
-import axios from 'axios';
+import apiClient from '@/utils/axios';
 
 export function usePlaces(planId) {
   const currentType = ref("restaurants");
@@ -54,7 +54,7 @@ export function usePlaces(planId) {
     isSearching.value = true;
     
     try {
-      const res = await axios.get(`/api/kakao/${type}`, { 
+      const res = await apiClient.get(`/api/kakao/${type}`, { 
         params: { lat: searchLat, lng: searchLng },
         timeout: 10000
       });

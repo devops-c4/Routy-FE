@@ -1,7 +1,12 @@
-import axios from "axios";
+import apiClient from "@/utils/axios";
 
 let polyline = [];
 let overlays = [];
+
+// 현재 폴리라인이 있는지
+export function isPolyLine() {
+    return Array.isArray(polyline) && polyline.length > 0
+}
 
 // 색상 자동 생성 (섹션별 구분)
 function getColor(index) {
@@ -121,7 +126,7 @@ export async function direction(map, coords) {
 
     try {
         // 백엔드에 요청
-        const response = await axios.post(
+        const response = await apiClient.post(
             "/api/direction/points",
             payload
         );
@@ -185,7 +190,7 @@ export async function sortDirection(map, coords) {
 
     try {
         // 백엔드에 요청
-        const response = await axios.post(
+        const response = await apiClient.post(
             "/api/direction/optimization",
             payload
         );
