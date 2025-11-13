@@ -3,7 +3,7 @@
     <div class="step-content">
       <div class="step-top">
         <div class="step-number">단계 2 / 4</div>
-        <button class="cancel-btn">취소</button>
+        <button class="cancel-btn" @click="() => router.push('/')">취소</button>
       </div>
 
       <div class="progress-bar">
@@ -37,11 +37,12 @@
               type="date"
               v-model="endDate"
               :min="startDate || today"
+              @change="calculateTotalDays"
             />
           </div>
         </div>
 
-        <div v-if="startDate && endDate" class="date-summary">
+        <div v-if="startDate && endDate && totalDays > 0" class="date-summary">
           <p>{{ formattedPeriod }}</p>
           <p class="days">총 {{ totalDays }}일</p>
         </div>
@@ -62,97 +63,82 @@
 </template>
 
 <script setup>
-
 import '@/assets/css/draw.css'
-import '@/assets/css/step-common.css';
-import { ref, computed } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import apiClient from '@/utils/axios';
+import '@/assets/css/step-common.css'
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const route = useRoute()
 
 const startDate = ref('')
 const endDate = ref('')
+const totalDays = ref(0)
 
-// localStorage에서 지역 정보 가져오기
-const selectedRegion = JSON.parse(localStorage.getItem('selectedRegion') || '{}')
+// 오늘 날짜 (최소 선택 가능 날짜)
+const today = computed(() => {
+  return new Date().toISOString().split('T')[0]
+})
+
+// 날짜 범위 포맷팅
+const formattedPeriod = computed(() => {
+  if (!startDate.value || !endDate.value) return ''
+  
+  const start = new Date(startDate.value)
+  const end = new Date(endDate.value)
+  
+  return `${start.getMonth() + 1}월 ${start.getDate()}일 - ${end.getMonth() + 1}월 ${end.getDate()}일`
+})
+
+const handleStartChange = () => {
+  // 시작일 변경 시 종료일이 시작일보다 이전이면 초기화
+  if (endDate.value && new Date(endDate.value) < new Date(startDate.value)) {
+    endDate.value = ''
+    totalDays.value = 0
+  } else if (endDate.value) {
+    calculateTotalDays()
+  }
+}
+
+const calculateTotalDays = () => {
+  if (startDate.value && endDate.value) {
+    const start = new Date(startDate.value)
+    const end = new Date(endDate.value)
+    const diffTime = end - start
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1 // +1 for inclusive
+    totalDays.value = diffDays
+  }
+}
 
 const goPrev = () => {
   router.push('/draw/first')
 }
 
-// Plan 생성하지 않고 localStorage에 저장만
 const goNext = () => {
   if (!startDate.value || !endDate.value) {
     alert('날짜를 모두 선택해주세요!')
     return
   }
 
-
   if (new Date(endDate.value) < new Date(startDate.value)) {
     alert('종료일은 시작일보다 늦어야 합니다!')
     return
-  try {
-    const payload = {
-      planTitle: `${regionName} 여행 일정`,
-      startDate: startDate.value,
-      endDate: endDate.value,
-
-      regionId: regionId,
-      // userId는 백엔드에서 SecurityContext로 자동 추출
-    };
-
-    const res = await apiClient.post('/api/plans', payload);
-    const planId = res.data.planId;
-
-    await apiClient.post(`/api/plans/${planId}/durations`, { totalDays: totalDays.value });
-
-    const query = {
-      planId,
-      totalDays: totalDays.value
-    };
-    
-
-    router.push({
-      path: '/draw/third',
-      query: query
-    });
-
-    console.log('일정 생성 성공:', res.data);
-  } catch (err) {
-    console.error('일정 생성 실패:', err);
-    alert('일정 저장 중 오류가 발생했습니다!');
   }
 
   // 날짜 정보를 localStorage에 저장
   const dateInfo = {
     startDate: startDate.value,
     endDate: endDate.value,
-    nights: calculateNights(startDate.value, endDate.value),
-    days: calculateDays(startDate.value, endDate.value)
+    days: totalDays.value
   }
   
   localStorage.setItem('planDates', JSON.stringify(dateInfo))
   
-  console.log('날짜 정보 저장:', dateInfo)
+  console.log('✅ 날짜 정보 저장:', dateInfo)
   
   // ThirdDraw로 이동
   router.push('/draw/third')
 }
-
-const calculateNights = (start, end) => {
-  const startDate = new Date(start)
-  const endDate = new Date(end)
-  return Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24))
-}
-
-const calculateDays = (start, end) => {
-  return calculateNights(start, end) + 1
-}
 </script>
-
-
 
 <style scoped>
 .card {
@@ -162,25 +148,22 @@ const calculateDays = (start, end) => {
   padding: 32px;
   display: flex;
   flex-direction: column;
-  align-items: center; /* 중앙 정렬 */
-  text-align: center; /* 텍스트도 가운데 */
+  align-items: center;
+  text-align: center;
   gap: 16px;
 }
 
-/* 제목 중앙 */
 .card-title {
   font-size: 18px;
   font-weight: 600;
   color: #0A0A0A;
 }
 
-/* 부제목 중앙 */
 .card-subtitle {
   color: #4A5565;
   font-size: 15px;
 }
 
-/* 날짜 선택 그리드 */
 .date-grid {
   display: flex;
   justify-content: center;
@@ -189,28 +172,60 @@ const calculateDays = (start, end) => {
   margin-top: 24px;
 }
 
+.date-input {
+  display: flex;
+  flex-direction: column;
+}
+
 .date-input label {
   display: block;
   font-size: 14px;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
   color: #4A5565;
   text-align: left;
+  font-weight: 500;
 }
 
 .date-input input {
-  border: 1px solid #ccc;
+  border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 10px 12px;
+  font-size: 15px;
+  outline: none;
+  transition: 0.2s;
+  min-width: 160px;
+}
+
+.date-input input:focus {
+  border-color: #155DFC;
+  box-shadow: 0 0 0 2px rgba(21, 93, 252, 0.1);
+}
+
+.tilde {
+  font-size: 20px;
+  color: #4A5565;
+  margin: 0 8px;
+  padding-bottom: 8px;
 }
 
 .date-summary {
-  text-align: center;
-  color: #364153;
   margin-top: 16px;
+  padding: 16px;
+  background: #EFF6FF;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.date-summary p {
+  margin: 4px 0;
+  color: #364153;
+  font-size: 15px;
 }
 
 .days {
   color: #155DFC;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 16px;
+  margin-top: 8px !important;
 }
 </style>
