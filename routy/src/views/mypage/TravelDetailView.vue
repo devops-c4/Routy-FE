@@ -8,6 +8,7 @@ const route = useRoute()
 const router = useRouter()
 const showReviewModal = ref(false)
 
+
 // 현재 여행 ID
 const planId = Number(route.params.id)
 
@@ -18,6 +19,8 @@ const travel = ref(null)
 const expandedDays = ref([])
 const showAll = ref(false)
 const visibleCount = ref(3)
+
+const loading = ref(true)
 
 // 삭제 버튼 클릭 할 경우
 const deletePlan = async () => {
@@ -34,26 +37,26 @@ const deletePlan = async () => {
 }
 
 // 공유하기 버튼 눌렀을 때
-async function togglePublic() {
-  try {
-    // 현재 상태
-    const currentStatus = travel.value.is_public  // 0 또는 1
+// async function togglePublic() {
+//   try {
+//     // 현재 상태
+//     const currentStatus = travel.value.is_public  // 0 또는 1
 
-    await apiClient.patch(`/api/plans/${planId}/public`)
+//     await apiClient.patch(`/api/plans/${planId}/public`)
 
-    // 토글 후 예상 상태 기반 메시지 표시
-    if (currentStatus === 0) {
-      alert('일정이 공유되었습니다.')
-      travel.value.is_public = 1
-    } else {
-      alert('일정 공유가 취소되었습니다.')
-      travel.value.is_public = 0
-    }
-  } catch (err) {
-    console.error('공유 상태 변경 중 오류:', err)
-    alert('공유 상태 변경에 실패했습니다.')
-  }
-}
+//     // 토글 후 예상 상태 기반 메시지 표시
+//     if (currentStatus === 0) {
+//       alert('일정이 공유되었습니다.')
+//       travel.value.is_public = 1
+//     } else {
+//       alert('일정 공유가 취소되었습니다.')
+//       travel.value.is_public = 0
+//     }
+//   } catch (err) {
+//     console.error('공유 상태 변경 중 오류:', err)
+//     alert('공유 상태 변경에 실패했습니다.')
+//   }
+// }
 
 
 // 백엔드 연동
@@ -64,7 +67,9 @@ onMounted(async () => {
     const dayList = travel.value.dayList || []
     expandedDays.value = dayList.map(() => false)
   } catch (err) {
-    console.error('여행 데이터를 불러오는 중 오류 발생:', err)
+    console.error('❌ 여행 데이터를 불러오는 중 오류 발생:', err)
+  } finally {
+    loading.value = false
   }
 })
 
@@ -119,7 +124,7 @@ async function handleDelete() {
         </div>
         <div class="header-right">
           <button class="btn btn-outline-blue" @click="goToEditPage">수정</button>
-          <button class="btn btn-outline-green" @click="togglePublic">공유</button>
+          <!-- <button class="btn btn-outline-green" @click="togglePublic">공유</button> -->
           <button class="btn delete" @click="deletePlan">삭제</button>
         </div>
       </header>
@@ -220,9 +225,9 @@ async function handleDelete() {
                 {{ plan.tag || plan.categoryGroupName }}
               </div>
 
-              <!-- 자세히 보기 링크 -->
+              <!-- 상세 보기 링크 -->
               <div class="plan-link" v-if="plan.placeUrl">
-                <a :href="plan.placeUrl" target="_blank">자세히 보기</a>
+                <a :href="plan.placeUrl" target="_blank">상세 보기</a>
               </div>
             </div>
 
