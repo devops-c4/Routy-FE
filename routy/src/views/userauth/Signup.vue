@@ -215,7 +215,7 @@
 <script setup>
 import { ref, onUnmounted } from 'vue';
 import { sendVerificationEmail, confirmVerificationCode as confirmCodeAPI } from '@/api/auth';
-import axios from 'axios';
+import apiClient from '@/utils/axios';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -375,7 +375,7 @@ const register = async () => {
   };
 
   try {
-    const res = await axios.post('http://localhost:8080/user/register', data);
+    const res = await apiClient.post('http://localhost:8080/user/register', data);
     
     console.log('🟢 [Signup.vue] 회원가입 성공:', res.data);
     alert(res.data.message);

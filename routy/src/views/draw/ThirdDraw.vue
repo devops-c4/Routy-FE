@@ -4,7 +4,7 @@
       <!-- 상단 단계 -->
       <div class="step-top">
         <div class="step-number">단계 3 / 4</div>
-        <button class="cancel-btn">취소</button>
+        <button class="cancel-btn" @click="() => router.push('/')">취소</button>
       </div>
 
       <!-- 진행바 -->
@@ -49,15 +49,17 @@
 <script setup>
 import '@/assets/css/draw.css'
 import '@/assets/css/step-common.css'
-import { ref } from 'vue'
-import { useRouter, useRoute } from "vue-router";
+import { ref, onMounted } from 'vue'
+import { useRouter } from "vue-router"
+import axios from 'axios'
 
 const router = useRouter()
-// 나중에 수정
+
+// 테마 정의
 const themes = [
-  { icon: '🍽️', name: '맛집' },
-  { icon: '☕', name: '카페' },
-  { icon: '🏛️', name: '관광지' }
+  { icon: '🍽️', name: '맛집', code: 'restaurant' },
+  { icon: '☕', name: '카페', code: 'cafe' },
+  { icon: '🏛️', name: '관광지', code: 'tourist' }
 ]
 
 const selectedThemes = ref([])
@@ -69,18 +71,139 @@ const toggleTheme = (name) => {
 }
 
 const goPrev = () => router.push('/draw/second')
-const route = useRoute();
 
-const goNext = () => {
-  router.push({
-    path: '/draw/final',
-    query: { 
-      planId: route.query.planId,
-      totalDays: route.query.totalDays
+// 컴포넌트 마운트 시 localStorage 확인
+onMounted(() => {
+  console.log('=== ThirdDraw 마운트 시 localStorage 체크 ===')
+  console.log('selectedRegion:', localStorage.getItem('selectedRegion'))
+  console.log('planDates:', localStorage.getItem('planDates'))
+  
+  const selectedRegion = JSON.parse(localStorage.getItem('selectedRegion') || '{}')
+  const planDates = JSON.parse(localStorage.getItem('planDates') || '{}')
+  
+  console.log('파싱된 selectedRegion:', selectedRegion)
+  console.log('파싱된 planDates:', planDates)
+  
+  // 누락된 값 확인
+  if (!selectedRegion.regionId) {
+    console.error('regionId 없음!')
+  }
+  if (!planDates.startDate) {
+    console.error('startDate 없음!')
+  }
+  if (!planDates.endDate) {
+    console.error('endDate 없음!')
+  }
+})
+
+// Plan 생성 (지역, 날짜, 테마 포함)
+const goNext = async () => {
+  if (selectedThemes.value.length === 0) {
+    alert('테마를 하나 이상 선택해주세요!')
+    return
+  }
+  
+  // 선택된 테마의 코드 추출
+  const selectedCodes = selectedThemes.value.map(themeName => {
+    const theme = themes.find(t => t.name === themeName)
+    return theme ? theme.code : null
+  }).filter(Boolean)
+  
+  // 첫 번째 테마를 기본으로 사용
+  const primaryTheme = selectedCodes[0]
+  
+  console.log('선택된 테마:', selectedThemes.value)
+  console.log('테마 코드:', primaryTheme)
+  
+  // localStorage에서 지역과 날짜 정보 가져오기
+  const selectedRegionStr = localStorage.getItem('selectedRegion')
+  const planDatesStr = localStorage.getItem('planDates')
+  
+  if (!selectedRegionStr || !planDatesStr) {
+    console.error('localStorage가 비어있습니다!')
+    alert('지역 또는 날짜 정보가 없습니다. 처음부터 다시 시작해주세요.')
+    router.push('/draw/first')
+    return
+  }
+  
+  const selectedRegion = JSON.parse(selectedRegionStr)
+  const planDates = JSON.parse(planDatesStr)
+  
+  console.log('파싱된 selectedRegion:', selectedRegion)
+  console.log('파싱된 planDates:', planDates)
+  
+  if (!selectedRegion.regionId || !planDates.startDate || !planDates.endDate) {
+    console.error('필수 값 누락:', {
+      regionId: selectedRegion.regionId,
+      startDate: planDates.startDate,
+      endDate: planDates.endDate
+    })
+    alert('지역 또는 날짜 정보가 없습니다. 처음부터 다시 시작해주세요.')
+    router.push('/draw/first')
+    return
+  }
+  
+  // Plan 생성 요청
+  try {
+    // 1. Plan 생성
+    const planPayload = {
+      planTitle: `${selectedRegion.regionName} 여행`,
+      startDate: planDates.startDate,
+      endDate: planDates.endDate,
+      theme: primaryTheme,
+      regionId: selectedRegion.regionId
     }
-  });
-};
-
+    
+    console.log('Plan 생성 payload:', planPayload)
+    
+    const planResponse = await axios.post('/api/plans', planPayload)
+    const planId = planResponse.data.planId
+    
+    console.log('Plan 생성 완료! planId:', planId)
+    
+    // 2. Duration 생성 (일차 자동 생성)
+    const durationPayload = {
+      totalDays: planDates.days
+    }
+    
+    console.log('Duration 생성 payload:', durationPayload)
+    
+    const durationResponse = await axios.post(
+      `/api/plans/${planId}/durations`,
+      durationPayload
+    )
+    
+    console.log('Duration 생성 완료!', durationResponse.data)
+    
+    // localStorage 정리
+    localStorage.removeItem('selectedRegion')
+    localStorage.removeItem('planDates')
+    localStorage.setItem('selectedTheme', primaryTheme)
+    localStorage.setItem('selectedThemes', JSON.stringify(selectedCodes))
+    
+    // FinalDraw로 이동
+    router.push({
+      path: '/draw/final',
+      query: { 
+        planId: planId,
+        totalDays: planDates.days,
+        theme: primaryTheme
+      }
+    })
+    
+  } catch (error) {
+    console.error('생성 실패:', error)
+    console.error('에러 상세:', error.response?.data)
+    
+    if (error.response?.status === 400) {
+      alert('요청 데이터가 올바르지 않습니다.')
+    } else if (error.response?.status === 404) {
+      alert('Plan을 찾을 수 없습니다.')
+    } else {
+      alert('일정 생성에 실패했습니다. 다시 시도해주세요.')
+    }
+  }
+}
 </script>
 
 <style scoped>

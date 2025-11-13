@@ -85,7 +85,7 @@ import "@/assets/css/draw.css";
 import "@/assets/css/step-common.css";
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import axios from "axios";
+import apiClient from "@/utils/axios";
 import markerBigImage from "@/assets/images/icons/first-marker.png";
 
 const router = useRouter();
@@ -166,7 +166,7 @@ const initMap = () => {
 // DB에서 지역 불러오기
 const loadRegions = async () => {
   try {
-    const res = await axios.get("/api/regions");
+    const res = await apiClient.get("/api/regions");
     regions.value = res.data;
     console.log("지역 목록 불러오기 성공:", res.data);
   } catch (err) {
@@ -309,10 +309,6 @@ const regionCoordinates = {
   '함양': { lat: 35.5202, lng: 127.7258 },
 };
 
-
-
-
-
 // 도시 선택 시 해당 위치로 이동 + 이미지 마커 표시 (레벨 13 유지)
 const selectCity = (region) => {
   selectedCity.value = region;
@@ -365,6 +361,18 @@ const selectCity = (region) => {
 
 // 다음 단계 이동
 const goNext = () => {
+  // localStorage에 지역 정보 저장
+  const regionInfo = {
+    regionId: selectedCity.value.regionId,
+    regionName: selectedCity.value.regionName,
+    latitude: selectedCity.value.latitude,
+    longitude: selectedCity.value.longitude
+  }
+  
+  localStorage.setItem('selectedRegion', JSON.stringify(regionInfo))
+  
+  console.log('지역 정보 저장:', regionInfo)
+  
   router.push({
     path: "/draw/second",
     query: { 

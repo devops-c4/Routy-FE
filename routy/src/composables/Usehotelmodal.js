@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import axios from 'axios';
+import apiClient from '@/utils/axios';
 
 export function useHotelModal() {
   const showHotelModal = ref(false);
@@ -12,7 +12,7 @@ export function useHotelModal() {
     showHotelModal.value = true;
     
     try {
-      const res = await axios.get(`/api/kakao/hotels`, { 
+      const res = await apiClient.get(`/api/kakao/hotels`, { 
         params: { 
           lat: startLocation.lat, 
           lng: startLocation.lng 
