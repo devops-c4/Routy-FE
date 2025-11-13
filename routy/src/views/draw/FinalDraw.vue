@@ -664,7 +664,6 @@ const createSelectedMarker = (place, placeType) => {
 
 // 마커 강조 + 오버레이 표시
 const highlightPlace = async (place, fromMarkerClick = false) => {
-
   selectedPlace.value = place;
   // 카테고리 판별 및 자동 전환
   let targetType = 'attractions'; // 기본값
@@ -686,23 +685,36 @@ const highlightPlace = async (place, fromMarkerClick = false) => {
     await nextTick();
   }
   
-  
-  // 오른쪽 리스트에서 해당 장소 찾아서 스크롤
-  if (placeCardRefs.value[place.title] && placeListContainer.value) {
-    const element = placeCardRefs.value[place.title];
-    const container = placeListContainer.value;
-    
-    const elementTop = element.offsetTop;
-    const elementHeight = element.offsetHeight;
-    const containerHeight = container.clientHeight;
-    
-    const scrollPosition = elementTop - (containerHeight / 2) + (elementHeight / 2);
-    
-    container.scrollTo({
-      top: scrollPosition,
-      behavior: 'smooth'
-    });
+  const currentPlaces = placesByDay.value[selectedDay.value];
+  const currentPlace = (currentPlaces || []).find(p => p.placeUrl === place.placeUrl);
+  if(currentPlace){
+
+    // 지도 중심을 해당 장소로 이동 (줌 레벨도 조정)
+    if (place.latitude && place.longitude) {
+      const position = new kakao.maps.LatLng(place.latitude, place.longitude);
+      map.setCenter(position);
+      // 줌 레벨을 5로 설정하여 적절한 거리에서 보기
+      if (map.getLevel() > 5) {
+        map.setLevel(5);
+      }
+    }
   }
+  // 오른쪽 리스트에서 해당 장소 찾아서 스크롤
+  // if (placeCardRefs.value[place.title] && placeListContainer.value) {
+  //   const element = placeCardRefs.value[place.title];
+  //   const container = placeListContainer.value;
+    
+  //   const elementTop = element.offsetTop;
+  //   const elementHeight = element.offsetHeight;
+  //   const containerHeight = container.clientHeight;
+    
+  //   const scrollPosition = elementTop - (containerHeight / 2) + (elementHeight / 2);
+    
+  //   container.scrollTo({
+  //     top: scrollPosition,
+  //     behavior: 'smooth'
+  //   });
+  // }
 };
 
 // 마커 제거
@@ -774,32 +786,13 @@ const animateMarkerBounce = (marker, height = 15, speed = 0.004) => {
 watch(selectedPlace, async (newPlace, oldPlace) => {
   if(activeMarker.value) {    // 이미 마커가 있으면
     try {                     // 해당 마커를 원본 크기로 돌리기
-      // const prev = activeMarker.value;
+      const prev = activeMarker.value;
       // if(prev._origImage) {
         // prev.setImage(prev._origImage);
       // } else if (prev._imageUrl) {
         // prev.setImage(getMarkerImage(prev._origImage, { width: 60, height: 60 }));
       // }
       prev.setZIndex(100);
-
-       // 애니메이션 취소
-      if(activeMarkerAnimation.value) {
-        const startPos = clickedMarker.getPosition();
-        let startTime = null;
-
-        const animate = (timestamp) => {
-        if (!startTime) startTime = timestamp;
-          const progress = timestamp - startTime;
-          const delta = Math.sin(progress * 0.004) * 20; // 높이 20, 속도 조절
-          clickedMarker.setPosition(new kakao.maps.LatLng(startPos.getLat() + delta * 0.00001, startPos.getLng()));
-
-          // selectedPlace가 바뀌면 자동 종료
-          if(activeMarker.value === clickedMarker) {
-            activeMarkerAnimation.value = requestAnimationFrame(animate);
-          }
-        };
-        activeMarkerAnimation.value = requestAnimationFrame(animate);
-      }
     } catch (e) {
       console.warn("prev marker restore failed", e);
     }
@@ -809,7 +802,22 @@ watch(selectedPlace, async (newPlace, oldPlace) => {
     // 클릭한 마커 찾기 (selected markers 배열 우선)
   const clickedMarker = (placeMarkers.value || []).find(m => m.getTitle() === newPlace.title)
                       || (searchResultMarkers.value || []).find(m => m.getTitle() === newPlace.title);
-
+   // 애니메이션 취소
+  if(activeMarkerAnimation.value) {
+    const startPos = clickedMarker.getPosition();
+    let startTime = null;
+    const animate = (timestamp) => {
+    if (!startTime) startTime = timestamp;
+      const progress = timestamp - startTime;
+      const delta = Math.sin(progress * 0.004) * 20; // 높이 20, 속도 조절
+      clickedMarker.setPosition(new kakao.maps.LatLng(startPos.getLat() + delta * 0.00001, startPos.getLng()));
+      // selectedPlace가 바뀌면 자동 종료
+      if(activeMarker.value === clickedMarker) {
+        activeMarkerAnimation.value = requestAnimationFrame(animate);
+      }
+    };
+    activeMarkerAnimation.value = requestAnimationFrame(animate);
+  }
 
   if (clickedMarker) {
     // 확대할 이미지 생성: 같은 이미지 URL 사용하되 큰 사이즈로
@@ -829,7 +837,32 @@ watch(selectedPlace, async (newPlace, oldPlace) => {
   }
 
   // if(isPolyLine) displaySearchResultMarkers();
+
   await nextTick();
+  if (!newPlace) return;
+  //스크롤
+  // 오른쪽 리스트에서 해당 장소 찾아서 스크롤 
+  const element = placeCardRefs.value[newPlace.title];
+  const container = placeListContainer.value;
+  if (element && container) {
+    // container와 element의 화면상 rect
+    const containerRect = container.getBoundingClientRect();
+    const elementRect = element.getBoundingClientRect();
+
+    // element의 top이 container의 top으로부터 몇 px 떨어져있는지
+    const offsetFromContainerTop = elementRect.top - containerRect.top;
+
+    // 현재 컨테이너의 스크롤 위치를 기준으로 목표 스크롤값 계산
+    const currentScroll = container.scrollTop;
+    const scrollPosition = Math.round(
+      currentScroll + offsetFromContainerTop - (container.clientHeight / 2) + (element.clientHeight / 2)
+    );
+
+    container.scrollTo({
+      top: scrollPosition,
+      behavior: 'smooth'
+    });
+  }
 });
 
 // 선택된 장소 마커 표시
