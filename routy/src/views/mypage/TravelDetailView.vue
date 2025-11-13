@@ -20,7 +20,7 @@ const expandedDays = ref([])
 const showAll = ref(false)
 const visibleCount = ref(3)
 
-// 🔥 테마 매핑 함수
+// 테마 매핑 함수
 const getThemeLabel = (themeCode) => {
   const themeMap = {
     'restaurant': '맛집탐방',
@@ -30,25 +30,29 @@ const getThemeLabel = (themeCode) => {
   return themeMap[themeCode] || '여행';
 };
 
+import themeRestaurant from '@/assets/images/theme/recommend-restaurant.png';
+import themeCafe from '@/assets/images/theme/recommend-cafe.png';
+import themeTourist from '@/assets/images/theme/recommend-attraction.png';
+
 const getThemeEmoji = (themeCode) => {
   const emojiMap = {
-    'restaurant': '🍽️',
-    'cafe': '☕',
-    'tourist': '🏛️',
+    'restaurant': themeRestaurant,
+    'cafe': themeCafe,
+    'tourist': themeTourist,
   };
   return emojiMap[themeCode] || '✈️';
 };
 
 const getThemeColor = (themeCode) => {
   const colorMap = {
-    'restaurant': '#EF4444',
-    'cafe': '#D97706',
-    'tourist': '#10B981',
+    'restaurant': '#EF44444D', // 기존 빨간색 연하게
+    'cafe': '#D977064D',     // 기존 주황색 연하게
+    'tourist': '#10B9814D',    // 기존 녹색 연하게
   };
-  return colorMap[themeCode] || '#3b82f6';
+  return colorMap[themeCode] || '#3b82f64D'; // 기본값도 연하게
 };
 
-// 🔥 computed 속성
+// computed 속성
 const themeLabel = computed(() => getThemeLabel(travel.value?.theme));
 const themeEmoji = computed(() => getThemeEmoji(travel.value?.theme));
 const themeColor = computed(() => getThemeColor(travel.value?.theme));
@@ -74,12 +78,12 @@ onMounted(async () => {
   try {
     const res = await apiClient.get(`/api/plans/${planId}`)
     travel.value = res.data || {}
-    console.log('✅ 여행 데이터:', travel.value)
-    console.log('✅ 테마:', travel.value.theme)
+    console.log('여행 데이터:', travel.value)
+    console.log('테마:', travel.value.theme)
     const dayList = travel.value.dayList || []
     expandedDays.value = dayList.map(() => false)
   } catch (err) {
-    console.error('❌ 여행 데이터를 불러오는 중 오류 발생:', err)
+    console.error('여행 데이터를 불러오는 중 오류 발생:', err)
   } finally {
     loading.value = false
   }
@@ -145,9 +149,14 @@ async function handleDelete() {
         <!-- 여행 정보 카드 -->
         <section class="info-card">
           <div class="info-header">
-            <!-- 🔥 테마 뱃지 수정 -->
+            <!-- 테마 뱃지 수정 -->
             <div class="tag theme" :style="{ background: themeColor }">
-              <span>{{ themeEmoji }}</span>
+              <span>
+                <img 
+                  :src="themeEmoji" 
+                  :alt="themeLabel + ' 아이콘'" 
+                  class="theme-icon-badge"/>         
+              </span>
               <span>{{ themeLabel }}</span>
             </div>
             <div class="tag status">{{ travel.status }}</div>
@@ -162,13 +171,17 @@ async function handleDelete() {
               </div>
             </div>
             <div class="info-item">
-              <!-- 🔥 아이콘 색상도 테마 색상 적용 -->
-              <div class="icon-wrap" :style="{ background: `${themeColor}20` }">
+              <!-- 아이콘 색상도 테마 색상 적용 -->
+                <div 
+                  class="icon-wrap" 
+                  :class="`theme-icon-${travel.theme}`"
+                  :style="{ background: `${themeColor}20` }"
+                >
                 <i class="fa fa-leaf" :style="{ color: themeColor }"></i>
               </div>
               <div class="text">
                 <p class="label">테마</p>
-                <!-- 🔥 테마 텍스트 수정 -->
+                <!-- 테마 텍스트 수정 -->
                 <p class="value">{{ themeLabel }}</p>
               </div>
             </div>
@@ -263,7 +276,7 @@ async function handleDelete() {
       </div>
     </div>
 
-    <!-- 🔥 Teleport 사용하여 모달을 body로 이동 -->
+    <!-- Teleport 사용하여 모달을 body로 이동 -->
     <Teleport to="body">
       <TravelReviewModal
         v-if="showReviewModal"
@@ -312,49 +325,53 @@ async function handleDelete() {
 
 .header-right { 
   display: flex; 
-  gap: 8px; 
+  gap: 10px; 
 }
 
 .btn {
   border-radius: 8px;
-  padding: 8px 16px;
+  padding: 8px 18px;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
 }
 
 .btn-outline-blue { 
-  border: 0.8px solid #3b82f6; 
+  border: 1.5px solid #3b82f6; 
   color: #3b82f6; 
   background: white; 
+}
+
+.btn-outline-blue:hover {
+  background: #3b82f6;
+  color: white;
 }
 
 .btn.delete {
   color: #ff4d4f; 
   border: 1.5px solid #ff4d4f; 
-  background-color: transparent; 
-  border-radius: 6px;
-  padding: 6px 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: 0.2s ease-in-out;
+  background: white;
 }
 
 .btn.delete:hover {
-  background-color: #ff4d4f;
+  background: #ff4d4f;
   color: white;
 }
-
+/* 정보 카드 - 전체 레이아웃 조정 */
 .info-card {
   background: #fff;
   box-shadow: 0 4px 6px -4px rgba(0,0,0,0.05);
   border-radius: 16px;
-  padding: 28px 32px;
+  padding: 24px 32px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   border: 1px solid rgba(229, 231, 235, 0.5);
 }
 
+/* 헤더 영역 - 테마 뱃지 크기 유지 */
 .info-header {
   display: flex;
   align-items: center;
@@ -363,60 +380,115 @@ async function handleDelete() {
 
 .tag.theme {
   background: #3b82f6;
-  color: white;
+  color: rgb(0, 0, 0);
   border-radius: 9999px;
-  padding: 8px 16px;
+  padding: 10px 18px;
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.tag.theme i { 
-  font-size: 16px; 
+.theme-icon-badge {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .tag.status {
   background: #10b981;
   color: white;
   font-size: 12px;
-  padding: 4px 10px;
+  font-weight: 500;
+  padding: 5px 12px;
   border-radius: 8px;
 }
 
+/* 정보 그리드 - 작게 조정 */
+/* 정보 그리드 - 균등 간격 */
 .info-grid {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3등분 */
+  gap: 32px; /* 균등한 간격 */
   padding: 20px 40px;
   border-radius: 12px;
-  margin-bottom: 4px;
+  background: #f9fafb;
+  border: 1px solid #f0f0f0;
+  align-items: center;
 }
 
 .info-item {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   text-align: left;
+  justify-content: flex-start; /* 왼쪽 정렬 */
 }
 
+
+/* 아이콘 래퍼 - 작게 조정 */
 .icon-wrap {
-  width: 46px;
-  height: 46px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: #e0f2fe;
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
+  overflow: hidden;
 }
 
 .icon-wrap i {
   color: #3b82f6;
-  font-size: 20px;
+  font-size: 18px;
+  position: relative;
+  z-index: 1;
 }
 
+/* 아이콘 이미지 추가 */
+.icon-wrap::before {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 2;
+}
+
+/* 여행지 아이콘 */
+.info-item:nth-child(1) .icon-wrap::before {
+  background-image: url('@/assets/images/icons/location.svg');
+}
+
+/* 테마 아이콘 - 동적으로 변경 필요 (아래 template 수정) */
+.info-item:nth-child(2) .icon-wrap.theme-icon-restaurant::before {
+  background-image: url('@/assets/images/theme/restaurant.png');
+}
+
+.info-item:nth-child(2) .icon-wrap.theme-icon-cafe::before {
+  background-image: url('@/assets/images/theme/cafe.png');
+}
+
+.info-item:nth-child(2) .icon-wrap.theme-icon-tourist::before {
+  background-image: url('@/assets/images/theme/arrtraction.png');
+}
+
+/* 기간 아이콘 */
+.info-item:nth-child(3) .icon-wrap::before {
+  background-image: url('@/assets/images/icons/calendar.svg');
+}
+
+/* 아이콘이 있을 때 Font Awesome 숨기기 */
+.icon-wrap::before + i {
+  display: none;
+}
+
+/* 텍스트 영역 - 크기 조정 */
 .text {
   display: flex;
   flex-direction: column;
@@ -425,15 +497,16 @@ async function handleDelete() {
 }
 
 .text .label {
-  font-size: 13px;
-  color: #6a7282;
+  font-size: 12px;
+  color: #9ca3af;
   margin: 0;
+  font-weight: 500;
 }
 
 .text .value {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  color: #101828;
+  color: #1f2937;
   margin: 0;
 }
 
