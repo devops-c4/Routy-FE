@@ -42,7 +42,7 @@
 
 <script setup>
 import { ref, onUnmounted } from 'vue';
-import axios from 'axios';
+import apiClient from '@/utils/axios';
 import { useRouter } from "vue-router";
 
 const router = useRouter();
@@ -99,7 +99,7 @@ const validationNum = async () => {
   const data = new FormData();
   data.append("mail",email.value)
 
-  await axios.post('http://localhost:8080/validation/sendmail',data).then(
+  await apiClient.post('http://localhost:8080/validation/sendmail',data).then(
     (res) => {
       console.log(res.data)
       if(res.data == 0){
