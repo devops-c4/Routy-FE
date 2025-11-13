@@ -28,7 +28,10 @@
         </div>
         <div class="info-item">
           <span class="info-icon">📍</span>
-          <span class="info-text">{{ places }}개</span>
+          <span class="info-text">
+            {{ destination }}
+            <span class="sub-info">{{ places }}개 일정</span>
+          </span>
         </div>
       </div>
 
@@ -63,6 +66,8 @@ defineProps({
   likes: Number,
   views: Number,
   shares: Number,
+    destination: String,  
+  places: Number 
 });
 
 const formatNumber = (num) => {
@@ -287,5 +292,11 @@ const formatNumber = (num) => {
   .stat-value {
     color: #d1d5db;
   }
+}
+
+.sub-info {
+  color: #6b7280; /* 회색톤으로 살짝 덜 강조 */
+  font-size: 0.9em;
+  margin-left: 4px;
 }
 </style>

@@ -114,7 +114,7 @@ function closeReviewModal() {
 // 북마크 모달 열기 함수
 const openBookmarkModal = async (planId) => {
   try {
-    const res = await axios.get(`/api/plans/public/${planId}`)
+    const res = await axios.get(`/api/mypage/bookmark/public/${planId}`)
     selectedPlan.value = res.data
     showModal.value = true
   } catch (err) {
@@ -421,6 +421,7 @@ function toggleBookmarks() {
             v-if="profile && profile.profileImage"
             :src="profile.profileImage"
             alt="프로필 이미지"
+            class="profile-img"
           />
           <span v-else>{{ profile.avatarText }}</span>
         </div>
@@ -584,22 +585,24 @@ function toggleBookmarks() {
 
     </div>
     <!-- 모달 컴포넌트 (페이지 하단) -->
-    </div>
-<BrowseTravelModal
-  v-if="showBrowseModal"
-  :planId="selectedPlanId"
-  @close="showBrowseModal = false"
-/>
+      </div>
+      <BrowseTravelModal
+        v-if="showBrowseModal"
+        :planId="selectedPlanId"
+        @close="showBrowseModal = false"
+      />
 
        <!-- 리뷰 작성 모달 -->
-  <TravelReviewModal
-    v-if="showReviewModal"
-    :plan-id="selectedPlanId"
-    :title="selectedTitle"
-    @close="showReviewModal = false"
-    @saved="onReviewSaved"
-    @openBrowse="openBrowseModal"
-  />
+
+      <TravelReviewModal
+        v-if="showReviewModal"
+        :plan-id="selectedPlanId"
+        :title="selectedTitle"
+        @close="showReviewModal = false"
+          @saved="onReviewSaved"
+          @openBrowse="openBrowseModal"
+      />
+
 </template>
 
 <style>
@@ -660,10 +663,13 @@ function toggleBookmarks() {
   overflow: hidden;
 }
 
-.avatar-img {
-  width: 50%;
-  height: 50%;
-  object-fit: contain;
+.profile-img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;       /* 원형 유지 */
+  object-fit: cover;        /* 비율 유지하면서 꽉 채우기 */
+  object-position: center;  /* 중앙 정렬 */
+  background-color: #f3f3f3; /* 이미지 없을 때 배경 */
 }
 
 .pinfo{ display:flex; flex-direction:column; gap:6px; }

@@ -66,32 +66,13 @@
           :title="route.title"
           :user="route.userNickname"
           :days="`${route.days}일`"
+          :places="route.placeCount"
           :likes="route.likeCount"
           :views="route.viewCount"
           :shares="route.bookmarkCount"
           @click="openModal(route)"
         />
       </div>
-
-      <!-- ✅ 더 보기 / 접기 버튼 -->
-      <div v-if="!loading" class="load-more-wrapper">
-        <button
-          v-if="hasMore"
-          class="btn btn-green"
-          @click="loadMore"
-        >
-          더 보기
-        </button>
-
-        <button
-          v-if="page > 0"
-          class="btn btn-blue"
-          @click="collapseList"
-        >
-          접기
-        </button>
-      </div>
-
       <div v-if="loading" class="loading-text">불러오는 중...</div>
     </section> 
 
@@ -120,7 +101,7 @@ const page = ref(0)
 const size = 9
 const hasMore = ref(true)
 const loading = ref(false)
-
+const sortType = ref('latest') 
 
 const applyFilter = () => {
   page.value = 0
@@ -205,8 +186,6 @@ const closeModal = () => {
   selectedRoute.value = null
   document.body.style.overflow = ''
 }
-
-const sortType = ref('latest') // 기본 정렬: 최신순
 
 // 정렬 변경
 const changeSort = (type) => {
@@ -329,41 +308,12 @@ const updateRoute = (updated) => {
 }
 
 /* ✅ 공용 버튼 스타일 (media query 밖으로 이동) */
-.btn {
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 14px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background 0.2s;
-  border: none;
-}
-
-.btn-green {
-  background: #10b981; /* 녹색 */
-  color: white;
-}
-
 .btn-green:hover {
   background: #059669;
 }
 
-.btn-blue {
-  background: #3b82f6; /* 파란색 */
-  color: white;
-}
-
 .btn-blue:hover {
   background: #2563eb;
-}
-
-/* ✅ 버튼 정렬 */
-.load-more-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  margin-top: 40px;
 }
 
 .loading-text {
