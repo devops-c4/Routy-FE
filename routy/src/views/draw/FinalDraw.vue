@@ -362,7 +362,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import apiClient from "@/utils/axios";
+import axios from "axios";
 import draggable from "vuedraggable";
 
 // 마커 이미지 import
@@ -375,7 +375,7 @@ import attractionSelect from '@/assets/images/icons/markers/attraction-select.pn
 import hotelSelect from '@/assets/images/icons/markers/hotel-select.png';
 
 // 폴리라인 그리기
-import { deletePoliLine, direction, sortDirection, isPolyLine } from '@/composables/Usedirection';
+import { deletePoliLine, direction, sortDirection } from '@/composables/Usedirection'
 
 const route = useRoute();
 const router = useRouter();
@@ -621,10 +621,6 @@ const createSearchMarker = (place, placeType) => {
     title: place.title
   });
   
-  newMarker._placeType = placeType;
-  newMarker._origImage = markerImage;
-  newMarker._imageUrl = markerImageUrl;
-
   kakao.maps.event.addListener(newMarker, 'click', function() {
     highlightPlace(place, true);
   });
@@ -647,11 +643,7 @@ const createSelectedMarker = (place, placeType) => {
     title: place.title,
     zIndex: 100
   });
-
-  newMarker._placeType = placeType;
-  newMarker._origImage = markerImage;
-  newMarker._imageUrl = markerImageUrl;
-
+  
   kakao.maps.event.addListener(newMarker, 'click', function() {
     highlightPlace(place, true);
   });
@@ -659,9 +651,8 @@ const createSelectedMarker = (place, placeType) => {
   return newMarker;
 };
 
-// 마커 강조 + 오버레이 표시
+// 장소 선택/강조 함수
 const highlightPlace = async (place, fromMarkerClick = false) => {
-<<<<<<< HEAD
   if (map && place.latitude && place.longitude) {
     const position = new kakao.maps.LatLng(place.latitude, place.longitude);
     map.setCenter(position);
@@ -671,12 +662,6 @@ const highlightPlace = async (place, fromMarkerClick = false) => {
   }
   
   let targetType = 'attractions';
-=======
-
-  selectedPlace.value = place;
-  // 카테고리 판별 및 자동 전환
-  let targetType = 'attractions'; // 기본값
->>>>>>> fbe643087dd366d06e6fe750e499a2a795620d59
   
   if (place.categoryCode === 'FD6') {
     targetType = 'restaurants';
@@ -692,6 +677,7 @@ const highlightPlace = async (place, fromMarkerClick = false) => {
     await nextTick();
   }
   
+  selectedPlace.value = place;
   
   if (placeCardRefs.value[place.title] && placeListContainer.value) {
     const element = placeCardRefs.value[place.title];
@@ -748,99 +734,8 @@ const displaySearchResultMarkers = () => {
   console.log(`검색 결과 마커 ${searchResultMarkers.value.length}개 표시`);
 };
 
-// 선택 상태 관리
-const activeMarker = ref(null);
-const activeMarkerAnimation = ref(null);
-
-const animateMarkerBounce = (marker, height = 15, speed = 0.004) => {
-  if (!marker) return;
-
-  const startPos = marker.getPosition();
-  let startTime = null;
-
-  const step = (timestamp) => {
-    if (!startTime) startTime = timestamp;
-    const progress = timestamp - startTime;
-
-    const delta = Math.sin(progress * speed) * height;
-    marker.setPosition(new kakao.maps.LatLng(startPos.getLat() + delta * 0.00001, startPos.getLng()));
-
-    // selectedPlace가 바뀌기 전까지 계속 반복
-    if (activeMarker.value === marker) {
-      activeMarkerAnimation.value = requestAnimationFrame(step);
-    } else {
-      marker.setPosition(startPos); // 선택 해제되면 원위치
-    }
-  };
-
-  activeMarkerAnimation.value = requestAnimationFrame(step);
-};
-
-watch(selectedPlace, async (newPlace, oldPlace) => {
-  if(activeMarker.value) {    // 이미 마커가 있으면
-    try {                     // 해당 마커를 원본 크기로 돌리기
-      // const prev = activeMarker.value;
-      // if(prev._origImage) {
-        // prev.setImage(prev._origImage);
-      // } else if (prev._imageUrl) {
-        // prev.setImage(getMarkerImage(prev._origImage, { width: 60, height: 60 }));
-      // }
-      prev.setZIndex(100);
-
-       // 애니메이션 취소
-      if(activeMarkerAnimation.value) {
-        const startPos = clickedMarker.getPosition();
-        let startTime = null;
-
-        const animate = (timestamp) => {
-        if (!startTime) startTime = timestamp;
-          const progress = timestamp - startTime;
-          const delta = Math.sin(progress * 0.004) * 20; // 높이 20, 속도 조절
-          clickedMarker.setPosition(new kakao.maps.LatLng(startPos.getLat() + delta * 0.00001, startPos.getLng()));
-
-          // selectedPlace가 바뀌면 자동 종료
-          if(activeMarker.value === clickedMarker) {
-            activeMarkerAnimation.value = requestAnimationFrame(animate);
-          }
-        };
-        activeMarkerAnimation.value = requestAnimationFrame(animate);
-      }
-    } catch (e) {
-      console.warn("prev marker restore failed", e);
-    }
-    activeMarker.value = null;  // 원상 복구 했으므로 켜져 있는 마커는 없다.
-  }
-
-    // 클릭한 마커 찾기 (selected markers 배열 우선)
-  const clickedMarker = (placeMarkers.value || []).find(m => m.getTitle() === newPlace.title)
-                      || (searchResultMarkers.value || []).find(m => m.getTitle() === newPlace.title);
-
-
-  if (clickedMarker) {
-    // 확대할 이미지 생성: 같은 이미지 URL 사용하되 큰 사이즈로
-    const placeType = clickedMarker._placeType || (
-      newPlace.isHotel ? 'hotel' :
-      (newPlace.categoryCode === 'FD6' ? 'restaurants' : (newPlace.categoryCode === 'CE7' ? 'cafes' : 'attractions'))
-    );
-    // const imageUrl = clickedMarker._imageUrl || getSelectedMarkerImageUrl(placeType);
-    // const bigImage = getMarkerImage(imageUrl, { width: 80, height: 80 });
-
-    // clickedMarker.setImage(bigImage);
-    clickedMarker.setZIndex(999); // 선택 마커가 위로 오도록
-    activeMarker.value = clickedMarker;
-
-    // 애니메이션 실행
-    animateMarkerBounce(clickedMarker);
-  }
-
-  // if(isPolyLine) displaySearchResultMarkers();
-  await nextTick();
-});
-
 // 선택된 장소 마커 표시
 const updateMapMarkers = () => {
-  deletePoliLine();
-  displaySearchResultMarkers();
   clearAllMarkers();
   
   const currentDayPlaces = placesByDay.value[selectedDay.value] || [];
@@ -856,7 +751,7 @@ const updateMapMarkers = () => {
     } else {
       placeType = 'attractions';
     }
-    selectedPlace.value = null;
+    
     return createSelectedMarker(place, placeType);
   }).filter(Boolean);
   
@@ -919,13 +814,13 @@ const hasSignificantChange = (newLat, newLng, newType) => {
 // Plan 정보 가져오기
 const loadPlanInfo = async () => {
   try {
-    const res = await apiClient.get(`/api/plans/select/${planId}`);
+    const res = await axios.get(`/api/plans/select/${planId}`);
     const plan = res.data;
     
     const regionId = plan.regionId || plan.region_id;
     
     if (regionId) {
-      const regionRes = await apiClient.get(`/api/regions/${regionId}`);
+      const regionRes = await axios.get(`/api/regions/${regionId}`);
       const region = regionRes.data;
       
       if (region.startLat && region.startLng) {
@@ -945,7 +840,6 @@ const loadPlanInfo = async () => {
 
 // 장소 불러오기
 const loadPlaces = async (type, lat = null, lng = null) => {
-  deletePoliLine();
   if (isSearching.value) {
     console.log("⏸ 이미 검색 중...");
     return;
@@ -984,7 +878,7 @@ const loadPlaces = async (type, lat = null, lng = null) => {
   isSearching.value = true;
   
   try {
-    const res = await apiClient.get(`/api/kakao/${type}`, { 
+    const res = await axios.get(`/api/kakao/${type}`, { 
       params: { lat: searchLat, lng: searchLng },
       timeout: 10000
     });
@@ -1026,10 +920,6 @@ const loadPlaces = async (type, lat = null, lng = null) => {
 // 지도 선택
 const selectPlace = (p) => {
   selectedPlace.value = p;
-  if(isPolyLine()) {
-    deletePoliLine();
-    displaySearchResultMarkers();
-  }
 };
 
 // 장소 추가
@@ -1066,7 +956,7 @@ const removePlace = (p) => {
     console.log(`${p.title} 제거`);
     updateMapMarkers();
     deletePoliLine();
-    displaySearchResultMarkers();
+    
     setTimeout(() => {
       lastSearchCoords.value = { lat: null, lng: null, type: null };
       loadPlaces(currentType.value);
@@ -1117,7 +1007,7 @@ const openHotelModal = async () => {
   showHotelModal.value = true;
   
   try {
-    const res = await apiClient.get(`/api/kakao/hotels`, { 
+    const res = await axios.get(`/api/kakao/hotels`, { 
       params: { 
         lat: startLocation.value.lat, 
         lng: startLocation.value.lng 
@@ -1170,7 +1060,7 @@ const focusHotelOnMap = (hotel) => {
 const loadDurations = async () => {
   try {
     durations.value = [];
-    const res = await apiClient.get(`/api/plans/${planId}/durations`);
+    const res = await axios.get(`/api/plans/${planId}/durations`);
     const uniqueDays = new Set();
     let fetched = [];
     
@@ -1237,7 +1127,6 @@ const goPrevDay = () => {
   if (selectedDay.value > 1) {
     selectedDay.value--;
     deletePoliLine();
-    displaySearchResultMarkers();
   }
 };
 
@@ -1245,14 +1134,12 @@ const goNextDay = () => {
   if (selectedDay.value < durations.value.length) {
     selectedDay.value++;
     deletePoliLine();
-    displaySearchResultMarkers();
   }
 };
 
 const selectDay = (day) => {
   selectedDay.value = day;
   deletePoliLine();
-  displaySearchResultMarkers()
 };
 
 // 일차 변경 시 마커 업데이트
@@ -1343,8 +1230,13 @@ const saveAllDaysPlaces = async () => {
         runTime: p.runTime || null,
       }));
       
-      console.log(`${duration.day}일차 새로 추가된 ${newPlaces.length}개 장소:`, mappedPlaces);
-      await apiClient.post("/api/places/batch", mappedPlaces);
+      // 로그 추가
+      console.log(`${duration.day}일차 API 전송 데이터:`, JSON.stringify(mappedPlaces, null, 2));
+      
+      const response = await axios.post("/api/places/batch", mappedPlaces);
+      
+      // 로그 추가
+      console.log(`${duration.day}일차 저장 응답:`, response.data);
     }
     
     if (!hasNewPlaces) {
@@ -1452,8 +1344,6 @@ onMounted(async () => {
 // 경로 그리기
 const drawRoute = async () => {
   await direction(map, placesByDay.value[selectedDay.value]);
-  selectedPlace.value = null;
-  if(isPolyLine()) clearSearchResultMarkers();
 };
 
 // 자동 정렬
@@ -1461,7 +1351,6 @@ const isLoading = ref(false);
 const previewSorted = ref([]);
 
 const drawSort = async () => {
-  selectedPlace.value = null;
   const currentPlaces = placesByDay.value[selectedDay.value];
   
   isLoading.value = true;
@@ -1498,11 +1387,11 @@ const applySortedPlaces = () => {
   placesByDay.value[selectedDay.value] = [...previewSorted.value];
   console.log("정렬 완료");
   showSortModal.value = false;
-  if(isPolyLine) clearSearchResultMarkers();
 };
 
 const cancelSortPreview = () => {
   console.log("정렬 취소");
+  deletePoliLine();
   showSortModal.value = false;
 };
 </script>
@@ -2568,60 +2457,4 @@ const cancelSortPreview = () => {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
 }
-<<<<<<< HEAD
-=======
-
-.custom-overlay {
-  position: relative;
-  background: white;
-  border: 2px solid #3B82F6;
-  border-radius: 10px;
-  padding: 8px 12px;
-  font-size: 13px;
-  color: #333;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
-  text-align: left;
-  width: 200px;
-  transition: all 0.2s ease;
-  animation: fadeIn 0.2s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.overlay-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.overlay-header strong {
-  color: #1E40AF;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.overlay-close {
-  background: transparent;
-  border: none;
-  color: #666;
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.overlay-close:hover {
-  color: #000;
-}
-
-.overlay-body {
-  color: #555;
-  font-size: 12px;
-  line-height: 1.4;
-}
->>>>>>> fbe643087dd366d06e6fe750e499a2a795620d59
 </style>

@@ -62,12 +62,8 @@
 </template>
 
 <script setup>
-
-import '@/assets/css/draw.css'
-import '@/assets/css/step-common.css';
-import { ref, computed } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import apiClient from '@/utils/axios';
+import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
 const route = useRoute()
@@ -89,40 +85,9 @@ const goNext = () => {
     return
   }
 
-
   if (new Date(endDate.value) < new Date(startDate.value)) {
     alert('종료일은 시작일보다 늦어야 합니다!')
     return
-  try {
-    const payload = {
-      planTitle: `${regionName} 여행 일정`,
-      startDate: startDate.value,
-      endDate: endDate.value,
-
-      regionId: regionId,
-      // userId는 백엔드에서 SecurityContext로 자동 추출
-    };
-
-    const res = await apiClient.post('/api/plans', payload);
-    const planId = res.data.planId;
-
-    await apiClient.post(`/api/plans/${planId}/durations`, { totalDays: totalDays.value });
-
-    const query = {
-      planId,
-      totalDays: totalDays.value
-    };
-    
-
-    router.push({
-      path: '/draw/third',
-      query: query
-    });
-
-    console.log('일정 생성 성공:', res.data);
-  } catch (err) {
-    console.error('일정 생성 실패:', err);
-    alert('일정 저장 중 오류가 발생했습니다!');
   }
 
   // 날짜 정보를 localStorage에 저장
@@ -214,3 +179,4 @@ const calculateDays = (start, end) => {
   font-weight: 500;
 }
 </style>
+
