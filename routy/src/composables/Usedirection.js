@@ -3,6 +3,11 @@ import axios from "axios";
 let polyline = [];
 let overlays = [];
 
+// 현재 폴리라인이 있는지
+export function isPolyLine() {
+    return Array.isArray(polyline) && polyline.length > 0
+}
+
 // 색상 자동 생성 (섹션별 구분)
 function getColor(index) {
     const hue = (index * 47) % 360;
