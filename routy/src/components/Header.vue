@@ -232,8 +232,8 @@ const moveToChatBot = () => router.push('/chatbot');
 }
 
 .chatbot-icon {
-  width: 55px; 
-  height: 55px;
+  width: 80px; 
+  height: 80px;
   object-fit: contain; 
   vertical-align: middle; 
   cursor: pointer;
