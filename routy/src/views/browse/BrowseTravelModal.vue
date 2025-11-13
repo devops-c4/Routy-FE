@@ -29,17 +29,48 @@
       <!-- 통계 -->
       <div class="stats-bar">
         <div class="stat-item">
-          <button @click="toggleLike" class="like-btn">
-            ❤️좋아요 {{ likeCount }}
+          <!-- ❤️ 좋아요 -->
+          <button
+            @click="toggleLike"
+            class="like-btn"
+            :disabled="readOnly"
+            v-if="!readOnly"
+          >
+            ❤️ 좋아요 {{ likeCount }}
+          </button>
+
+          <!-- 읽기 전용 모드일 때는 클릭 불가한 비활성화 상태로 표시 -->
+          <button
+            v-else
+            class="like-btn disabled"
+            disabled
+          >
+            ❤️ 좋아요 {{ likeCount }}
           </button>
         </div>
+
         <div class="stat-item">
           <span class="stat-icon">👁️</span>
           <span class="stat-label">조회수</span>
           <span class="stat-value">{{ viewCount }}</span>
         </div>
+
         <div class="stat-item">
-          <button @click="toggleBookmark" class="like-btn">
+          <!-- 🔖 북마크 -->
+          <button
+            @click="toggleBookmark"
+            class="like-btn"
+            :disabled="readOnly"
+            v-if="!readOnly"
+          >
+            🔖 북마크 {{ bookmarkCount }}
+          </button>
+          <!-- 읽기 전용 모드일 때 -->
+          <button
+            v-else
+            class="like-btn disabled"
+            disabled
+          >
             🔖 북마크 {{ bookmarkCount }}
           </button>
         </div>
@@ -180,7 +211,11 @@ const showModal = ref(true)
 
 // ✅ 부모로부터 전달받는 여행 데이터(route)
 const props = defineProps({
-  route: Object
+  route: Object,
+  readOnly: {
+  type: Boolean,
+  default: false, // 기본은 false (browse에서는 정상 작동)
+},
 })
 const emit = defineEmits(['updateRoute', 'close', 'bookmarkAdded'])
 
@@ -191,6 +226,8 @@ const viewCount = ref(0)
 const isLiked = ref(false)
 const selectedDay = ref(1)
 const dayListRef = ref(null)
+const travel = ref(null)
+
 
 // ✅ 날짜 선택 모달 (캘린더)
 const showCalendar = ref(false)
@@ -240,12 +277,26 @@ const selectedDayActivities = computed(() => {
 // ✅ 조회수 증가
 onMounted(async () => {
   try {
-    viewCount.value++
-    await apiClient.post(`/api/plans/${props.route.planId}/view`)
+    const res = await apiClient.get(`/api/plans/public/${props.route.planId}`)
+    travel.value = res.data
+
+    // ✅ 뷰카운트 기본값
+    if (travel.value.viewCount === undefined) {
+      travel.value.viewCount = 0
+    }
+
+    // ✅ 읽기 전용 모드가 아닐 때만 조회수 증가
+    if (!props.readOnly) {
+      await apiClient.post(`/api/plans/${props.route.planId}/view`)
+      travel.value.viewCount += 1       // 🔥 서버 응답 기다리지 않고 즉시 반영
+    }
+
   } catch (err) {
     console.error('조회수 증가 실패:', err)
   }
 })
+
+
 
 // ✅ 북마크 토글
 const toggleBookmark = async () => {

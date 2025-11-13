@@ -505,11 +505,13 @@ function toggleBookmarks() {
 
     </div>
     <!-- 모달 컴포넌트 (페이지 하단) -->
+     <!-- BrowseTravelModal 읽기 전용 모드(좋아요, 조회 수, 북마크 기능 사용 불가)-->
       </div>
       <BrowseTravelModal
-        v-if="showModal"
-        :route="selectedPlan"
-        @close="showModal = false"
+          v-if="showModal"
+          :route="selectedPlan"
+          :readOnly="true"   
+          @close="showModal = false"
       />
        <!-- 리뷰 작성 모달 -->
       <TravelReviewModal
