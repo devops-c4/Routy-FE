@@ -1,4 +1,4 @@
-import axios from "axios";
+import apiClient from "@/utils/axios";
 
 let polyline = [];
 let overlays = [];
@@ -126,7 +126,7 @@ export async function direction(map, coords) {
 
     try {
         // 백엔드에 요청
-        const response = await axios.post(
+        const response = await apiClient.post(
             "/api/direction/points",
             payload
         );
@@ -190,7 +190,7 @@ export async function sortDirection(map, coords) {
 
     try {
         // 백엔드에 요청
-        const response = await axios.post(
+        const response = await apiClient.post(
             "/api/direction/optimization",
             payload
         );

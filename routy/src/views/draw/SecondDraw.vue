@@ -66,7 +66,7 @@ import '@/assets/css/draw.css'
 import '@/assets/css/step-common.css';
 import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import axios from 'axios';
+import apiClient from '@/utils/axios';
 
 const router = useRouter();
 const route = useRoute();
@@ -115,10 +115,10 @@ const goNext = async () => {
       // userId는 백엔드에서 SecurityContext로 자동 추출
     };
 
-    const res = await axios.post('/api/plans', payload);
+    const res = await apiClient.post('/api/plans', payload);
     const planId = res.data.planId;
 
-    await axios.post(`/api/plans/${planId}/durations`, { totalDays: totalDays.value });
+    await apiClient.post(`/api/plans/${planId}/durations`, { totalDays: totalDays.value });
 
     const query = {
       planId,

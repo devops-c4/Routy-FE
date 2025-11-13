@@ -88,7 +88,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import apiClient from '@/utils/axios'
 import TravelCard from '@/views/browse/BrowseTravelCard.vue'
 import TravelDetailModal from '@/views/browse/BrowseTravelModal.vue'
 
@@ -111,7 +111,7 @@ const applyFilter = () => {
 //  1. 지역 목록 불러오기
 const fetchRegions = async () => {
   try {
-    const response = await axios.get('http://localhost:8080/api/plans/regions')
+    const response = await apiClient.get('http://localhost:8080/api/plans/regions')
     regions.value = response.data
   } catch (error) {
     console.error('지역 목록 불러오기 실패:', error)
@@ -123,7 +123,7 @@ const fetchPublicPlans = async (append = false) => {
   if (loading.value) return
   loading.value = true
   try {
-    const res = await axios.get('http://localhost:8080/api/plans/public', {
+    const res = await apiClient.get('http://localhost:8080/api/plans/public', {
       params: {
         page: page.value,
         size,
@@ -167,12 +167,12 @@ const openModal = async (route) => {
   selectedRoute.value = null
   try {
     // ✅ 최신 데이터로 다시 요청
-    const res = await axios.get(`http://localhost:8080/api/plans/public/${route.planId}`)
+    const res = await apiClient.get(`http://localhost:8080/api/plans/public/${route.planId}`)
     selectedRoute.value = res.data
     document.body.style.overflow = 'hidden'
 
     // ✅ 조회수 증가 요청 (작성자 제외)
-    await axios.post(`http://localhost:8080/api/plans/${route.planId}/view`)
+    await apiClient.post(`http://localhost:8080/api/plans/${route.planId}/view`)
 
     // ✅ 부모 리스트에서 해당 카드 카운트도 즉시 반영
     const target = routes.value.find(r => r.planId === route.planId)

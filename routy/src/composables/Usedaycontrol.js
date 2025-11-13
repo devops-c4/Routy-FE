@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue';
-import axios from 'axios';
+import apiClient from '@/utils/axios';
 
 export function useDayControl(planId, totalDays) {
   const durations = ref([]);
@@ -14,7 +14,7 @@ export function useDayControl(planId, totalDays) {
   const loadDurations = async () => {
     try {
       durations.value = [];
-      const res = await axios.get(`/api/plans/${planId}/durations`);
+      const res = await apiClient.get(`/api/plans/${planId}/durations`);
       const uniqueDays = new Set();
       let fetched = [];
       
@@ -170,7 +170,7 @@ export function useDayControl(planId, totalDays) {
         }));
         
         console.log(`${duration.day}일차 전송 데이터:`, mappedPlaces);
-        await axios.post("/api/places/batch", mappedPlaces);
+        await apiClient.post("/api/places/batch", mappedPlaces);
       }
       alert("전체 일정 저장 완료!");
       return true;

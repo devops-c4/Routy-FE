@@ -332,7 +332,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import axios from "axios";
+import apiClient from "@/utils/axios";
 import draggable from "vuedraggable";
 
 
@@ -800,13 +800,13 @@ const hasSignificantChange = (newLat, newLng, newType) => {
 // Plan 정보 가져오기
 const loadPlanInfo = async () => {
   try {
-    const res = await axios.get(`/api/plans/select/${planId}`);
+    const res = await apiClient.get(`/api/plans/select/${planId}`);
     const plan = res.data;
     
     const regionId = plan.regionId || plan.region_id;
     
     if (regionId) {
-      const regionRes = await axios.get(`/api/regions/${regionId}`);
+      const regionRes = await apiClient.get(`/api/regions/${regionId}`);
       const region = regionRes.data;
       
       if (region.startLat && region.startLng) {
@@ -860,7 +860,7 @@ const loadPlaces = async (type, lat = null, lng = null) => {
   isSearching.value = true;
   
   try {
-    const res = await axios.get(`/api/kakao/${type}`, { 
+    const res = await apiClient.get(`/api/kakao/${type}`, { 
       params: { lat: searchLat, lng: searchLng },
       timeout: 10000
     });
@@ -995,7 +995,7 @@ const openHotelModal = async () => {
   showHotelModal.value = true;
   
   try {
-    const res = await axios.get(`/api/kakao/hotels`, { 
+    const res = await apiClient.get(`/api/kakao/hotels`, { 
       params: { 
         lat: startLocation.value.lat, 
         lng: startLocation.value.lng 
@@ -1048,7 +1048,7 @@ const focusHotelOnMap = (hotel) => {
 const loadDurations = async () => {
   try {
     durations.value = [];
-    const res = await axios.get(`/api/plans/${planId}/durations`);
+    const res = await apiClient.get(`/api/plans/${planId}/durations`);
     const uniqueDays = new Set();
     let fetched = [];
     
@@ -1190,7 +1190,7 @@ const saveAllDaysPlaces = async () => {
       }));
       
       console.log(`${duration.day}일차 새로 추가된 ${newPlaces.length}개 장소:`, mappedPlaces);
-      await axios.post("/api/places/batch", mappedPlaces);
+      await apiClient.post("/api/places/batch", mappedPlaces);
     }
     
 
