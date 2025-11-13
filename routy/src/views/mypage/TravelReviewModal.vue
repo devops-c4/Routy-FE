@@ -157,8 +157,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import apiClient from "@/utils/axios";
+
+const objectUrls = new Set();
 
 /** =========================
  * props & emits
@@ -221,10 +223,17 @@ const fetchReviewForm = async () => {
     rating.value = data.rating || 0;
     reviewId.value = data.reviewId || null;
 
-    previewImages.value = (data.files || []).map((f) => ({
-      url: f.url,
-      existing: true,
-    }));
+    // previewImages.value = (data.files || []).map((f) => ({
+    //   url: f.url,
+    //   existing: true,
+    // }));
+    // 리뷰 폼의 파일은 ReviewFileDTO(filePath)에 S3 URL이 있음
+   previewImages.value = (data.files || [])
+     .filter(f => !!(f?.filePath))
+     .map((f) => ({
+       url: f.filePath,
+       existing: true,
+     }));
 
     // 1순위: 부모에서 내려준 초기값 사용
     if (props.isPublicInitial !== null) {
@@ -329,6 +338,7 @@ function onFileChange(e) {
   for (const file of files) {
     if (previewImages.value.length >= 8) break;
     const url = URL.createObjectURL(file);
+    objectUrls.add(url);
     previewImages.value.push({ url, existing: false });
     newFiles.value.push(file);
   }
@@ -353,17 +363,28 @@ async function submitReview() {
   formData.append("planId", String(props.planId));
   formData.append("content", review.value);
   formData.append("rating", String(Math.round((rating.value || 0) * 10) / 10));
-
+ // UI는 0~10(반개=1점) → 서버는 1~5 (정수)
+ const ratingForServer = Math.max(1, Math.min(5, Math.round((rating.value || 0) / 2)));
+ formData.append("rating", String(ratingForServer));
+  
   newFiles.value.forEach((file) => {
     formData.append("files", file);
   });
 
   try {
     isUploading.value = true;
-    await apiClient.post(`/api/plans/${props.planId}/reviews`, formData, {
+    // await apiClient.post(`/api/plans/${props.planId}/reviews`, formData, {
+    const { data } = await apiClient.post(`/api/plans/${props.planId}/reviews`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
     alert("리뷰가 등록되었습니다!");
+
+
+   // 업로드 응답(PlanReviewResponseDTO.files)에는 S3 URL 배열이 옴 → 화면 즉시 반영하고 닫기
+   if (data?.files?.length) {
+     previewImages.value = data.files.map(url => ({ url, existing: true }));
+   }
+
     emit("saved");
     emit("close");
   } catch (e) {
@@ -394,6 +415,12 @@ onMounted(async () => {
   }
   initSelectedDay();
 });
+
+//  모달이 닫히거나 컴포넌트가 사라질 때 ObjectURL 정리
+ onUnmounted(() => {
+   objectUrls.forEach((u) => URL.revokeObjectURL(u));
+   objectUrls.clear();
+ });
 </script>
 
 <style scoped>
