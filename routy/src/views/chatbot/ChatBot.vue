@@ -46,7 +46,7 @@
 
 <script setup>
 import { ref, nextTick, watch } from 'vue'
-import axios from 'axios'
+import apiClient from '@/utils/axios'
 
 const chatBox = ref(null)
 const userInput = ref('')
@@ -120,7 +120,7 @@ const sendMessage = async () => {
   userInput.value = ''
 
   try {
-    const res = await axios.post('http://localhost:8080/chatbot', { message: text })
+    const res = await apiClient.post('/api/chatbot', { message: text })
     const reply = res.data.reply
     messages.value.push({ role: 'bot', text: reply })
   } catch (err) {

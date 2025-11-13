@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import axios from 'axios'
+import apiClient from '@/utils/axios'
 import { useRouter } from 'vue-router'
 import { jwtDecode } from 'jwt-decode' // 설치 안 돼 있으면: npm i jwt-decode
 import BrowseTravelModal from '@/views/browse/BrowseTravelModal.vue'
@@ -114,7 +114,7 @@ function closeReviewModal() {
 // 북마크 모달 열기 함수
 const openBookmarkModal = async (planId) => {
   try {
-    const res = await axios.get(`/api/mypage/bookmark/public/${planId}`)
+    const res = await apiClient.get(`/api/mypage/bookmark/public/${planId}`)
     selectedPlan.value = res.data
     showModal.value = true
   } catch (err) {
@@ -152,7 +152,7 @@ const fetchMyPage = async () => {
   loading.value = true
   error.value = null
   try {
-    const res = await axios.get('/api/mypage', {
+    const res = await apiClient.get('/api/mypage', {
       params: {
         year: year.value,
         month: month.value + 1, // 백엔드는 1~12
@@ -201,7 +201,7 @@ const fetchMyPage = async () => {
     travelHistoryRaw.value = data.travelHistory ?? []
 
     // 5) 북마크
-    const bookmarkRes = await axios.get('/api/mypage/bookmarks')
+    const bookmarkRes = await apiClient.get('/api/mypage/bookmarks')
     bookmarksRaw.value = bookmarkRes.data ?? []
 
   } catch (e) {
@@ -216,7 +216,7 @@ const fetchMyPage = async () => {
 /* 백엔드에서 전체를 주는 엔드포인트로 바꿔줘 */
 const fetchAllTravelHistory = async () => {
   try {
-    const res = await axios.get('/api/mypage/travel-history')
+    const res = await apiClient.get('/api/mypage/travel-history') 
     console.log('📦 여행기록 API 응답:', res.data)
     travelHistoryRaw.value = res.data ?? []
     // 목록 갱신 후 썸네일 하이드레이션
@@ -229,7 +229,7 @@ const fetchAllTravelHistory = async () => {
 /* ====== 3. 북마크 전체 호출 ====== */
 const fetchAllBookmarks = async () => {
   try {
-    const res = await axios.get('/api/mypage/bookmarks')
+    const res = await apiClient.get('/api/mypage/bookmarks')
     bookmarksRaw.value = res.data ?? []
   } catch (e) {
     console.warn('전체 북마크 호출 실패:', e)
