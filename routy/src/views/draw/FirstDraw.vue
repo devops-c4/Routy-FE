@@ -85,7 +85,7 @@ import "@/assets/css/draw.css";
 import "@/assets/css/step-common.css";
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import axios from "axios";
+import apiClient from "@/utils/axios";
 import markerBigImage from "@/assets/images/icons/first-marker.png";
 
 const router = useRouter();
@@ -166,7 +166,7 @@ const initMap = () => {
 // DB에서 지역 불러오기
 const loadRegions = async () => {
   try {
-    const res = await axios.get("/api/regions");
+    const res = await apiClient.get("/api/regions");
     regions.value = res.data;
     console.log("지역 목록 불러오기 성공:", res.data);
   } catch (err) {
