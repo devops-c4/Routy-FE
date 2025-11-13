@@ -29,6 +29,9 @@
             </div>
             <div class="form-group half">
               <label>기간</label>
+              <button type="button" class="change-date-btn" @click="openDateModal">
+              일정 변경
+              </button>
               <div class="duration-box">
                 <button @click="decreaseDays">-</button>
                 <span>{{ durationText }}</span>
@@ -37,7 +40,7 @@
             </div>
           </div>
 
-          <div class="form-group">
+          <!-- <div class="form-group">
             <label>테마 선택 (복수 선택 가능)</label>
             <div class="theme-list">
               <label
@@ -49,8 +52,57 @@
                 {{ theme }}
               </label>
             </div>
-          </div>
+          </div> -->
         </div>
+        <div
+  v-if="showDateModal"
+  class="date-modal-backdrop"
+  @click.self="closeDateModal"
+>
+  <div class="date-modal">
+    <h3 class="date-modal-title">여행 날짜 변경</h3>
+    <p class="date-modal-subtitle">여행 시작일과 종료일을 선택해주세요</p>
+
+    <div class="date-grid">
+      <!-- 시작일 -->
+      <div class="date-input">
+        <label for="edit-start">시작일</label>
+        <input
+          id="edit-start"
+          type="date"
+          v-model="startDate"
+          :min="today"
+          @change="handleStartChange"
+        />
+      </div>
+
+      <span class="tilde">~</span>
+
+      <!-- 종료일 -->
+      <div class="date-input">
+        <label for="edit-end">종료일</label>
+        <input
+          id="edit-end"
+          type="date"
+          v-model="endDate"
+          :min="startDate || today"
+        />
+      </div>
+    </div>
+
+    <div v-if="startDate && endDate" class="date-summary">
+      <p>{{ formattedPeriod }}</p>
+      <p class="days">총 {{ totalDays }}일</p>
+    </div>
+
+    <div class="date-modal-buttons">
+      <button class="btn-secondary" @click="closeDateModal">취소</button>
+      <button class="btn-primary" @click="applyDateChange" :disabled="!startDate || !endDate">
+        적용
+      </button>
+    </div>
+  </div>
+</div>
       </section>
 
       <!-- 일정 카드 -->
@@ -156,6 +208,14 @@ const router = useRouter();
 const route = useRoute();
 const planId = route.params.id;
 
+const showDateModal = ref(false);
+
+const startDate = ref('');
+const endDate = ref('');
+
+// 오늘 YYYY-MM-DD
+const today = new Date().toISOString().split('T')[0];
+
 const loading = ref(true);
 const placeLocked = ref(true);
 
@@ -194,6 +254,85 @@ const toDisplayDate = (str) => {
 };
 
 // 1) 수정화면 데이터 불러오기
+const initializeDatesFromDays = () => {
+  if (!travel.value.days || travel.value.days.length === 0) return;
+  startDate.value = travel.value.days[0].date || '';
+  endDate.value = travel.value.days[travel.value.days.length - 1].date || '';
+};
+// 시작일 변경 시 종료일 검증
+const handleStartChange = () => {
+  if (endDate.value && endDate.value < startDate.value) {
+    endDate.value = '';
+  }
+};
+
+const formattedPeriod = computed(() => {
+  if (!startDate.value || !endDate.value) return '';
+  const s = new Date(startDate.value);
+  const e = new Date(endDate.value);
+  return `${s.getMonth() + 1}월 ${s.getDate()}일 - ${e.getMonth() + 1}월 ${e.getDate()}일`;
+});
+
+const totalDays = computed(() => {
+  if (!startDate.value || !endDate.value) return 0;
+  const diff = new Date(endDate.value) - new Date(startDate.value);
+  return Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
+});
+
+const openDateModal = () => {
+  // 현재 days 기준으로 start/end 동기화
+  initializeDatesFromDays();
+  showDateModal.value = true;
+};
+
+const closeDateModal = () => {
+  showDateModal.value = false;
+};
+
+const applyDateChange = () => {
+  if (!startDate.value || !endDate.value) {
+    alert('시작일과 종료일을 모두 선택해주세요!');
+    return;
+  }
+
+  const days = totalDays.value;
+  if (days <= 0) {
+    alert('기간이 올바르지 않습니다.');
+    return;
+  }
+
+  // daysCount 업데이트
+  travel.value.daysCount = days;
+
+  const newDays = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date(startDate.value);
+    d.setDate(d.getDate() + i);
+
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const iso = `${yyyy}-${mm}-${dd}`;
+
+    const prev = travel.value.days[i] || {};
+
+    newDays.push({
+      dayId: prev.dayId ?? null,
+      dayNo: i + 1,
+      date: iso,
+      displayDate: toDisplayDate(iso),
+      plans: prev.plans || [],
+      startTime: prev.startTime || null,
+      endTime: prev.endTime || null,
+    });
+  }
+
+  travel.value.days = newDays;
+
+  showDateModal.value = false;
+};
+
+// 수정화면 데이터 불러오기
 const fetchPlanEdit = async () => {
   loading.value = true;
   try {
@@ -225,6 +364,8 @@ const fetchPlanEdit = async () => {
       startTime: day.startTime || null,
       endTime: day.endTime || null,
     }));
+    initializeDatesFromDays();
+    console.log("📦 travel.value.days:", travel.value.days);
   } catch (e) {
     console.error("❌ 일정 수정 데이터 불러오기 실패:", e);
   } finally {
@@ -246,6 +387,8 @@ const saveEdit = async () => {
     }
   }
 
+   const firstDay = travel.value.days[0];
+  const lastDay = travel.value.days[travel.value.days.length - 1];
   const payload = {
     planId: Number(planId),
     title: travel.value.title,
@@ -253,6 +396,8 @@ const saveEdit = async () => {
     nights: travel.value.daysCount > 0 ? travel.value.daysCount - 1 : 0,
     days: travel.value.daysCount,
     selectedThemes: selectedThemes.value,
+        startDate: firstDay?.date || null,
+    endDate: lastDay?.date || null,
     dayList: travel.value.days.map((d, dayIdx) => ({
       dayId: d.dayId,
       dayNo: dayIdx + 1,
@@ -321,6 +466,7 @@ const decreaseDays = () => {
   }
 };
 
+// 장소 추가 - sessionStorage 사용
 const addPlan = (dayIndex) => {
   const currentData = {
     planId: Number(planId),
@@ -352,9 +498,9 @@ const addPlan = (dayIndex) => {
 
   const targetDay = dayIndex + 1;
 
-  // 🔥 키 이름 수정
-  sessionStorage.setItem("editPlanData", JSON.stringify(currentData));
-  sessionStorage.setItem("editTargetDay", String(targetDay));
+  // sessionStorage에 저장
+  sessionStorage.setItem('editPlanData', JSON.stringify(currentData));
+  sessionStorage.setItem('editTargetDay', String(targetDay));
 
   router.push({
     path: "/draw/final",
@@ -428,6 +574,8 @@ onMounted(() => {
         end_time: act.endTime || "",
       })),
     }));
+     // 이 분기에서 days 세팅 끝난 후에 한 번 더 초기화
+    initializeDatesFromDays();
   } else {
     fetchPlanEdit();
   }
@@ -738,5 +886,135 @@ input {
 }
 .day-delete-btn:hover {
   color: #ef4444;
+}
+
+/* 기간 label + 버튼 정렬 */
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.change-date-btn {
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  padding: 0 0 0 30px;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+}
+.change-date-btn:hover {
+  text-decoration: underline;
+}
+
+/* ✨ 일정 변경 모달 */
+.date-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.date-modal {
+  width: 420px;
+  max-width: 90vw;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 24px 26px 20px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.25);
+}
+
+.date-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.date-modal-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 18px;
+}
+
+/* 기존 step2 컴포넌트랑 비슷하게 */
+.date-grid {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.date-input label {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 4px;
+  color: #4b5563;
+}
+
+.date-input input {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.tilde {
+  margin-bottom: 4px;
+  color: #6b7280;
+}
+
+.date-summary {
+  text-align: center;
+  color: #4b5563;
+  margin-top: 14px;
+}
+
+.date-summary .days {
+  color: #2563eb;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.date-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.btn-secondary,
+.btn-primary {
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #4b5563;
+}
+.btn-secondary:hover {
+  background: #f9fafb;
+}
+
+.btn-primary {
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary:not(:disabled):hover {
+  background: #1d4ed8;
 }
 </style>

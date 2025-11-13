@@ -8,6 +8,7 @@ const route = useRoute()
 const router = useRouter()
 const showReviewModal = ref(false)
 
+
 // 현재 여행 ID
 const planId = Number(route.params.id)
 
@@ -51,6 +52,8 @@ const getThemeColor = (themeCode) => {
 const themeLabel = computed(() => getThemeLabel(travel.value?.theme));
 const themeEmoji = computed(() => getThemeEmoji(travel.value?.theme));
 const themeColor = computed(() => getThemeColor(travel.value?.theme));
+const loading = ref(true)
+
 
 // 삭제 버튼 클릭 할 경우
 const deletePlan = async () => {
@@ -76,7 +79,9 @@ onMounted(async () => {
     const dayList = travel.value.dayList || []
     expandedDays.value = dayList.map(() => false)
   } catch (err) {
-    console.error('여행 데이터를 불러오는 중 오류 발생:', err)
+    console.error('❌ 여행 데이터를 불러오는 중 오류 발생:', err)
+  } finally {
+    loading.value = false
   }
 })
 
