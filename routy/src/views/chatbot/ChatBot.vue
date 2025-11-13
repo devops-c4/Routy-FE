@@ -120,7 +120,7 @@ const sendMessage = async () => {
   userInput.value = ''
 
   try {
-    const res = await axios.post('http://localhost:8080/chatbot', { message: text })
+    const res = await axios.post('/api/chatbot', { message: text })
     const reply = res.data.reply
     messages.value.push({ role: 'bot', text: reply })
   } catch (err) {
