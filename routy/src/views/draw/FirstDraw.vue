@@ -582,4 +582,50 @@ onMounted(async () => {
   color: #155dfc;
   font-weight: 500;
 }
+
+/* 진행바 애니메이션 */
+.progress-fill {
+  position: relative;
+  overflow: hidden;
+}
+
+/* 반짝이는 효과 추가 */
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* 또는 펄스 효과 (선택) */
+.progress-fill {
+  animation: pulse 0.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
 </style>

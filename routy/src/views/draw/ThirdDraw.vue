@@ -25,8 +25,8 @@
             :class="{ selected: selectedThemes.includes(theme.name) }"
             @click="toggleTheme(theme.name)"
           >
-            <div class="emoji">{{ theme.icon }}</div>
-            <div class="label">{{ theme.name }}</div>
+          <img :src="theme.icon" :alt="theme.name + ' 아이콘'" class="theme-icon"/>
+          <div class="label">{{ theme.name }}</div>
           </div>
         </div>
       </div>
@@ -53,14 +53,19 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from "vue-router"
 import axios from 'axios'
 
+// 테마 이미지 임포트
+import themeRestaurant from '@/assets/images/theme/recommend-restaurant.png';
+import themeCafe from '@/assets/images/theme/recommend-cafe.png';
+import themeTourist from '@/assets/images/theme/recommend-attraction.png';
+
 const router = useRouter()
 
-// 테마 정의
+// 테마 정의 (이미지 경로로 변경)
 const themes = [
-  { icon: '🍽️', name: '맛집', code: 'restaurant' },
-  { icon: '☕', name: '카페', code: 'cafe' },
-  { icon: '🏛️', name: '관광지', code: 'tourist' }
-]
+  { icon: themeRestaurant, name: '맛집', code: 'restaurant' },
+  { icon: themeCafe, name: '카페', code: 'cafe' },             
+  { icon: themeTourist, name: '관광지', code: 'tourist' }    
+];
 
 const selectedThemes = ref([])
 
@@ -257,5 +262,56 @@ const goNext = async () => {
   background: #eff6ff;
   border: 2px solid #155dfc;
   box-shadow: 0 0 0 2px #155dfc;
+}
+/* 진행바 애니메이션 */
+.progress-fill {
+  position: relative;
+  overflow: hidden;
+}
+
+/* 반짝이는 효과 추가 */
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* 또는 펄스 효과 (선택) */
+.progress-fill {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.theme-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 12px;
 }
 </style>
