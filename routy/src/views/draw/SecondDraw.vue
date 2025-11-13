@@ -78,7 +78,7 @@ const goPrev = () => {
   router.push('/draw/first')
 }
 
-// 🔥 Plan 생성하지 않고 localStorage에 저장만
+// Plan 생성하지 않고 localStorage에 저장만
 const goNext = () => {
   if (!startDate.value || !endDate.value) {
     alert('날짜를 모두 선택해주세요!')
@@ -100,7 +100,7 @@ const goNext = () => {
   
   localStorage.setItem('planDates', JSON.stringify(dateInfo))
   
-  console.log('✅ 날짜 정보 저장:', dateInfo)
+  console.log('날짜 정보 저장:', dateInfo)
   
   // ThirdDraw로 이동
   router.push('/draw/third')

@@ -170,7 +170,7 @@
               >숙소 선택</button>
           </div>
 
-          <!-- 🔥 테마 추천 섹션 -->
+          <!-- 테마 추천 섹션 -->
           <div v-if="selectedTheme && themeRecommendations.length > 0" class="theme-section">
             <div class="section-header" @click="toggleTheme">
               <div class="header-left">
@@ -380,7 +380,7 @@ import { deletePoliLine, direction, sortDirection } from '@/utils/draw/direction
 const route = useRoute();
 const router = useRouter();
 
-// 🔥 테마 관련 상태
+// 테마 관련 상태
 const selectedTheme = ref('');
 const themeRecommendations = ref([]);
 const isLoadingTheme = ref(false);
@@ -396,7 +396,7 @@ const toggleTheme = () => {
   isThemeExpanded.value = !isThemeExpanded.value;
 };
 
-// 🔥 수정페이지에서 넘겨준 데이터
+// 수정페이지에서 넘겨준 데이터
 let previousData = null;
 let targetDay = null;
 
@@ -407,9 +407,9 @@ if (sessionData && sessionTargetDay) {
   try {
     previousData = JSON.parse(sessionData);
     targetDay = Number(sessionTargetDay);
-    console.log("✅ sessionStorage에서 데이터 로드 성공");
+    console.log("sessionStorage에서 데이터 로드 성공");
   } catch (e) {
-    console.error("❌ sessionStorage 파싱 실패:", e);
+    console.error("sessionStorage 파싱 실패:", e);
   }
 }
 
@@ -417,20 +417,20 @@ const showSortModal = ref(false);
 const planIdFromQuery = route.query.planId ? Number(route.query.planId) : null;
 const targetDayFromQuery = route.query.targetDay ? Number(route.query.targetDay) : null;
 
-// 🔥 totalDays 추가!
+// totalDays 추가!
 const totalDaysFromQuery = route.query.totalDays ? Number(route.query.totalDays) : null;
 const totalDays = totalDaysFromQuery || previousData?.dayList?.length || 1;
 
 const planId = previousData?.planId ? Number(previousData.planId) : planIdFromQuery;
 targetDay = targetDay || targetDayFromQuery;
 
-// 🔥 테마 정보 가져오기
+// 테마 정보 가져오기
 selectedTheme.value = route.query.theme || localStorage.getItem('selectedTheme') || '';
 
 console.log("👀 previousData:", previousData);
 console.log("👀 targetDay:", targetDay);
 console.log("👀 planId:", planId);
-console.log("👀 totalDays:", totalDays); // 🔥 로그 추가!
+console.log("👀 totalDays:", totalDays); // 로그 추가!
 console.log("👀 selectedTheme:", selectedTheme.value);
 
 const hoveredPlaceUrl = ref(null);
@@ -475,10 +475,10 @@ const isSearching = ref(false);
 const lastSearchCoords = ref({ lat: null, lng: null, type: null });
 let mapIdleTimeout = null;
 
-// 🔥 테마별 추천 장소 로드
+// 테마별 추천 장소 로드
 const loadThemeRecommendations = async () => {
   if (!selectedTheme.value) {
-    console.log("❌ 선택된 테마 없음");
+    console.log("선택된 테마 없음");
     return;
   }
   
@@ -492,7 +492,7 @@ const loadThemeRecommendations = async () => {
       }
     });
     
-    // 🔥 테마에 따른 categoryCode 강제 설정
+    // 테마에 따른 categoryCode 강제 설정
     let forcedCategoryCode = 'AT4';
     
     if (selectedTheme.value === 'restaurant') {
@@ -522,12 +522,12 @@ const loadThemeRecommendations = async () => {
       showTimeInput: false
     }));
     
-    console.log(`✅ 테마 추천 ${themeRecommendations.value.length}개 로드 완료`);
-    console.log(`✅ 강제 설정된 categoryCode: ${forcedCategoryCode}`);
-    console.log(`✅ 첫 번째 장소:`, themeRecommendations.value[0]);
+    console.log(`테마 추천 ${themeRecommendations.value.length}개 로드 완료`);
+    console.log(`강제 설정된 categoryCode: ${forcedCategoryCode}`);
+    console.log(`첫 번째 장소:`, themeRecommendations.value[0]);
     
   } catch (error) {
-    console.error('❌ 테마 추천 로딩 실패:', error);
+    console.error('테마 추천 로딩 실패:', error);
     themeRecommendations.value = [];
   } finally {
     isLoadingTheme.value = false;
@@ -830,11 +830,11 @@ const loadPlanInfo = async () => {
           name: region.regionName,
           type: "출발지"
         };
-        console.log(`✅ 시작 지점: ${startLocation.value.name} (${startLocation.value.lat}, ${startLocation.value.lng})`);
+        console.log(`시작 지점: ${startLocation.value.name} (${startLocation.value.lat}, ${startLocation.value.lng})`);
       }
     }
   } catch (err) {
-    console.error("❌ Plan/Region 정보 로드 실패:", err);
+    console.error("Plan/Region 정보 로드 실패:", err);
   }
 };
 
@@ -944,7 +944,7 @@ const addPlace = async (p) => {
     fixed: false
   });
   
-  console.log(`✅ ${p.title} 추가 완료 (${day}일차)`);
+  console.log(`${p.title} 추가 완료 (${day}일차)`);
   updateMapMarkers();
 };
 
@@ -1056,7 +1056,7 @@ const focusHotelOnMap = (hotel) => {
   hotelMap.panTo(pos);
 };
 
-// 🔥 Duration 불러오기 (자동 생성 기능 추가)
+// Duration 불러오기 (자동 생성 기능 추가)
 const loadDurations = async () => {
   try {
     durations.value = [];
@@ -1078,11 +1078,11 @@ const loadDurations = async () => {
           day: d.day,
         }));
       
-      console.log("✅ DB에서 Duration 로드:", fetched);
+      console.log("DB에서 Duration 로드:", fetched);
     } else {
-      // 🔥 Duration이 없으면 생성!
-      console.warn("⚠️ Duration이 없습니다. 생성합니다...");
-      console.log("📅 생성할 일수:", totalDays);
+      // Duration이 없으면 생성!
+      console.warn("Duration이 없습니다. 생성합니다...");
+      console.log("생성할 일수:", totalDays);
       
       try {
         const createRes = await axios.post(`/api/plans/${planId}/durations`, {
@@ -1097,28 +1097,28 @@ const loadDurations = async () => {
         
         console.log("✅ Duration 생성 완료:", fetched);
       } catch (createErr) {
-        console.error("❌ Duration 생성 실패:", createErr);
+        console.error("Duration 생성 실패:", createErr);
         // 생성 실패 시 기본 Duration 설정
         fetched = Array.from({ length: totalDays }, (_, i) => ({
           durationId: i + 1,
           planId,
           day: i + 1,
         }));
-        console.warn("⚠️ 임시 Duration 사용:", fetched);
+        console.warn("임시 Duration 사용:", fetched);
       }
     }
     
     durations.value = fetched.sort((a, b) => a.day - b.day);
-    console.log("✅ 최종 Duration:", durations.value);
+    console.log("최종 Duration:", durations.value);
   } catch (err) {
-    console.error("❌ Duration 로드 실패:", err);
+    console.error("Duration 로드 실패:", err);
     // 에러 시 기본 Duration 설정
     durations.value = Array.from({ length: totalDays }, (_, i) => ({
       durationId: i + 1,
       planId,
       day: i + 1,
     }));
-    console.warn("⚠️ 에러 발생, 임시 Duration 사용:", durations.value);
+    console.warn("에러 발생, 임시 Duration 사용:", durations.value);
   }
 };
 
@@ -1181,7 +1181,7 @@ const getCategoryIcon = (categoryCode) => {
   return icons[categoryCode] || '📍';
 };
 
-// 🔥 저장 함수 (로그 추가)
+// 저장 함수 (로그 추가)
 const saveAllDaysPlaces = async () => {
   try {
     let hasNewPlaces = false;
@@ -1197,8 +1197,8 @@ const saveAllDaysPlaces = async () => {
       
       hasNewPlaces = true;
       
-      // 🔥 로그 추가
-      console.log(`📦 ${duration.day}일차 저장 데이터:`, newPlaces);
+      // 로그 추가
+      console.log(`${duration.day}일차 저장 데이터:`, newPlaces);
       
       for (const place of newPlaces) {
         if (place.startTime && place.endTime) {
@@ -1230,13 +1230,13 @@ const saveAllDaysPlaces = async () => {
         runTime: p.runTime || null,
       }));
       
-      // 🔥 로그 추가
-      console.log(`📤 ${duration.day}일차 API 전송 데이터:`, JSON.stringify(mappedPlaces, null, 2));
+      // 로그 추가
+      console.log(`${duration.day}일차 API 전송 데이터:`, JSON.stringify(mappedPlaces, null, 2));
       
       const response = await axios.post("/api/places/batch", mappedPlaces);
       
-      // 🔥 로그 추가
-      console.log(`✅ ${duration.day}일차 저장 응답:`, response.data);
+      // 로그 추가
+      console.log(`${duration.day}일차 저장 응답:`, response.data);
     }
     
     if (!hasNewPlaces) {
@@ -1250,10 +1250,10 @@ const saveAllDaysPlaces = async () => {
     sessionStorage.removeItem("editTargetDay");
     
     if (previousData) {
-      console.log("✅ 일정 상세 페이지로 이동");
+      console.log("일정 상세 페이지로 이동");
       router.push(`/mypage/travel/${planId}`);
     } else {
-      console.log("✅ 마이페이지로 이동");
+      console.log("마이페이지로 이동");
       let count = Number(sessionStorage.getItem("newPlan")) || 0;
       count++;
       sessionStorage.setItem("newPlan", count);
@@ -1264,8 +1264,8 @@ const saveAllDaysPlaces = async () => {
     }
     
   } catch (err) {
-    console.error("❌ 저장 실패:", err);
-    console.error("❌ 에러 상세:", err.response?.data);
+    console.error("저장 실패:", err);
+    console.error("에러 상세:", err.response?.data);
     alert("저장에 실패했습니다. 다시 시도해주세요.");
   }
 };
@@ -1276,13 +1276,13 @@ onMounted(async () => {
   await loadPlanInfo();
   await loadDurations();
   
-  // 🔥 테마 추천 로드
+  // 테마 추천 로드
   if (selectedTheme.value) {
     await loadThemeRecommendations();
   }
   
   if (previousData && targetDay) {
-    console.log("✅ 일정수정 모드!");
+    console.log("일정수정 모드!");
     console.log("previousData.dayList:", previousData.dayList);
     
     if (previousData.dayList && previousData.dayList.length > 0) {
@@ -1317,18 +1317,18 @@ onMounted(async () => {
             };
           });
           
-          console.log(`✅ ${dayNo}일차 장소 ${placesByDay.value[dayNo].length}개 로드됨`);
+          console.log(`${dayNo}일차 장소 ${placesByDay.value[dayNo].length}개 로드됨`);
         }
       });
       
       selectedDay.value = targetDay;
-      console.log(`✅ ${targetDay}일차로 이동`);
+      console.log(`{targetDay}일차로 이동`);
       
       sessionStorage.removeItem('editPlanData');
       sessionStorage.removeItem('editTargetDay');
     }
   } else {
-    console.log("✅ 일반 모드 (일정수정 아님)");
+    console.log("일반 모드 (일정수정 아님)");
   }
   
   initMap(startLocation.value);
@@ -1336,7 +1336,7 @@ onMounted(async () => {
   updateMapMarkers();
   await loadPlaces("restaurants");
   
-  console.log("🎉 초기화 완료");
+  console.log("초기화 완료");
   console.log("최종 placesByDay:", placesByDay.value);
   console.log("selectedDay:", selectedDay.value);
 });
