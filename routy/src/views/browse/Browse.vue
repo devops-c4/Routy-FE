@@ -179,6 +179,7 @@ onMounted(() => {
   fetchPublicPlans()
 })
 
+
 // 모달
 const openModal = async (route) => {
   selectedRoute.value = null
@@ -187,6 +188,7 @@ const openModal = async (route) => {
     const res = await apiClient.get(`http://localhost:8080/api/plans/public/${route.planId}`)
     selectedRoute.value = res.data
     document.body.style.overflow = 'hidden'
+    
 
     // ✅ 조회수 증가 요청 (작성자 제외)
     await apiClient.post(`http://localhost:8080/api/plans/${route.planId}/view`)

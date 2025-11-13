@@ -5,14 +5,14 @@
 
       <!-- 리뷰 썸네일이 있을 때 -->
       <div v-if="reviewImages && reviewImages.length > 0" class="thumb-img-wrapper">
-        <div class="thumb-bg" :style="{ backgroundImage: `url('${reviewImages[0]}')` }"></div>
+        <div class="thumb-bg" :style="{ backgroundImage: `url('${props.reviewImages[0]}')` }"></div>
         <span class="pin"></span>
       </div>
 
       <!-- 기본 SVG -->
-      <svg v-else class="map-icon" viewBox="0 0 24 24" fill="none">
+      <!-- <svg v-else class="map-icon" viewBox="0 0 24 24" fill="none">
         <path d="M9 20L3 ..." stroke="currentColor" stroke-width="2"/>
-      </svg>
+      </svg> -->
 
     </div>
 
