@@ -70,86 +70,72 @@ import { useRouter, useRoute } from 'vue-router';
 import apiClient from '@/utils/axios';
 
 const router = useRouter()
-const route = useRoute()
 
 const startDate = ref('')
 const endDate = ref('')
 
-// localStorage에서 지역 정보 가져오기
+// 지역 정보 (1단계에서 저장한 값)
 const selectedRegion = JSON.parse(localStorage.getItem('selectedRegion') || '{}')
+const regionName = selectedRegion.regionName
+const regionId = selectedRegion.regionId
+
+// 총 날짜 (n일)
+const totalDays = computed(() => {
+  if (!startDate.value || !endDate.value) return 0
+  const s = new Date(startDate.value)
+  const e = new Date(endDate.value)
+  return Math.floor((e - s) / (1000 * 60 * 60 * 24)) + 1
+})
 
 const goPrev = () => {
   router.push('/draw/first')
 }
 
-// Plan 생성하지 않고 localStorage에 저장만
-const goNext = () => {
+const goNext = async () => {
   if (!startDate.value || !endDate.value) {
     alert('날짜를 모두 선택해주세요!')
     return
   }
 
-
   if (new Date(endDate.value) < new Date(startDate.value)) {
-    alert('종료일은 시작일보다 늦어야 합니다!')
+    alert('종료일이 시작일보다 빠릅니다!')
     return
+  }
+
   try {
     const payload = {
       planTitle: `${regionName} 여행 일정`,
       startDate: startDate.value,
       endDate: endDate.value,
-
-      regionId: regionId,
-      // userId는 백엔드에서 SecurityContext로 자동 추출
+      regionId: regionId
     };
 
+    // Plan 생성
     const res = await apiClient.post('/api/plans', payload);
     const planId = res.data.planId;
 
+    // Duration 저장
     await apiClient.post(`/api/plans/${planId}/durations`, { totalDays: totalDays.value });
 
-    const query = {
-      planId,
+    // localStorage에 날짜 저장
+    localStorage.setItem('planDates', JSON.stringify({
+      startDate: startDate.value,
+      endDate: endDate.value,
       totalDays: totalDays.value
-    };
-    
+    }));
 
+    // Third로 이동
     router.push({
       path: '/draw/third',
-      query: query
+      query: { planId, totalDays: totalDays.value }
     });
 
-    console.log('일정 생성 성공:', res.data);
   } catch (err) {
     console.error('일정 생성 실패:', err);
     alert('일정 저장 중 오류가 발생했습니다!');
   }
-
-  // 날짜 정보를 localStorage에 저장
-  const dateInfo = {
-    startDate: startDate.value,
-    endDate: endDate.value,
-    nights: calculateNights(startDate.value, endDate.value),
-    days: calculateDays(startDate.value, endDate.value)
-  }
-  
-  localStorage.setItem('planDates', JSON.stringify(dateInfo))
-  
-  console.log('날짜 정보 저장:', dateInfo)
-  
-  // ThirdDraw로 이동
-  router.push('/draw/third')
 }
 
-const calculateNights = (start, end) => {
-  const startDate = new Date(start)
-  const endDate = new Date(end)
-  return Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24))
-}
-
-const calculateDays = (start, end) => {
-  return calculateNights(start, end) + 1
-}
 </script>
 
 

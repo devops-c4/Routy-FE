@@ -661,22 +661,10 @@ const createSelectedMarker = (place, placeType) => {
 
 // 마커 강조 + 오버레이 표시
 const highlightPlace = async (place, fromMarkerClick = false) => {
-<<<<<<< HEAD
-  if (map && place.latitude && place.longitude) {
-    const position = new kakao.maps.LatLng(place.latitude, place.longitude);
-    map.setCenter(position);
-    if (map.getLevel() > 5) {
-      map.setLevel(5);
-    }
-  }
-  
-  let targetType = 'attractions';
-=======
 
   selectedPlace.value = place;
   // 카테고리 판별 및 자동 전환
   let targetType = 'attractions'; // 기본값
->>>>>>> fbe643087dd366d06e6fe750e499a2a795620d59
   
   if (place.categoryCode === 'FD6') {
     targetType = 'restaurants';
@@ -2568,60 +2556,4 @@ const cancelSortPreview = () => {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
 }
-<<<<<<< HEAD
-=======
-
-.custom-overlay {
-  position: relative;
-  background: white;
-  border: 2px solid #3B82F6;
-  border-radius: 10px;
-  padding: 8px 12px;
-  font-size: 13px;
-  color: #333;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
-  text-align: left;
-  width: 200px;
-  transition: all 0.2s ease;
-  animation: fadeIn 0.2s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.overlay-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.overlay-header strong {
-  color: #1E40AF;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.overlay-close {
-  background: transparent;
-  border: none;
-  color: #666;
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.overlay-close:hover {
-  color: #000;
-}
-
-.overlay-body {
-  color: #555;
-  font-size: 12px;
-  line-height: 1.4;
-}
->>>>>>> fbe643087dd366d06e6fe750e499a2a795620d59
 </style>

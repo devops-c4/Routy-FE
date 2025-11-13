@@ -7,7 +7,7 @@ const LOGIN_STATUS_KEY = 'routy:isLoggedIn';
  * 로그인 API
  */
 export const login = async (email, password) => {
-  const response = await apiClient.post('/user/login', {
+  const response = await apiClient.post('/api/auth/login', {
     email,
     password
   });
@@ -28,13 +28,13 @@ export const logout = async () => {
   console.log('🔵 [auth.js] logout 함수 시작');
   
   try {
-    console.log('🔵 [auth.js] POST /auth/logout 요청 전송 중...');
+    console.log('🔵 [auth.js] POST /api/auth/logout 요청 전송 중...');
     console.log('🔵 [auth.js] apiClient:', apiClient);
     
     // 백엔드에 로그아웃 요청 (쿠키 삭제)
-    const response = await apiClient.post('/auth/logout');
+    const response = await apiClient.post('/api/auth/logout');
     
-    console.log('🟢 [auth.js] POST /auth/logout 요청 성공!', response);
+    console.log('🟢 [auth.js] POST /api/auth/logout 요청 성공!', response);
     console.log('🟢 [auth.js] 응답 상태:', response.status);
     console.log('🟢 [auth.js] 응답 데이터:', response.data);
     
@@ -66,7 +66,7 @@ export const changePassword = async (email, newPassword) => {
   console.log('🔵 [auth.js] email:', email);
   
   try {
-    const response = await apiClient.put('/auth/change-password', {
+    const response = await apiClient.put('/api/auth/change-password', {
       email,
       newPassword
     });
@@ -112,10 +112,10 @@ export const modifyUserInfo = async (userInfo, profileFile) => {
       console.log(`  ${pair[0]}:`, pair[1]);
     }
     
-    console.log('🔵 [auth.js] PUT /auth/modifyuserinfo 요청 전송 중...');
+    console.log('🔵 [auth.js] PUT /api/auth/modifyuserinfo 요청 전송 중...');
     
     // axios가 자동으로 Content-Type: multipart/form-data 설정
-    const response = await apiClient.put('/auth/modifyuserinfo', formData);
+    const response = await apiClient.put('/api/auth/modifyuserinfo', formData);
     
     console.log('🟢 [auth.js] 회원정보 수정 성공:', response);
     console.log('🟢 [auth.js] 응답 데이터:', response.data);
@@ -139,7 +139,7 @@ export const sendVerificationEmail = async (email) => {
     const formData = new FormData();
     formData.append('mail', email);
     
-    const response = await apiClient.post('/validation/sendmail', formData);
+    const response = await apiClient.post('/api/auth/sendmail', formData);
     
     console.log('🟢 [auth.js] 인증번호 발송 성공:', response.data);
     return response.data; // 인증번호 반환 (0이면 실패)
@@ -162,7 +162,7 @@ export const confirmVerificationCode = async (email, code) => {
     formData.append('email', email);
     formData.append('number', code);
     
-    const response = await apiClient.post('/auth/confirm', formData);
+    const response = await apiClient.post('/api/auth/confirm', formData);
     
     console.log('🟢 [auth.js] 인증번호 확인 성공:', response.data);
     return response.data; // "인증 성공" 또는 "인증 실패" 메시지
@@ -183,7 +183,7 @@ export const findMyEmail = async (username, phone) => {
   try {
     // GET 요청에 query parameter로 전송
     // 요청 URL: /auth/find-email?username=홍길동&phone=010-1234-5678
-    const response = await apiClient.get('/auth/find-email', {
+    const response = await apiClient.get('/api/auth/find-email', {
       params: {
         username,
         phone
@@ -203,7 +203,7 @@ export const findMyEmail = async (username, phone) => {
  */
 export const checkAuthStatus = async () => {
   try {
-    const response = await apiClient.get('/auth/status');
+    const response = await apiClient.get('/apiauth/status');
     const isLoggedIn = response.data.authenticated || false;
     
     // 로컬 상태 동기화
@@ -236,7 +236,7 @@ export const syncAuthStatus = async () => {
   console.log('🔵 [auth.js] 인증 상태 동기화 시작');
   
   try {
-    const response = await apiClient.get('/auth/status');
+    const response = await apiClient.get('/api/auth/status');
     const isLoggedIn = response.data.authenticated || false;
     const username = response.data.username || null;
     
