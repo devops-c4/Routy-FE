@@ -203,7 +203,7 @@ export const findMyEmail = async (username, phone) => {
  */
 export const checkAuthStatus = async () => {
   try {
-    const response = await apiClient.get('/apiauth/status');
+    const response = await apiClient.get('/api/auth/status');
     const isLoggedIn = response.data.authenticated || false;
     
     // 로컬 상태 동기화
