@@ -51,7 +51,7 @@ import '@/assets/css/draw.css'
 import '@/assets/css/step-common.css'
 import { ref, onMounted } from 'vue'
 import { useRouter } from "vue-router"
-import axios from 'axios'
+import apiClient from '@/utils/axios'
 
 // 테마 이미지 임포트
 import themeRestaurant from '@/assets/images/theme/recommend-restaurant.png';
@@ -161,7 +161,7 @@ const goNext = async () => {
     
     console.log('Plan 생성 payload:', planPayload)
     
-    const planResponse = await axios.post('/api/plans', planPayload)
+    const planResponse = await apiClient.post('/api/plans', planPayload)
     const planId = planResponse.data.planId
     
     console.log('Plan 생성 완료! planId:', planId)
@@ -173,7 +173,7 @@ const goNext = async () => {
     
     console.log('Duration 생성 payload:', durationPayload)
     
-    const durationResponse = await axios.post(
+    const durationResponse = await apiClient.post(
       `/api/plans/${planId}/durations`,
       durationPayload
     )

@@ -133,7 +133,7 @@ const goNext = () => {
   
   localStorage.setItem('planDates', JSON.stringify(dateInfo))
   
-  console.log('✅ 날짜 정보 저장:', dateInfo)
+  console.log('날짜 정보 저장:', dateInfo)
   
   // ThirdDraw로 이동
   router.push('/draw/third')
