@@ -107,7 +107,7 @@
                   :class="{ 'readonly-input': placeLocked }"
                 />
 
-                <!-- 시간 입력 필드 -->
+                <!-- 시간 입력 필드 추가 -->
                 <div class="time-inputs">
                   <div class="time-input-group">
                     <label>시작 시간</label>
@@ -193,13 +193,11 @@ const toDisplayDate = (str) => {
   return str.replaceAll("-", ".");
 };
 
-// 수정화면 데이터 불러오기
+// 1) 수정화면 데이터 불러오기
 const fetchPlanEdit = async () => {
   loading.value = true;
   try {
     const { data } = await apiClient.get(`/api/plans/${planId}/edit`);
-
-    console.log("📦 서버에서 받은 데이터:", data);
 
     travel.value.title = data.title;
     travel.value.region = data.destination;
@@ -220,17 +218,13 @@ const fetchPlanEdit = async () => {
         category_group_name: act.categoryGroupName || act.tag || "",
         place_url: act.placeUrl || "",
         title: act.title || act.placeName || "",
+        // ✅ 시간 데이터 추가
         start_time: act.startTime || "",
         end_time: act.endTime || "",
-        latitude: act.latitude || null,
-        longitude: act.longitude || null,
-        category_code: act.categoryCode || null,
       })),
       startTime: day.startTime || null,
       endTime: day.endTime || null,
     }));
-    
-    console.log("📦 travel.value.days:", travel.value.days);
   } catch (e) {
     console.error("❌ 일정 수정 데이터 불러오기 실패:", e);
   } finally {
@@ -238,13 +232,14 @@ const fetchPlanEdit = async () => {
   }
 };
 
-// 저장
+/// 2) 저장
 const saveEdit = async () => {
+  // 시간 유효성 검증
   for (const day of travel.value.days) {
     for (const plan of day.plans) {
       if (plan.start_time && plan.end_time) {
         if (plan.end_time <= plan.start_time) {
-          alert(`${plan.place_name}의 종료 시간이 시작 시간보다 이릅니다.`);
+          alert(`${plan.place_name}의 종료 시간이 시작 시간보다 이릅니다. 시간을 확인해주세요.`);
           return;
         }
       }
@@ -271,11 +266,15 @@ const saveEdit = async () => {
         addressName: p.address_name,
         categoryGroupName: p.category_group_name,
         placeUrl: p.place_url,
+        // 시간 데이터 추가
         startTime: p.start_time || null,
         endTime: p.end_time || null,
       })),
     })),
   };
+
+  // ✅ 전송 전 데이터 확인
+  console.log("📤 전송할 데이터:", JSON.stringify(payload, null, 2));
 
   try {
     const response = await apiClient.put(`/api/plans/${planId}`, payload);
@@ -284,7 +283,23 @@ const saveEdit = async () => {
     router.push(`/mypage/travel/${planId}`);
   } catch (e) {
     console.error("❌ 일정 저장 실패:", e);
-    alert("저장 실패");
+    
+    // ✅ 상세 에러 정보 출력
+    if (e.response) {
+      console.error("📛 응답 상태:", e.response.status);
+      console.error("📛 응답 데이터:", e.response.data);
+      console.error("📛 응답 헤더:", e.response.headers);
+      
+      // 에러 메시지 표시
+      const errorMsg = e.response.data?.message || e.response.data?.error || JSON.stringify(e.response.data);
+      alert(`저장 실패 (${e.response.status}): ${errorMsg}`);
+    } else if (e.request) {
+      console.error("📛 요청 전송됨, 응답 없음:", e.request);
+      alert("서버로부터 응답이 없습니다. 네트워크를 확인해주세요.");
+    } else {
+      console.error("📛 요청 설정 중 오류:", e.message);
+      alert(`요청 실패: ${e.message}`);
+    }
   }
 };
 
@@ -306,11 +321,7 @@ const decreaseDays = () => {
   }
 };
 
-// ✅ 장소 추가 - sessionStorage 사용
 const addPlan = (dayIndex) => {
-  console.log("🔍 travel.value.days:", travel.value.days);
-  console.log("🔍 dayIndex:", dayIndex);
-
   const currentData = {
     planId: Number(planId),
     title: travel.value.title,
@@ -330,22 +341,20 @@ const addPlan = (dayIndex) => {
         addressName: p.address_name,
         categoryGroupName: p.category_group_name,
         placeUrl: p.place_url,
+        latitude: p.latitude || 0,
+        longitude: p.longitude || 0,
+        categoryCode: p.category_code || "",
         startTime: p.start_time || null,
         endTime: p.end_time || null,
-        latitude: p.latitude || null,
-        longitude: p.longitude || null,
-        categoryCode: p.category_code || null,
       })),
     })),
-  };
+  }; 
 
   const targetDay = dayIndex + 1;
 
-  console.log("🚀 전달할 데이터:", currentData);
-  
-  // ✅ sessionStorage에 저장
-  sessionStorage.setItem('editPlanData', JSON.stringify(currentData));
-  sessionStorage.setItem('editTargetDay', String(targetDay));
+  // 🔥 키 이름 수정
+  sessionStorage.setItem("editPlanData", JSON.stringify(currentData));
+  sessionStorage.setItem("editTargetDay", String(targetDay));
 
   router.push({
     path: "/draw/final",
@@ -356,6 +365,7 @@ const addPlan = (dayIndex) => {
     },
   });
 };
+
 
 const removePlan = (dayIndex, planIndex) => {
   travel.value.days[dayIndex].plans.splice(planIndex, 1);
@@ -413,11 +423,9 @@ onMounted(() => {
         category_group_name: act.categoryGroupName || act.tag || "",
         place_url: act.placeUrl || "",
         title: act.title || act.placeName || "",
+        // 시간 데이터 추가
         start_time: act.startTime || "",
         end_time: act.endTime || "",
-        latitude: act.latitude || null,
-        longitude: act.longitude || null,
-        category_code: act.categoryCode || null,
       })),
     }));
   } else {
@@ -425,7 +433,6 @@ onMounted(() => {
   }
 });
 </script>
-
 
 <style scoped>
 .travel-edit {

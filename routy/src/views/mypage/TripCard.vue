@@ -37,8 +37,27 @@ defineProps({
 h4 { font-size:16px; color:#101828; font-weight:600; }
 .pill { color:#fff; font-size:12px; border-radius:8px; padding:2px 8px; }
 .tags { margin-bottom: 12px; }
-.chip { color:#fff; border-radius:9999px; padding:6px 12px; font-size:12px; display:inline-block; }
-.meta { display:grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+.chip {
+  color: #fff;
+  border-radius: 9999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 
+    0 4px 6px -1px rgba(59, 130, 246, 0.3),
+    0 2px 4px -1px rgba(59, 130, 246, 0.2);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.meta {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 20px;
+}
 .row { display:flex; align-items:center; gap:8px; }
 .label { font-size:14px; color:#4A5565; min-width:36px; }
 .val { font-size:14px; color:#4A5565; }

@@ -364,7 +364,20 @@ const selectCity = (region) => {
 };
 
 // 다음 단계 이동
+// 다음 단계 이동
 const goNext = () => {
+  // 🔥 localStorage에 지역 정보 저장
+  const regionInfo = {
+    regionId: selectedCity.value.regionId,
+    regionName: selectedCity.value.regionName,
+    latitude: selectedCity.value.latitude,
+    longitude: selectedCity.value.longitude
+  }
+  
+  localStorage.setItem('selectedRegion', JSON.stringify(regionInfo))
+  
+  console.log('✅ 지역 정보 저장:', regionInfo)
+  
   router.push({
     path: "/draw/second",
     query: { 

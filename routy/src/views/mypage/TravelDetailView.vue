@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import apiClient from '@/utils/axios'
 import TravelReviewModal from '@/views/mypage/TravelReviewModal.vue'
@@ -19,6 +19,39 @@ const expandedDays = ref([])
 const showAll = ref(false)
 const visibleCount = ref(3)
 
+// 🔥 테마 매핑 함수
+const getThemeLabel = (themeCode) => {
+  const themeMap = {
+    'restaurant': '맛집탐방',
+    'cafe': '카페탐방',
+    'tourist': '관광지탐방',
+  };
+  return themeMap[themeCode] || '여행';
+};
+
+const getThemeEmoji = (themeCode) => {
+  const emojiMap = {
+    'restaurant': '🍽️',
+    'cafe': '☕',
+    'tourist': '🏛️',
+  };
+  return emojiMap[themeCode] || '✈️';
+};
+
+const getThemeColor = (themeCode) => {
+  const colorMap = {
+    'restaurant': '#EF4444',
+    'cafe': '#D97706',
+    'tourist': '#10B981',
+  };
+  return colorMap[themeCode] || '#3b82f6';
+};
+
+// 🔥 computed 속성
+const themeLabel = computed(() => getThemeLabel(travel.value?.theme));
+const themeEmoji = computed(() => getThemeEmoji(travel.value?.theme));
+const themeColor = computed(() => getThemeColor(travel.value?.theme));
+
 // 삭제 버튼 클릭 할 경우
 const deletePlan = async () => {
   if (!confirm('정말 삭제하시겠습니까?')) return
@@ -33,34 +66,13 @@ const deletePlan = async () => {
   }
 }
 
-// 공유하기 버튼 눌렀을 때
-// async function togglePublic() {
-//   try {
-//     // 현재 상태
-//     const currentStatus = travel.value.is_public  // 0 또는 1
-
-//     await apiClient.patch(`/api/plans/${planId}/public`)
-
-//     // 토글 후 예상 상태 기반 메시지 표시
-//     if (currentStatus === 0) {
-//       alert('일정이 공유되었습니다.')
-//       travel.value.is_public = 1
-//     } else {
-//       alert('일정 공유가 취소되었습니다.')
-//       travel.value.is_public = 0
-//     }
-//   } catch (err) {
-//     console.error('공유 상태 변경 중 오류:', err)
-//     alert('공유 상태 변경에 실패했습니다.')
-//   }
-// }
-
-
 // 백엔드 연동
 onMounted(async () => {
   try {
     const res = await apiClient.get(`/api/plans/${planId}`)
     travel.value = res.data || {}
+    console.log('✅ 여행 데이터:', travel.value)
+    console.log('✅ 테마:', travel.value.theme)
     const dayList = travel.value.dayList || []
     expandedDays.value = dayList.map(() => false)
   } catch (err) {
@@ -91,8 +103,9 @@ function toggleMore() {
   showAll.value = !showAll.value
   visibleCount.value = showAll.value ? dayList.length : 3
 }
+
 async function handleDelete() {
-    const ok = confirm('이 일정을 정말 삭제할까요?')
+  const ok = confirm('이 일정을 정말 삭제할까요?')
   if (!ok) return
 
   try {
@@ -106,158 +119,157 @@ async function handleDelete() {
 </script>
 
 <template>
-  <div v-if="travel" class="travel-detail">
-    <div class="content-wrapper">
-      <!-- 상단 헤더 -->
-      <header class="header">
-        <div class="header-left">
-          <button class="back-btn" @click="router.push('/mypage')">←</button>
-          <div class="title-block">
-            <h1>{{ travel.title }}</h1>
-            <p>{{ travel.startDate }} - {{ travel.endDate }}</p>
-          </div>
-        </div>
-        <div class="header-right">
-          <button class="btn btn-outline-blue" @click="goToEditPage">수정</button>
-          <!-- <button class="btn btn-outline-green" @click="togglePublic">공유</button> -->
-          <button class="btn delete" @click="deletePlan">삭제</button>
-        </div>
-      </header>
-
-      <!-- 여행 정보 카드 -->
-      <section class="info-card">
-        <div class="info-header">
-          <div class="tag theme">
-            <i class="fa fa-plane"></i>
-            <span>{{ travel.theme }} 여행</span>
-          </div>
-          <div class="tag status">{{ travel.status }}</div>
-        </div>
-
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="icon-wrap"><i class="fa fa-map-marker-alt"></i></div>
-            <div class="text">
-              <p class="label">여행지</p>
-              <p class="value">{{ travel.destination }}</p>
+  <div class="travel-detail-wrapper">
+    <div v-if="travel" class="travel-detail">
+      <div class="content-wrapper">
+        <!-- 상단 헤더 -->
+        <header class="header">
+          <div class="header-left">
+            <button class="back-btn" @click="router.push('/mypage')">←</button>
+            <div class="title-block">
+              <h1>{{ travel.title }}</h1>
+              <p>{{ travel.startDate }} - {{ travel.endDate }}</p>
             </div>
           </div>
-          <div class="info-item">
-            <div class="icon-wrap"><i class="fa fa-leaf"></i></div>
-            <div class="text">
-              <p class="label">테마</p>
-              <p class="value">{{ travel.theme }}</p>
-            </div>
+          <div class="header-right">
+            <button class="btn btn-outline-blue" @click="goToEditPage">수정</button>
+            <button class="btn delete" @click="deletePlan">삭제</button>
           </div>
-          <div class="info-item">
-            <div class="icon-wrap"><i class="fa fa-calendar-alt"></i></div>
-            <div class="text">
-              <p class="label">기간</p>
-              <p class="value">{{ travel.days }}일 ({{ travel.nights }}박)</p>
-            </div>
-          </div>
-        </div>
+        </header>
 
-        <!-- <div class="info-footer">
-          <p class="date">{{ travel.startDate }} ~ {{ travel.endDate }}</p>
-          <button
-            v-if="travel.reviewWritable"
-            class="btn btn-green"
-            @click="showReviewModal = true"
+        <!-- 여행 정보 카드 -->
+        <section class="info-card">
+          <div class="info-header">
+            <!-- 🔥 테마 뱃지 수정 -->
+            <div class="tag theme" :style="{ background: themeColor }">
+              <span>{{ themeEmoji }}</span>
+              <span>{{ themeLabel }}</span>
+            </div>
+            <div class="tag status">{{ travel.status }}</div>
+          </div>
+
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="icon-wrap"><i class="fa fa-map-marker-alt"></i></div>
+              <div class="text">
+                <p class="label">여행지</p>
+                <p class="value">{{ travel.destination }}</p>
+              </div>
+            </div>
+            <div class="info-item">
+              <!-- 🔥 아이콘 색상도 테마 색상 적용 -->
+              <div class="icon-wrap" :style="{ background: `${themeColor}20` }">
+                <i class="fa fa-leaf" :style="{ color: themeColor }"></i>
+              </div>
+              <div class="text">
+                <p class="label">테마</p>
+                <!-- 🔥 테마 텍스트 수정 -->
+                <p class="value">{{ themeLabel }}</p>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="icon-wrap"><i class="fa fa-calendar-alt"></i></div>
+              <div class="text">
+                <p class="label">기간</p>
+                <p class="value">{{ travel.days }}일 ({{ travel.nights }}박)</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 일정 카드 리스트 -->
+        <section class="days-wrap">
+          <div
+            v-for="(day, index) in travel.dayList.slice(0, visibleCount)"
+            :key="day.dayId"
+            class="day-card"
           >
-            리뷰 작성하기
-          </button>
-        </div> -->
-      </section>
+            <div class="day-header">
+              <div class="circle">{{ day.dayNo }}</div>
+              <div class="day-title">
+                <h3>Day {{ day.dayNo }}</h3>
+                <p>{{ day.date }}</p>
+              </div>
+            </div>
 
-      <!-- 일정 카드 리스트 -->
-      <section class="days-wrap">
-        <div
-          v-for="(day, index) in travel.dayList.slice(0, visibleCount)"
-          :key="day.dayId"
-          class="day-card"
-        >
-          <div class="day-header">
-            <div class="circle">{{ day.dayNo }}</div>
-            <div class="day-title">
-              <h3>Day {{ day.dayNo }}</h3>
-              <p>{{ day.date }}</p>
+            <div class="plans">
+              <div
+                v-for="(plan, i) in shownPlans(day, index)"
+                :key="i"
+                class="plan"
+              >
+                <!-- 시간 정보 -->
+                <div class="plan-time-row">
+                  <span class="plan-order-badge">{{ i + 1 }}</span>
+                  <div class="plan-time" v-if="plan.startTime || plan.endTime">
+                    <i class="fa fa-clock"></i>
+                    <span v-if="plan.startTime && plan.endTime">
+                      {{ plan.startTime }} - {{ plan.endTime }}
+                    </span>
+                    <span v-else-if="plan.startTime">
+                      {{ plan.startTime }} ~
+                    </span>
+                    <span v-else>
+                      ~ {{ plan.endTime }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- 장소명과 카테고리 -->
+                <div class="plan-header">
+                  <div class="plan-title">{{ plan.placeName }}</div>
+                  <div class="plan-category-badge" v-if="plan.tag || plan.categoryGroupName">
+                    {{ plan.tag || plan.categoryGroupName }}
+                  </div>
+                </div>
+
+                <!-- 주소와 상세보기 -->
+                <div class="plan-address-row" v-if="plan.addressName || plan.placeUrl">
+                  <div class="plan-address" v-if="plan.addressName">
+                    <i class="fa fa-map-marker-alt"></i>
+                    {{ plan.addressName }}
+                  </div>
+                  <div class="plan-link" v-if="plan.placeUrl">
+                    <a :href="plan.placeUrl" target="_blank">상세 보기</a>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                v-if="day.activities.length > 3"
+                class="more-activities"
+                @click="toggleDayPlans(index)"
+              >
+                <span v-if="!expandedDays[index]">+{{ day.activities.length - 3 }}개 활동 더 보기</span>
+                <span v-else>접기</span>
+              </div>
             </div>
           </div>
 
-          <div class="plans">
-            <div
-              v-for="(plan, i) in shownPlans(day, index)"
-              :key="i"
-              class="plan"
+          <div class="load-more" v-if="travel.dayList.length > 3">
+            <button
+              class="btn btn-outline-blue"
+              @click="toggleMore"
             >
-              <!-- 장소 이름 -->
-              <div class="plan-title">{{ plan.placeName }}</div>
-
-              <!-- 시간 정보 -->
-              <div class="plan-time" v-if="plan.startTime || plan.endTime">
-                <i class="fa fa-clock"></i>
-                <span v-if="plan.startTime && plan.endTime">
-                  {{ plan.startTime }} - {{ plan.endTime }}
-                </span>
-                <span v-else-if="plan.startTime">
-                  {{ plan.startTime }} ~
-                </span>
-                <span v-else>
-                  ~ {{ plan.endTime }}
-                </span>
-              </div>
-
-              <!-- 주소 -->
-              <div class="plan-address" v-if="plan.addressName">
-                <i class="fa fa-map-marker-alt"></i>
-                {{ plan.addressName }}
-              </div>
-
-              <!-- 태그 / 카테고리 -->
-              <div class="plan-category" v-if="plan.tag || plan.categoryGroupName">
-                <i class="fa fa-tag"></i>
-                {{ plan.tag || plan.categoryGroupName }}
-              </div>
-
-              <!-- 상세 보기 링크 -->
-              <div class="plan-link" v-if="plan.placeUrl">
-                <a :href="plan.placeUrl" target="_blank">상세 보기</a>
-              </div>
-            </div>
-
-            <div
-              v-if="day.activities.length > 3"
-              class="more-activities"
-              @click="toggleDayPlans(index)"
-            >
-              <span v-if="!expandedDays[index]">+{{ day.activities.length - 3 }}개 활동 더 보기</span>
-              <span v-else>접기</span>
-            </div>
+              {{ showAll ? '접기' : `더 보기 (${travel.dayList.length - visibleCount}일 남음)` }}
+            </button>
           </div>
-        </div>
-
-        <div class="load-more" v-if="travel.dayList.length > 3">
-          <button
-            class="btn btn-outline-blue"
-            @click="toggleMore"
-          >
-            {{ showAll ? '접기' : `더 보기 (${travel.dayList.length - visibleCount}일 남음)` }}
-          </button>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
+
+    <!-- 🔥 Teleport 사용하여 모달을 body로 이동 -->
+    <Teleport to="body">
+      <TravelReviewModal
+        v-if="showReviewModal"
+        :plan-id="planId"
+        :title="travel?.title"
+        @close="showReviewModal = false"
+        @saved="() => { showReviewModal = false; }"
+      />
+    </Teleport>
   </div>
-
-  <TravelReviewModal
-    v-if="showReviewModal"
-    :plan-id="planId"
-    :title="travel?.title"
-    @close="showReviewModal = false"
-    @saved="() => { showReviewModal = false; }"
-  />
 </template>
-
 <style scoped>
 .travel-detail {
   width: 100%;
@@ -267,12 +279,14 @@ async function handleDelete() {
   justify-content: center;
   padding: 60px 0 100px;
 }
+
 .travel-detail > .content-wrapper {
   width: 1120px;
   display: flex;
   flex-direction: column;
   gap: 32px;
 }
+
 .header {
   height: 72px;
   background: rgba(255, 255, 255, 0.8);
@@ -285,17 +299,45 @@ async function handleDelete() {
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
   margin-bottom: 12px;
 }
-.header-left { display: flex; align-items: center; }
-.header-right { display: flex; gap: 8px; }
+
+.header-left { 
+  display: flex; 
+  align-items: center; 
+}
+
+.header-right { 
+  display: flex; 
+  gap: 8px; 
+}
+
 .btn {
   border-radius: 8px;
   padding: 8px 16px;
   font-size: 14px;
   cursor: pointer;
 }
-.btn-outline-blue { border: 0.8px solid #3b82f6; color: #3b82f6; background: white; }
-.btn-outline-red { border: 0.8px solid #fb2c36; color: #fb2c36; background: white; }
-.btn-green { background: #10b981; color: white; border: none; }
+
+.btn-outline-blue { 
+  border: 0.8px solid #3b82f6; 
+  color: #3b82f6; 
+  background: white; 
+}
+
+.btn.delete {
+  color: #ff4d4f; 
+  border: 1.5px solid #ff4d4f; 
+  background-color: transparent; 
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s ease-in-out;
+}
+
+.btn.delete:hover {
+  background-color: #ff4d4f;
+  color: white;
+}
 
 .info-card {
   background: #fff;
@@ -307,11 +349,13 @@ async function handleDelete() {
   gap: 20px;
   border: 1px solid rgba(229, 231, 235, 0.5);
 }
+
 .info-header {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .tag.theme {
   background: #3b82f6;
   color: white;
@@ -323,7 +367,11 @@ async function handleDelete() {
   font-size: 15px;
   font-weight: 500;
 }
-.tag.theme i { font-size: 16px; }
+
+.tag.theme i { 
+  font-size: 16px; 
+}
+
 .tag.status {
   background: #10b981;
   color: white;
@@ -331,6 +379,7 @@ async function handleDelete() {
   padding: 4px 10px;
   border-radius: 8px;
 }
+
 .info-grid {
   display: flex;
   justify-content: space-between;
@@ -339,6 +388,7 @@ async function handleDelete() {
   border-radius: 12px;
   margin-bottom: 4px;
 }
+
 .info-item {
   display: flex;
   flex-direction: row;
@@ -346,6 +396,7 @@ async function handleDelete() {
   gap: 10px;
   text-align: left;
 }
+
 .icon-wrap {
   width: 46px;
   height: 46px;
@@ -355,37 +406,30 @@ async function handleDelete() {
   justify-content: center;
   align-items: center;
 }
+
 .icon-wrap i {
   color: #3b82f6;
   font-size: 20px;
 }
+
 .text {
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 2px;
 }
+
 .text .label {
   font-size: 13px;
   color: #6a7282;
   margin: 0;
 }
+
 .text .value {
   font-size: 15px;
   font-weight: 600;
   color: #101828;
   margin: 0;
-}
-.info-footer {
-  border-top: 1px solid #e5e7eb;
-  padding-top: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.date {
-  font-size: 14px;
-  color: #6a7282;
 }
 
 .days-wrap {
@@ -393,6 +437,7 @@ async function handleDelete() {
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 24px 28px;
 }
+
 .day-card {
   background: rgba(255,255,255,0.9);
   border-radius: 14px;
@@ -403,6 +448,7 @@ async function handleDelete() {
   flex-direction: column;
   transition: all 0.2s ease;
 }
+
 .day-header {
   background: #3b82f6;
   color: white;
@@ -411,6 +457,7 @@ async function handleDelete() {
   align-items: center;
   gap: 12px;
 }
+
 .circle {
   width: 42px;
   height: 42px;
@@ -424,8 +471,17 @@ async function handleDelete() {
   color: white;
   margin-right: 4px;
 }
-.day-header h3 { font-size: 16px; margin: 0; }
-.day-header p { font-size: 14px; color: rgba(255,255,255,0.8); margin: 0; }
+
+.day-header h3 { 
+  font-size: 16px; 
+  margin: 0; 
+}
+
+.day-header p { 
+  font-size: 14px; 
+  color: rgba(255,255,255,0.8); 
+  margin: 0; 
+}
 
 .plans {
   padding: 20px;
@@ -434,6 +490,7 @@ async function handleDelete() {
   gap: 16px;
   transition: all 0.3s ease-in-out;
 }
+
 .plan {
   background: #f9fafb;
   border-radius: 10px;
@@ -444,16 +501,33 @@ async function handleDelete() {
   border: 1px solid #e5e7eb;
   transition: all 0.2s ease;
 }
-.plan:hover { background: #f1f5f9; }
 
-.plan-title {
-  color: #101828;
-  font-size: 15px;
-  font-weight: 700;
-  margin-bottom: 2px;
+.plan:hover { 
+  background: #f1f5f9; 
 }
 
-/* 시간 표시 스타일 - 장소명 바로 아래 */
+/* 시간 표시 스타일 */
+/* ✅ 일정 번호와 시간을 한 줄에 */
+.plan-time-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ✅ 일정 번호 뱃지 */
+.plan-order-badge {
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 5px 10px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* 시간 박스 (별도 테두리) */
 .plan-time {
   color: #3b82f6;
   font-size: 12px;
@@ -461,31 +535,84 @@ async function handleDelete() {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px;
+  padding: 5px 10px;
   background: rgba(59, 130, 246, 0.08);
   border-radius: 6px;
-  width: fit-content;
-  margin-bottom: 4px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  flex-shrink: 0;
 }
-.plan-time i {
+/* 일정 번호 스타일 */
+.plan-order {
+  color: #6b7280;
+  font-weight: 600;
   font-size: 11px;
+  margin-right: 4px;
+  padding-right: 8px;
+  border-right: 1px solid rgba(107, 114, 128, 0.2);
 }
 
-.plan-address,
-.plan-category {
+/* 장소명과 카테고리 한 줄 배치 */
+.plan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 2px;
+   padding-left: 6px; /* 아이콘 너비만큼 들여쓰기 */
+}
+
+.plan-title {
+  color: #101828;
+  font-size: 15px;
+  font-weight: 700;
+  flex: 1;
+  min-width: 0;
+}
+
+/* 카테고리 뱃지 스타일 */
+.plan-category-badge {
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* 주소와 상세보기 한 줄 배치 */
+.plan-address-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.plan-address {
   color: #6a7282;
   font-size: 12px;
   display: flex;
   align-items: center;
   gap: 6px;
+  flex: 1;
+  min-width: 0;
 }
-.plan-link { margin-top: 4px; }
+
+.plan-link { 
+  flex-shrink: 0;
+}
+
 .plan-link a {
   font-size: 12px;
   color: #3b82f6;
   text-decoration: none;
+  white-space: nowrap;
 }
-.plan-link a:hover { text-decoration: underline; }
+
+.plan-link a:hover { 
+  text-decoration: underline; 
+}
 
 .more-activities {
   margin-top: 10px;
@@ -500,10 +627,12 @@ async function handleDelete() {
   border-bottom-right-radius: 14px;
   transition: background 0.2s, color 0.2s;
 }
+
 .more-activities:hover {
   background: rgba(59,130,246,0.1);
   color: #2563eb;
 }
+
 .more-activities span {
   display: inline-block;
   font-weight: 500;
@@ -516,6 +645,7 @@ async function handleDelete() {
   justify-content: center;
   margin-top: 16px;
 }
+
 .load-more button {
   border-radius: 8px;
   padding: 8px 16px;
@@ -525,7 +655,10 @@ async function handleDelete() {
   cursor: pointer;
   font-size: 14px;
 }
-.load-more button:hover { background: #eff6ff; }
+
+.load-more button:hover { 
+  background: #eff6ff; 
+}
 
 .back-btn {
   border: none;
@@ -536,56 +669,28 @@ async function handleDelete() {
   flex-shrink: 0;
   transition: color 0.2s;
 }
-.back-btn:hover { color: #2563eb; }
+
+.back-btn:hover { 
+  color: #2563eb; 
+}
+
 .title-block {
   display: flex;
   flex-direction: column;
   justify-content: center;
   margin-left: 10px;
 }
+
 .title-block h1 {
   font-size: 18px;
   font-weight: 700;
   color: #101828;
   margin: 0;
 }
+
 .title-block p {
   font-size: 14px;
   color: #6a7282;
   margin: 2px 0 0;
 }
-
-.btn.delete {
-  color: #ff4d4f; 
-  border: 1.5px solid #ff4d4f; 
-  background-color: transparent; 
-  border-radius: 6px;
-  padding: 6px 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: 0.2s ease-in-out;
-}
-
-
-.btn.delete:hover {
-  background-color: #ff4d4f;
-  color: white;
-}
-
-
-.btn-outline-green {
-  border: 1px solid #16a34a;   
-  color: #16a34a;              
-  background-color: transparent;
-  padding: 8px 12px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-outline-green:hover {
-  background-color: #16a34a;
-  color: #fff;
-}
-
 </style>
