@@ -190,7 +190,7 @@
       v-for="(place, index) in themeRecommendations" 
       :key="index"
       class="theme-place-card"
-      @click="selectPlace(place)"
+      @click="highlightPlace(place)"
       :class="{ active: selectedPlace && selectedPlace.title === place.title }"
     >
       <div class="rank-badge">{{ index + 1 }}</div>
@@ -233,7 +233,7 @@
               :key="i"
               :ref="el => { if (el) placeCardRefs[p.title] = el }"
               class="place-card"
-              @click="selectPlace(p)"
+              @click="highlightPlace(p)"
               :class="{ active: selectedPlace && selectedPlace.title === p.title }"
             >
               <!-- 이미지 추가 -->
@@ -441,7 +441,7 @@ const {
   placeCardRefs,
   selectPlace,
   highlightPlace: highlightPlaceFunc,
-  scrollToPlace
+  scrollToPlace,
 } = usePlaceHighlight();
 
 const {

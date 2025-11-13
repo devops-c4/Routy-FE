@@ -242,6 +242,7 @@ export function useMap() {
 
   // 마커 하이라이트
   const highlightMarker = (place) => {
+    
     // 이전 마커 복원
     if (activeMarker.value) {
       try {
@@ -254,8 +255,10 @@ export function useMap() {
     }
 
     // 새 마커 찾기
-    const clickedMarker = (placeMarkers.value || []).find(m => m.getTitle() === place.title)
-                        || (searchResultMarkers.value || []).find(m => m.getTitle() === place.title);
+    // 선택된 마커(placeMarkers)와 검색 결과 마커(searchResultMarkers) 모두에서 찾기
+    const clickedMarker = 
+    (placeMarkers.value || []).find(m => m.getTitle() === place.title) ||
+    (searchResultMarkers.value || []).find(m => m.getTitle() === place.title);
 
     if (clickedMarker) {
       clickedMarker.setZIndex(999);

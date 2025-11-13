@@ -31,16 +31,21 @@ export function usePlaceHighlight() {
       await loadPlaces(targetType, place.latitude, place.longitude);
       await nextTick();
     }
-    
-    const currentPlaces = placesByDay[selectedDay];
-    const currentPlace = (currentPlaces || []).find(p => p.placeUrl === place.placeUrl);
-    
-    if (currentPlace) {
-      // 지도 중심을 해당 장소로 이동
-      if (place.latitude && place.longitude) {
-        moveMapCenter(place.latitude, place.longitude, 5);
-      }
+  // 선택된 장소(placesByDay)인지 확인
+  const currentPlaces = placesByDay[selectedDay];
+  const isSelectedPlace = (currentPlaces || []).find(p => p.placeUrl === place.placeUrl);
+  
+  // 테마 추천인지 확인 (travelOrder가 있으면 테마 추천)
+  const isThemePlace = place.travelOrder !== undefined && place.travelOrder > 0;
+  
+  // 선택된 장소 또는 테마 추천인 경우만 지도 이동
+  // 일반 검색 결과는 지도 이동 안함
+  if (isSelectedPlace || isThemePlace) {
+    if (place.latitude && place.longitude) {
+      moveMapCenter(place.latitude, place.longitude, 5);
     }
+  }
+
 
     // 마커 하이라이트
     highlightMarker(place);
