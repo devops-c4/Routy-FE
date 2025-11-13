@@ -309,10 +309,6 @@ const regionCoordinates = {
   '함양': { lat: 35.5202, lng: 127.7258 },
 };
 
-
-
-
-
 // 도시 선택 시 해당 위치로 이동 + 이미지 마커 표시 (레벨 13 유지)
 const selectCity = (region) => {
   selectedCity.value = region;
@@ -365,6 +361,18 @@ const selectCity = (region) => {
 
 // 다음 단계 이동
 const goNext = () => {
+  // localStorage에 지역 정보 저장
+  const regionInfo = {
+    regionId: selectedCity.value.regionId,
+    regionName: selectedCity.value.regionName,
+    latitude: selectedCity.value.latitude,
+    longitude: selectedCity.value.longitude
+  }
+  
+  localStorage.setItem('selectedRegion', JSON.stringify(regionInfo))
+  
+  console.log('지역 정보 저장:', regionInfo)
+  
   router.push({
     path: "/draw/second",
     query: { 
