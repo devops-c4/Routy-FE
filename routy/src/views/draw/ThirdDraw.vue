@@ -15,7 +15,7 @@
       <!-- 카드 -->
       <div class="card">
         <h3 class="card-title">어떤 테마를 원하시나요?</h3>
-        <p class="card-subtitle">원하는 테마를 모두 선택해주세요 (중복 선택 가능)</p>
+        <p class="card-subtitle">원하는 테마를 선택해주세요</p>
 
         <div class="theme-grid">
           <div

@@ -24,7 +24,7 @@
           <!-- 왼쪽: 지역 선택 -->
           <div class="left-column">
             <div class="region-header">
-              <h4 class="section-title">지역 선택</h4>
+              <h4 class="section-title">지역 검색</h4>
               <div class="search-container">
                 <input
                   v-model="searchQuery"

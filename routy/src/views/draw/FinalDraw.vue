@@ -178,7 +178,7 @@
   <div class="section-header" @click="toggleTheme">
     <div class="header-left">
       <h3>{{ themeNames[selectedTheme] }} 추천 TOP {{ themeRecommendations.length }}</h3>
-      <span class="badge">선택한 테마</span>
+      <span class="badge">{{ themeNames[selectedTheme] }}</span>
     </div>
     <button class="toggle-btn">
       {{ isThemeExpanded ? '▲' : '▼' }}
@@ -2015,7 +2015,7 @@ const cancelSortPreview = () => {
 }
 
 .theme-section {
-  background: linear-gradient(135deg, #155DFC 0%, #0f47c9 100%);
+
   border-bottom: 1px solid rgba(0,0,0,0.1);
   transition: all 0.3s ease;
 }
@@ -2024,7 +2024,7 @@ const cancelSortPreview = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: white;
+  color: rgb(0, 0, 0);
   padding: 16px;
   cursor: pointer;
   user-select: none;
@@ -2121,7 +2121,7 @@ const cancelSortPreview = () => {
 }
 
 .rank-badge {
-  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  background: linear-gradient(135deg, hsl(215, 52%, 72%) 0%, #d9dbea 100%);
   color: #fff;
   font-weight: bold;
   width: 28px;
@@ -2623,5 +2623,18 @@ const cancelSortPreview = () => {
   color: #555;
   font-size: 12px;
   line-height: 1.4;
+}
+
+.top-count {
+  color: #3C8BEA;
+}
+
+.badge {
+  background-color: #E3F2FF;
+  color: #1A73E8;
+}
+.toggle-btn{
+    background-color: #E3F2FF;
+  color: #1A73E8;
 }
 </style>
