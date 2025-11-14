@@ -161,14 +161,33 @@
 
         <!-- 오른쪽 패널 -->
         <aside class="right-panel">
-          <div class="search-header">검색          
-            <button 
-                class="hotel-btn"
-                :class="{ active: showHotelModal }"
-                @click="openHotelModal" 
-                :disabled="isDayCompleted"
-              >숙소 선택</button>
-          </div>
+         <div class="search-header">
+  <div class="search-left">
+    <span class="search-title">검색</span>
+    <input
+      v-model="searchKeyword"
+      class="search-input"
+      type="text"
+      placeholder="장소 이름, 키워드 검색"
+      @keyup.enter="searchByKeyword"
+    />
+    <button
+      class="search-btn"
+      @click="searchByKeyword"
+    >
+      검색
+    </button>
+  </div>
+
+  <button 
+    class="hotel-btn"
+    :class="{ active: showHotelModal }"
+    @click="openHotelModal" 
+    :disabled="isDayCompleted"
+  >
+    숙소 선택
+  </button>
+</div>
         <!-- 테마 추천 섹션 -->
 <div v-if="selectedTheme && themeRecommendations.length > 0" class="theme-section">
   <div class="section-header" @click="toggleTheme">
@@ -465,6 +484,7 @@ const selectedTheme = ref('');
 const themeRecommendations = ref([]);
 const isLoadingTheme = ref(false);
 const isThemeExpanded = ref(true);
+const searchKeyword = ref('');
 
 const themeNames = {
   restaurant: '맛집',
@@ -563,6 +583,68 @@ const loadPlaces = async (type, lat = null, lng = null) => {
     deletePoliLine,
     displaySearchResultMarkers
   );
+};
+
+const searchByKeyword = async () => {
+  const keyword = searchKeyword.value.trim();
+  if (!keyword) return;
+
+  try {
+    isSearching.value = true;
+
+    const { data } = await apiClient.get('/api/kakao/keyword-search', {
+      params: {
+        query: keyword,
+        lat: startLocation.value.lat,
+        lng: startLocation.value.lng,
+      },
+    });
+
+    console.log('🔍 키워드 검색 응답:', data);
+
+    // 🔹 백엔드에서 Map<String, Object> 그대로 넘겼으니
+    // data.documents 가 카카오 장소 배열
+    const docs = Array.isArray(data.documents) ? data.documents : [];
+    console.log('📌 documents 길이:', docs.length);
+
+    // 🔹 Kakao Local API 필드 → 너가 쓰는 place 객체 구조로 매핑
+    places.value = docs.map((place, index) => ({
+      title: place.place_name,                         // 장소 이름
+      latitude: parseFloat(place.y),                   // 위도
+      longitude: parseFloat(place.x),                  // 경도
+      categoryCode: place.category_group_code || '',   // FD6 / CE7 / AT4 등
+      categoryGroupName: place.category_group_name || '',
+      addressName: place.road_address_name || place.address_name || '',
+      placeUrl: place.place_url || '',
+      description: place.category_name || '',          // "음식점 > 한식 > ..."
+      imageUrl: null,                                  // 필요하면 나중에 썸네일
+
+      // 네 앱 공통 필드 기본값들
+      travelOrder: 0,
+      estimatedTravelTime: 0,
+      planId,
+      startTime: '',
+      endTime: '',
+      showTimeInput: false,
+      fixed: false,
+      isHotel: false,
+    }));
+
+    console.log('📌 매핑된 places:', places.value);
+
+    // 🔹 첫 번째 결과 기준으로 지도 중심 이동
+    if (places.value.length > 0) {
+      const first = places.value[0];
+      moveMapCenter(first.latitude, first.longitude);
+    }
+
+    // 🔹 검색 결과 마커 표시
+    await displaySearchResultMarkers();
+  } catch (e) {
+    console.error('키워드 검색 실패:', e);
+  } finally {
+    isSearching.value = false;
+  }
 };
 
 const addPlace = (place) => {
@@ -924,6 +1006,35 @@ onMounted(async () => {
   console.log("최종 placesByDay:", placesByDay.value);
   console.log("selectedDay:", selectedDay.value);
 });
+
+const focusSearchPlace = (place, index) => {
+  // 🔹 1) Kakao 검색 결과는 기본적으로 x(경도), y(위도) 문자열로 옴
+  // ex) { x: "129.1234", y: "35.1234", place_name: "..." }
+  const lat = Number(place.y ?? place.lat ?? place.latitude)
+  const lng = Number(place.x ?? place.lng ?? place.longitude)
+
+  if (!isNaN(lat) && !isNaN(lng)) {
+    // ✅ 좌표로 지도 중심 이동
+    moveMapCenter(lat, lng)
+  }
+
+  // 🔹 2) 마커가 이미 찍혀 있다면 그 마커 기준으로 이동 + 하이라이트
+  const marker = searchResultMarkers.value?.[index]
+  const map = getMap && getMap()
+
+  if (marker && map) {
+    // 지도 중심을 해당 마커 위치로 이동
+    map.panTo(marker.getPosition())
+
+    // 선택된 마커 강조(만약 이런 함수 구현해놨다면)
+    try {
+      highlightMarker(marker)
+    } catch (e) {
+      // highlightMarker가 다른 시그니처면(예: 인덱스/타입 받는 구조) 여기서 맞춰 쓰면 됨
+      console.debug('highlightMarker 호출 실패(시그니처 확인 필요):', e)
+    }
+  }
+}
 </script>
 
 <style scoped>
@@ -1054,11 +1165,12 @@ onMounted(async () => {
 }
 
 .hotel-btn {
+  margin-left: 12px;
   border-radius: 4px;
   border: 1px solid #D1D5DC;
   background: white;
   height: 40px;
-  width: 110px;
+  width: 80px;
 }
 
 .info-box {
@@ -2124,5 +2236,46 @@ onMounted(async () => {
 
 .detail-btn:hover {
   color: #0f47c9;
+}
+
+.search-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.search-title {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.search-input {
+  flex: 1;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid #D1D5DC;
+  font-size: 13px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #155DFC;
+}
+
+.search-btn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: none;
+  background: #155DFC;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.search-btn:hover {
+  background: #0f47c9;
 }
 </style>
