@@ -259,7 +259,7 @@ button {
 }
 
 .chat-header img {
-  width: 130px; /* 이미지 크기 조절 */
-  height: 70px;
+  width: 100px; /* 이미지 크기 조절 */
+  height: 100px;
 }
 </style>

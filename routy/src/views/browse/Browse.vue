@@ -1,8 +1,8 @@
 <template>
   <div class="browse-container">
     <section class="main-section">
-      <h1 class="main-title">✈️실시간 인기 여행 일정✨</h1>
-      <p class="main-subtitle">다른 여행자들이 공유한 일정을 확인하세요</p>
+      <h1 class="main-title">실시간 여행 루트</h1>
+      <p class="main-subtitle">다른 루터들이 그린 루터를 확인해보세요!</p>
 
       <!-- 필터 탭 -->
       <div class="filter-tabs">
@@ -282,6 +282,7 @@ const updateRoute = (updated) => {
 }
 
 .tab-btn {
+  margin-right: 4px;
   background: white;
   border: 1px solid #e5e7eb;
   padding: 10px 24px;

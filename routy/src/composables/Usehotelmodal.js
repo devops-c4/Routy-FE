@@ -7,7 +7,6 @@ export function useHotelModal() {
   const hotelMapContainer = ref(null);
   let hotelMap = null;
 
-  // 숙소 모달 열기
   const openHotelModal = async (startLocation) => {
     showHotelModal.value = true;
     
@@ -31,12 +30,30 @@ export function useHotelModal() {
     }
   };
 
-  // 숙소 모달 닫기
   const closeHotelModal = () => {
     showHotelModal.value = false;
   };
 
-  // 숙소 지도에서 포커스
+  const addHotel = (hotel, selectedDay, placesByDay, updateMapMarkers) => {
+    const day = selectedDay;
+    if (!placesByDay[day]) placesByDay[day] = [];
+    
+    if (!placesByDay[day].find((x) => x.title === hotel.title)) {
+      placesByDay[day].push({ 
+        ...hotel,
+        title: hotel.title,
+        placeName: hotel.title,
+        isHotel: true,
+        startTime: '',
+        endTime: ''
+      });
+    }
+    
+    alert(`${hotel.title}이(가) ${day}일차 일정에 추가되었습니다!`);
+    updateMapMarkers();
+    closeHotelModal();
+  };
+
   const focusHotelOnMap = (hotel) => {
     if (!hotelMap) return;
     const pos = new kakao.maps.LatLng(hotel.latitude, hotel.longitude);
@@ -49,6 +66,7 @@ export function useHotelModal() {
     hotelMapContainer,
     openHotelModal,
     closeHotelModal,
+    addHotel,
     focusHotelOnMap
   };
 }
