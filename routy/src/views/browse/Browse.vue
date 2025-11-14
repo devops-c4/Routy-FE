@@ -195,18 +195,21 @@ onMounted(() => {
 const openModal = async (route) => {
   selectedRoute.value = null
   try {
-    // ✅ 최신 데이터로 다시 요청
-    const res = await apiClient.get(`/api/plans/public/${route.planId}`)
-    selectedRoute.value = res.data
-    document.body.style.overflow = 'hidden'
-    
-
-    // ✅ 조회수 증가 요청 (작성자 제외)
+    // 먼저 조회수 증가 요청
     await apiClient.post(`/api/plans/${route.planId}/view`)
 
-    // ✅ 부모 리스트에서 해당 카드 카운트도 즉시 반영
+    // 증가된 최신 데이터를 다시 요청 (항상 최신 viewCount)
+    const res = await apiClient.get(`/api/plans/public/${route.planId}`)
+    selectedRoute.value = res.data
+
+    document.body.style.overflow = 'hidden'
+
+    //  부모 리스트에서도 최신값으로 동기화
     const target = routes.value.find(r => r.planId === route.planId)
-    if (target) target.viewCount++
+    if (target) {
+      target.viewCount = res.data.viewCount
+    }
+
   } catch (error) {
     console.error('상세 일정 불러오기 실패:', error)
   }

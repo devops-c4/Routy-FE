@@ -16,11 +16,11 @@
             {{ route.username }}
           </span>
           <span class="meta-item">
-            <span class="meta-icon">📅</span>
+          <img src="@/assets/images/icons/calendar.svg" class="icon" />
             {{ route.days }}일
           </span>
           <span class="meta-item">
-            <span class="meta-icon">📍</span>
+          <img src="@/assets/images/icons/location.svg" class="icon" />
             {{ route.destination }}
           </span>
         </div>
@@ -50,7 +50,8 @@
         </div>
 
         <div class="stat-item">
-          <span class="stat-icon">👁️</span>
+          <img src="@/assets/images/icons/view.svg" class="icon" />
+          <!-- <span class="stat-icon">👁️</span> -->
           <span class="stat-label">조회수</span>
           <span class="stat-value">{{ viewCount }}</span>
         </div>
@@ -63,7 +64,8 @@
             :disabled="readOnly"
             v-if="!readOnly"
           >
-            🔖 북마크 {{ bookmarkCount }}
+          <img src="@/assets/images/icons/bookmark.svg" class="icon" />
+             북마크 {{ bookmarkCount }}
           </button>
           <!-- 읽기 전용 모드일 때 -->
           <button
@@ -71,7 +73,7 @@
             class="like-btn disabled"
             disabled
           >
-            🔖 북마크 {{ bookmarkCount }}
+             북마크 {{ bookmarkCount }}
           </button>
         </div>
       </div>
@@ -291,13 +293,6 @@ onMounted(async () => {
     if (travel.value.viewCount === undefined) {
       travel.value.viewCount = 0
     }
-
-    // ✅ 읽기 전용 모드가 아닐 때만 조회수 증가
-    if (!props.readOnly) {
-      await apiClient.post(`/api/plans/${props.route.planId}/view`)
-      travel.value.viewCount += 1       // 🔥 서버 응답 기다리지 않고 즉시 반영
-    }
-
   } catch (err) {
     console.error('조회수 증가 실패:', err)
   }
@@ -870,6 +865,11 @@ const uniqueDays = computed(() => {
   font-size: 18px;
   cursor: pointer;
   transition: transform 0.1s ease;
+
+  /* ⭐ 핵심 */
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .like-btn.active {
   color: red;
