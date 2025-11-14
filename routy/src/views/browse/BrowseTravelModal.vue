@@ -36,7 +36,8 @@
             :disabled="readOnly"
             v-if="!readOnly"
           >
-            ❤️ 좋아요 {{ likeCount }}
+          <img src="@/assets/images/icons/heart.svg" class="icon" />
+            좋아요 {{ likeCount }}
           </button>
 
           <!-- 읽기 전용 모드일 때는 클릭 불가한 비활성화 상태로 표시 -->
@@ -45,7 +46,8 @@
             class="like-btn disabled"
             disabled
           >
-            ❤️ 좋아요 {{ likeCount }}
+          <img src="@/assets/images/icons/heart.svg" class="icon" />
+            좋아요 {{ likeCount }}
           </button>
         </div>
 
@@ -157,7 +159,8 @@
               </div>
 
               <div class="place-address">
-                <span class="address-icon">📍</span>
+                <img src="@/assets/images/icons/location.svg" class="icon" />
+                <!-- <span class="address-icon">📍</span> -->
                 {{ activity.addressName }}
               </div>
 
@@ -303,15 +306,20 @@ onMounted(async () => {
 // ✅ 북마크 토글
 const toggleBookmark = async () => {
   try {
-    const res = await apiClient.post(`/api/plans/${props.route.planId}/bookmark`)
+    // 북마크 상태 변경
+    await apiClient.post(`/api/plans/${props.route.planId}/bookmark`)
+
+    //  서버 최신 정보 다시 가져오기
+    const res = await apiClient.get(`/api/plans/public/${props.route.planId}`)
     bookmarkCount.value = res.data.bookmarkCount
 
-    // ✅ 부모로 변경된 데이터 전달
+    //  부모 리스트도 최신값 반영
     emit('updateRoute', {
       planId: props.route.planId,
-      likeCount: props.route.likeCount,          // 현재 값 유지
-      bookmarkCount: res.data.bookmarkCount      // 새 값 전달
+      bookmarkCount: res.data.bookmarkCount,
+      likeCount: res.data.likeCount
     })
+
   } catch (err) {
     console.error('북마크 요청 실패:', err)
   }
