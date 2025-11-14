@@ -11,7 +11,7 @@
           <input
             v-model="keyword"
             type="text"
-            placeholder="국내 도시, 지역 또는 여행지를 검색하세요"
+            placeholder="국내 도시, 지역을 검색해보세요"
             @keyup.enter="goSearch"
           />
         </div>

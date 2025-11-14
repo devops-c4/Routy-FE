@@ -170,7 +170,7 @@ export async function sortDirection(map, coords) {
         name: c.title
     }));
 
-    // 🔹 고정된 인덱스만 추출
+    // 고정된 인덱스만 추출
     const fixPoints = coords
         .map((c, i) => (c.fixed ? i : -1))
         .filter(i => i !== -1);

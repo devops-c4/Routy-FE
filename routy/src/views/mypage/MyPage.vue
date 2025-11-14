@@ -7,6 +7,14 @@ import TravelReviewModal from '@/views/mypage/TravelReviewModal.vue'
 import BookmarkCard from '@/views/mypage/BookmarkCard.vue'
 import apiClient from '@/utils/axios'
 
+// 이미지 임포트
+import themeRestaurant from '@/assets/images/theme/recommend-restaurant.png';
+import themeCafe from '@/assets/images/theme/recommend-cafe.png';
+import themeTourist from '@/assets/images/theme/recommend-attraction.png';
+
+import locationIcon from '@/assets/images/icons/location.svg';
+import calendarIcon from '@/assets/images/icons/calendar.svg';
+
 
 // 리뷰 이미지 썸네일 캐시 (planId -> url)
 const reviewThumbMap = ref({})
@@ -79,7 +87,7 @@ async function hydrateThumbnails() {
         (isHttp(f0?.url) ? f0.url : null) ??
         null
 
-      console.log('📬 reviews/form resp:', pid, {
+      console.log('reviews/form resp:', pid, {
         hasFiles: !!res.data?.files?.length,
         firstUrl,
         raw: f0
@@ -87,12 +95,12 @@ async function hydrateThumbnails() {
 
       if (firstUrl) {
         reviewThumbMap.value = { ...reviewThumbMap.value, [pid]: firstUrl }
-        console.log('✅ 썸네일 주입:', pid, firstUrl)
+        console.log('썸네일 주입:', pid, firstUrl)
       } else {
-        console.log('⚠️ 파일 없음 or 비정상 URL:', pid)
+        console.log('파일 없음 or 비정상 URL:', pid)
       }
     } catch (e) {
-      console.warn('❌ reviews/form 실패:', pid, e?.response?.status, e?.response?.data || e?.message)
+      console.warn('reviews/form 실패:', pid, e?.response?.status, e?.response?.data || e?.message)
     }
   }
 }
@@ -486,41 +494,61 @@ function toggleBookmarks() {
 
         <!-- 내 일정 카드 -->
         <article class="card schedule">
-          <header class="card__title">내 일정</header>
+          <header class="card__title">나의 루트</header>
 
-          <ul class="todo">
-            <li
-              v-for="s in pagedSchedules"
-              :key="s.id"
-              class="todo__item"
-              :data-color="s.color"
-              @click="goToPlanDetail(s.id)"
-              style="cursor: pointer;"
-            >
-              <div class="left">
-                <div class="pill" :class="s.color">
-                  <span v-if="s.theme==='힐링'">🌴</span>
-                  <span v-else-if="s.theme==='미식'">🍽️</span>
-                  <span v-else-if="s.theme==='액티비티'">⛰️</span>
-                  <span v-else>🏛️</span>
-                  {{ s.theme }}
-                </div>
+                <ul class="todo">
+                  <li
+        v-for="s in pagedSchedules"
+        :key="s.id"
+        class="todo__item"
+        :data-color="s.color"
+        @click="goToPlanDetail(s.id)"
+        style="cursor: pointer;"
+      >
+        <div class="left">
+          <div class="pill" :class="s.color">
+            <img 
+              v-if="s.theme==='카페탐방'" 
+              :src="themeCafe" 
+              class="theme-icon"
+              alt="카페"
+            />
+            <img 
+              v-else-if="s.theme==='맛집탐방'" 
+              :src="themeRestaurant" 
+              class="theme-icon"
+              alt="맛집"
+            />
+            <img 
+              v-else 
+              :src="themeTourist" 
+              class="theme-icon"a
+              alt="관광"
+            />
+            {{ s.theme }}
+          </div>
 
-                <div class="tt">{{ s.title }}</div>
+          <div class="tt">{{ s.title }}</div>
 
-                <div class="meta-row">
-                  <div class="meta"><i>📍</i>{{ s.region }}</div>
-                  <div class="meta">
-                    {{ s.transportation }}
-                  </div>
-                  <div class="meta"><i>🗓️</i>{{ formatDateRange(s.startDate, s.endDate) }}</div>
-                </div>
-              </div>
+          <div class="meta-row">
+            <div class="meta">
+              <img :src="locationIcon" class="meta-icon" alt="위치" />
+              {{ s.region }}
+            </div>
+            <div class="meta" v-if="s.transportation">
+              {{ s.transportation }}
+            </div>
+            <div class="meta">
+              <img :src="calendarIcon" class="meta-icon" alt="날짜" />
+              {{ formatDateRange(s.startDate, s.endDate) }}
+            </div>
+          </div>
+        </div>
 
-              <div class="right">
-                <span class="state" :class="s.stateClass">{{ s.stateText }}</span>
-              </div>
-            </li>
+        <div class="right">
+          <span class="state" :class="s.stateClass">{{ s.stateText }}</span>
+        </div>
+      </li>
           </ul>
 
           <div class="pagination">
@@ -553,7 +581,7 @@ function toggleBookmarks() {
             class="thumb-bg"
             :style="{ backgroundImage: `url(${r.thumbnailUrl})` }"
             ></div>
-            <span class="pin">📍</span>
+            <img :src="locationIcon" class="pin-icon" alt="위치" />
             </div>
             <div class="thumb-info">
             <b>{{ r.title }}</b>
@@ -569,7 +597,7 @@ function toggleBookmarks() {
         <header class="block__title">북마크</header>
 
         <div class="bm-grid">
-          <!-- ✅ BookmarkCard 컴포넌트로 교체 -->
+          <!-- BookmarkCard 컴포넌트로 교체 -->
           <BookmarkCard
             v-for="b in bookmarks"
             :key="b.id"
@@ -730,9 +758,9 @@ function toggleBookmarks() {
 /* 테마 배지 */
 .pill{
   display:inline-flex; gap:6px; align-items:center;
-  padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; color:#fff; width:max-content;
+  padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; color:#000000; width:max-content;
 }
-.pill.blue{ background:#3B82F6; } .pill.red{ background:#EF4444; } .pill.green{ background:#10B981; }
+.pill.blue{ background:#d4ede4; } .pill.red{ background:#EF4444; } .pill.green{ background:#10B981; }
 
 /* 상태 */
 .right{ display:flex; align-items:center; }
@@ -763,7 +791,33 @@ function toggleBookmarks() {
   border-radius: 14px;
 }
 .bluegrad{ background:linear-gradient(180deg, #60A5FA 0%, #3B82F6 100%); }
-.pin{ font-size:18px; opacity:.9; position:absolute; left:12px; top:10px; }
+/* 테마 아이콘 */
+.theme-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+/* 메타 아이콘 */
+.meta-icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+/* 핀 아이콘 */
+.pin-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  filter: brightness(0) invert(1); /* 흰색으로 변경 */
+}
+
 .thumb b{ font-weight:700; } .thumb small{ opacity:.95; }
 
 /* 내부 스크롤 공통 */

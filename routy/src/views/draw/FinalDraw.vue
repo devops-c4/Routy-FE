@@ -18,26 +18,22 @@
                   class="left-btn" 
                   @click="drawRoute"
                   :disabled="isDayCompleted"
-                  title=
-"현재 선택한 장소들을 따라
-경로를 지도에 그립니다."
-                >경로 그리기</button>
+                  title="현재 선택한 장소들을 따라 루트를 지도에 그립니다."
+                >루트 그리기</button>
 
                 <button 
                   class="left-btn" 
                   @click="drawSort"
                   :disabled="isDayCompleted || isLoading"
-                  title=
-"고정된 일정을 제외한 일정을
-최소의 이동시간이 되도록 재배치합니다.">            
-                  <span v-if="isLoading">⏳ 정렬 중...</span>
-                  <span v-else>자동 정렬</span>
+                  title="고정된 장소를 제외한 장소의 최소의 이동시간이 되도록 재배치합니다.">            
+                  <span v-if="isLoading">정렬 중...</span>
+                  <span v-else>루트 정렬</span>
                 </button>
               </div>
             <!-- 로딩 스피너 -->
             <div v-if="isLoading" class="loading-overlay">
               <div class="spinner"></div>
-              <p>자동 정렬 중입니다. 잠시만 기다려주세요...</p>
+              <p>루트의 최소 이동시간을 위해 자동 정렬 중입니다. 잠시만 기다려주세요...</p>
             </div>
           </div>
 
@@ -59,7 +55,7 @@
               <template #item="{ element, index }">
                 <div class="selected-card" :class="{ fixed: element.fixed, hotel: element.isHotel, completed: isDayCompleted }" @click="highlightPlace(element)">
                   <div class="drag-section">
-                    <span class="day-badge-top">일정 {{ index + 1 }}</span>
+                    <span class="day-badge-top">루트 {{ index + 1 }}</span>
                     <div class="drag-handle" :class="{ disabled: element.fixed || isDayCompleted }">⋮⋮</div>
                   </div>
                   
@@ -177,8 +173,8 @@
 <div v-if="selectedTheme && themeRecommendations.length > 0" class="theme-section">
   <div class="section-header" @click="toggleTheme">
     <div class="header-left">
-      <h3>{{ themeNames[selectedTheme] }} 추천 TOP {{ themeRecommendations.length }}</h3>
-      <span class="badge">선택한 테마</span>
+      <h3>{{ startLocation.name }} 추천 TOP {{ themeRecommendations.length }}</h3>
+      <span class="badge">{{ themeNames[selectedTheme] }}</span>
     </div>
     <button class="toggle-btn">
       {{ isThemeExpanded ? '▲' : '▼' }}
@@ -194,11 +190,13 @@
       v-for="(place, index) in themeRecommendations" 
       :key="index"
       class="theme-place-card"
-      @click="selectPlace(place)"
+      @click="highlightPlace(place)"
       :class="{ active: selectedPlace && selectedPlace.title === place.title }"
     >
       <div class="rank-badge">{{ index + 1 }}</div>
-      <div class="place-icon">{{ getCategoryIcon(place.categoryCode) }}</div>
+      <div class="place-icon">
+      <img :src="getThemeIcon(place.categoryCode)" class="theme-img" />
+      </div>
       <div class="theme-place-info">
         <h4 class="theme-place-name">{{ place.title }}</h4>
         <p class="theme-category">{{ place.categoryGroupName }}</p>
@@ -235,7 +233,7 @@
               :key="i"
               :ref="el => { if (el) placeCardRefs[p.title] = el }"
               class="place-card"
-              @click="selectPlace(p)"
+              @click="highlightPlace(p)"
               :class="{ active: selectedPlace && selectedPlace.title === p.title }"
             >
               <!-- 이미지 추가 -->
@@ -248,7 +246,9 @@
                   @error="handleImageError($event, p)"
                 />
                 <div v-else class="place-image-placeholder">
-                  <span class="placeholder-icon">{{ getCategoryIcon(p.categoryCode) }}</span>
+                  <span class="placeholder-icon">
+                    <img :src="getCategoryIcon(p.categoryCode)" class="category-img" />
+                  </span>
                 </div>
               </div>
 
@@ -257,7 +257,7 @@
                 <div class="place-address">{{ p.addressName }}</div>
                 <div class="place-meta">
                   <span>{{ getLastCategory(p.description) }}</span>
-                  <a :href="p.placeUrl" target="_blank" style="color:#155DFC; text-decoration:none;">상세보기</a>
+<button class="detail-btn" @click.stop="openKakaoModal(p)">상세보기</button>
                 </div>
               </div>
               <button class="add-btn" @click="addPlace(p)" :disabled="isDayCompleted">추가</button>
@@ -303,7 +303,22 @@
       </div>
     </div>
   </div>
-
+<!-- 카카오맵 상세보기 모달 추가 -->
+<div v-if="showKakaoModal" class="kakao-modal-overlay" @click="closeKakaoModal">
+  <div class="kakao-modal" @click.stop>
+    <div class="kakao-header">
+      <h3>{{ selectedPlaceForKakao?.title || '장소 상세보기' }}</h3>
+      <button class="close-btn" @click="closeKakaoModal">✕</button>
+    </div>
+    <div class="kakao-body">
+      <iframe 
+        :src="selectedPlaceForKakao?.placeUrl" 
+        class="kakao-iframe"
+        frameborder="0"
+      ></iframe>
+    </div>
+  </div>
+</div>
   <!-- 변경 모달 -->
   <div v-if="showSortModal" class="sort-modal-overlay">
     <div class="sort-modal">
@@ -312,7 +327,7 @@
         <button class="close-btn" @click="cancelSortPreview">✕</button>
       </div>
 
-      <!-- 🔹 본문 -->
+      <!-- 본문 -->
       <div class="sort-body">
         <div class="curr-list">
           <div class="list-title">정렬 전</div>
@@ -371,21 +386,79 @@ import { useRoute, useRouter } from "vue-router";
 import apiClient from "@/utils/axios";
 import draggable from "vuedraggable";
 
-
-// 마커 이미지 import
-import restaurantMarker from '@/assets/images/icons/markers/restaurant-marker.svg';
-import cafeMarker from '@/assets/images/icons/markers/cafe-marker.svg';
-import attractionMarker from '@/assets/images/icons/markers/attraction-marker.svg';
-import restaurantSelect from '@/assets/images/icons/markers/restaurant-select.png';
-import cafeSelect from '@/assets/images/icons/markers/cafe-select.png';
-import attractionSelect from '@/assets/images/icons/markers/attraction-select.png';
-import hotelSelect from '@/assets/images/icons/markers/hotel-select.png';
-
-// 폴리라인 그리기
+// Composables
+import { useMap } from "@/composables/Usemap";
+import { useHotelModal } from "@/composables/Usehotelmodal";
+import { useDayControl } from "@/composables/Usedaycontrol";
+import { usePlaceHighlight } from "@/composables/Useplacehighlight";
+import { usePlaces } from "@/composables/Useplaces";
 import { deletePoliLine, direction, sortDirection, isPolyLine } from '@/composables/Usedirection';
 
 const route = useRoute();
 const router = useRouter();
+
+// === Composables 초기화 ===
+const {
+  mapContainer,
+  placeMarkers,
+  searchResultMarkers,
+  activeMarker,
+  initMap,
+  clearAllMarkers,
+  clearSearchResultMarkers,
+  displaySearchResultMarkers: displaySearchMarkers,
+  updateMapMarkers: updateMarkers,
+  moveMapCenter,
+  highlightMarker,
+  getMap
+} = useMap();
+
+const {
+  showHotelModal,
+  hotels,
+  hotelMapContainer,
+  openHotelModal: openModal,
+  closeHotelModal,
+  addHotel: addHotelToDay,
+  focusHotelOnMap
+} = useHotelModal();
+
+const {
+  durations,
+  selectedDay,
+  completedDays,
+  isDayCompleted,
+  loadDurations,
+  goPrevDay,
+  goNextDay,
+  selectDay,
+  endDaySchedule
+} = useDayControl();
+
+const {
+  selectedPlace,
+  placeListContainer,
+  placeCardRefs,
+  selectPlace,
+  highlightPlace: highlightPlaceFunc,
+  scrollToPlace,
+} = usePlaceHighlight();
+
+const {
+  places,
+  currentType,
+  placesByDay,
+  isSearching,
+  lastSearchCoords,
+  hasSignificantChange,
+  loadPlaces: loadPlacesFunc,
+  addPlace: addPlaceToDay,
+  removePlace: removePlaceFromDay,
+  toggleFix,
+  updatePlaceTime,
+  toggleTimeInput,
+  saveAllDaysPlaces: savePlaces
+} = usePlaces();
 
 // === 테마 추천 관련 상태 ===
 const selectedTheme = ref('');
@@ -403,10 +476,9 @@ const toggleTheme = () => {
   isThemeExpanded.value = !isThemeExpanded.value;
 };
 
+// === 기본 설정 ===
 const historyState = window.history.state || {};
 
-// 수정페이지에서 넘겨준 데이터
-// sessionStorage에서 먼저 확인
 let previousData = null;
 let targetDay = null;
 
@@ -422,6 +494,7 @@ if (sessionData && sessionTargetDay) {
     console.error("sessionStorage 파싱 실패:", e);
   }
 }
+
 const showSortModal = ref(false);
 const planIdFromQuery = route.query.planId ? Number(route.query.planId) : null;
 const targetDayFromQuery = route.query.targetDay ? Number(route.query.targetDay) : null;
@@ -431,23 +504,28 @@ targetDay = targetDay || targetDayFromQuery;
 
 selectedTheme.value = route.query.theme || localStorage.getItem('selectedTheme') || '';
 
-console.log("👀 previousData 최종:", previousData);
-console.log("👀 targetDay 최종:", targetDay);
-console.log("👀 planId 최종:", planId);
-console.log("👀 selectedTheme:", selectedTheme.value);
+console.log("previousData 최종:", previousData);
+console.log("targetDay 최종:", targetDay);
+console.log("planId 최종:", planId);
+console.log("selectedTheme:", selectedTheme.value);
 
 const hoveredPlaceUrl = ref(null);
+const isLoading = ref(false);
+const previewSorted = ref([]);
 
-// 지도 관련
-const mapContainer = ref(null);
-let map = null;
-const placeMarkers = ref([]);
-const searchResultMarkers = ref([]);
-let mapInitialized = false;
+// 카카오맵 모달 관련
+const showKakaoModal = ref(false);
+const selectedPlaceForKakao = ref(null);
 
-// 리스트 스크롤 관련
-const placeListContainer = ref(null);
-const placeCardRefs = ref({});
+const openKakaoModal = (place) => {
+  selectedPlaceForKakao.value = place;
+  showKakaoModal.value = true;
+};
+
+const closeKakaoModal = () => {
+  showKakaoModal.value = false;
+  selectedPlaceForKakao.value = null;
+};
 
 // 시작 지점
 const startLocation = ref({
@@ -457,28 +535,177 @@ const startLocation = ref({
   type: "출발지"
 });
 
-// 장소 관련
-const currentType = ref("restaurants");
-const places = ref([]);
-const selectedPlace = ref(null);
-
-// 일차 관련
-const durations = ref([]);
-const selectedDay = ref(1);
-
-// 일차별 장소 데이터
-const placesByDay = ref({});
+// 선택된 장소 computed
 const selectedPlaces = computed(() => placesByDay.value[selectedDay.value] || []);
 
-// 일차별 종료 상태
-const completedDays = ref(new Set());
+// === Wrapper 함수들 ===
+const displaySearchResultMarkers = async () => {
+  await nextTick();
+  displaySearchMarkers(places.value, currentType.value, (place) => highlightPlace(place, true));
+};
 
-// 검색 중복 방지
-const isSearching = ref(false);
-const lastSearchCoords = ref({ lat: null, lng: null, type: null });
-let mapIdleTimeout = null;
+const updateMapMarkers = () => {
+  deletePoliLine();
+  displaySearchResultMarkers();
+  clearAllMarkers();
+  
+  const currentDayPlaces = placesByDay.value[selectedDay.value] || [];
+  updateMarkers(currentDayPlaces, (place) => highlightPlace(place, true));
+};
 
-// 테마별 추천 장소 로드
+const loadPlaces = async (type, lat = null, lng = null) => {
+  await loadPlacesFunc(
+    type, 
+    lat, 
+    lng, 
+    startLocation.value, 
+    selectedDay.value,
+    deletePoliLine,
+    displaySearchResultMarkers
+  );
+};
+
+const addPlace = (place) => {
+  addPlaceToDay(place, selectedDay.value, updateMapMarkers);
+};
+
+const removePlace = (place) => {
+  removePlaceFromDay(
+    place, 
+    selectedDay.value, 
+    updateMapMarkers, 
+    deletePoliLine, 
+    displaySearchResultMarkers
+  );
+};
+
+const highlightPlace = async (place, fromMarkerClick = false) => {
+  await highlightPlaceFunc(
+    place,
+    placesByDay.value,
+    selectedDay.value,
+    currentType,
+    loadPlaces,
+    moveMapCenter,
+    highlightMarker
+  );
+};
+
+const openHotelModal = async () => {
+  await openModal(startLocation.value);
+};
+
+const addHotel = (hotel) => {
+  addHotelToDay(hotel, selectedDay.value, placesByDay.value, updateMapMarkers);
+};
+
+const saveAllDaysPlaces = async () => {
+  await savePlaces(durations.value, planId, previousData);
+};
+
+// === 이전 페이지로 이동 ===
+const goPrev = () => {
+  router.push({
+    path: '/draw/third',
+    query: { planId, totalDays: durations.value.length }
+  });
+};
+
+// === 유틸리티 함수들 ===
+const getLastCategory = (categoryString) => {
+  if (!categoryString) return '기타';
+  const parts = categoryString.split(' > ');
+  return parts[parts.length - 1].trim();
+};
+
+const handleImageError = (event, place) => {
+  event.target.style.display = 'none';
+  place.imageUrl = null;
+};
+
+// 이미지 import
+import restaurantIcon from '@/assets/images/theme/restaurant.png';
+import cafeIcon from '@/assets/images/theme/cafe.png';
+import touristIcon from '@/assets/images/theme/arrtraction.png';
+
+import themeRestaurant from '@/assets/images/theme/recommend-restaurant.png';
+import themeCafe from '@/assets/images/theme/recommend-cafe.png';
+import themeTourist from '@/assets/images/theme/recommend-attraction.png';
+
+const getCategoryIcon = (categoryCode) => {
+  const icons = {
+    'FD6': restaurantIcon,
+    'CE7': cafeIcon,
+    'AT4': touristIcon,
+  };
+  return icons[categoryCode] || '📍';
+};
+
+const getThemeIcon = (categoryCode) => {
+  const icons = {
+    'FD6': themeRestaurant,
+    'CE7': themeCafe,
+    'AT4': themeTourist,
+  };
+  return icons[categoryCode] || themeTourist;
+};
+
+// === 드래그 이동 제한 ===
+const onDragMove = (evt) => {
+  const draggedItem = evt.draggedContext.element;
+  const relatedItem = evt.relatedContext.element;
+  const list = placesByDay.value[selectedDay.value] || [];
+  
+  if (draggedItem.fixed) return false;
+  if (relatedItem?.fixed) return false;
+  
+  const fixedIndexes = list
+    .map((p, i) => (p.fixed ? i : -1))
+    .filter((i) => i !== -1);
+  
+  if (fixedIndexes.length === 0) return true;
+  
+  const draggedIndex = evt.draggedContext.index;
+  const targetIndex = evt.relatedContext.index;
+  
+  const inSameBlock = fixedIndexes.every((fi) => {
+    return (
+      (draggedIndex < fi && targetIndex < fi) ||
+      (draggedIndex > fi && targetIndex > fi)
+    );
+  });
+  
+  return inSameBlock;
+};
+
+// === Plan 정보 가져오기 ===
+const loadPlanInfo = async () => {
+  try {
+    const res = await apiClient.get(`/api/plans/select/${planId}`);
+    const plan = res.data;
+    
+    const regionId = plan.regionId || plan.region_id;
+    
+    if (regionId) {
+      const regionRes = await apiClient.get(`/api/regions/${regionId}`);
+      const region = regionRes.data;
+      
+      if (region.startLat && region.startLng) {
+        startLocation.value = {
+          lat: parseFloat(region.startLat),
+          lng: parseFloat(region.startLng),
+          name: region.regionName,
+          type: "출발지"
+        };
+        console.log(`시작 지점: ${startLocation.value.name} (${startLocation.value.lat}, ${startLocation.value.lng})`);
+      }
+    }
+  } catch (err) {
+    console.error("Plan/Region 정보 로드 실패:", err);
+  }
+};
+
+// === 테마별 추천 장소 로드 ===
 const loadThemeRecommendations = async () => {
   if (!selectedTheme.value) {
     console.log("선택된 테마 없음");
@@ -495,7 +722,6 @@ const loadThemeRecommendations = async () => {
       }
     });
     
-    // 테마에 따른 categoryCode 강제 설정
     let forcedCategoryCode = 'AT4';
     
     if (selectedTheme.value === 'restaurant') {
@@ -526,8 +752,6 @@ const loadThemeRecommendations = async () => {
     }));
     
     console.log(`테마 추천 ${themeRecommendations.value.length}개 로드 완료`);
-    console.log(`강제 설정된 categoryCode: ${forcedCategoryCode}`);
-    console.log(`첫 번째 장소:`, themeRecommendations.value[0]);
     
   } catch (error) {
     console.error('테마 추천 로딩 실패:', error);
@@ -537,846 +761,100 @@ const loadThemeRecommendations = async () => {
   }
 };
 
-// 시간 업데이트 함수
-const updatePlaceTime = (place) => {
-  console.log(`${place.title} 시간 업데이트:`, {
-    startTime: place.startTime,
-    endTime: place.endTime
-  });
-  
-  if (place.startTime && place.endTime) {
-    if (place.endTime <= place.startTime) {
-      alert('종료 시간은 시작 시간보다 늦어야 합니다.');
-      place.endTime = '';
-    }
-  }
+// === 경로 그리기 ===
+const drawRoute = async () => {
+  const map = getMap();
+  await direction(map, placesByDay.value[selectedDay.value]);
+  selectedPlace.value = null;
+  if (isPolyLine()) clearSearchResultMarkers();
 };
 
-// 시간 입력 토글
-const toggleTimeInput = (place) => {
-  place.showTimeInput = !place.showTimeInput;
-};
-
-// 이전 페이지로 이동
-const goPrev = () => {
-  router.push({
-    path: '/draw/third',
-    query: { planId, totalDays }
-  });
-};
-
-// 카테고리 마지막 부분 추출 함수
-const getLastCategory = (categoryString) => {
-  if (!categoryString) return '기타';
-  const parts = categoryString.split(' > ');
-  return parts[parts.length - 1].trim();
-};
-
-// 검색 결과용 마커 이미지
-const getSearchMarkerImageUrl = (type) => {
-  const markerImages = {
-    'restaurants': restaurantMarker,
-    'cafes': cafeMarker,
-    'attractions': attractionMarker,
-  };
-  return markerImages[type] || markerImages['attractions'];
-};
-
-// 선택된 장소용 마커 이미지
-const getSelectedMarkerImageUrl = (type) => {
-  const markerImages = {
-    'restaurants': restaurantSelect,
-    'cafes': cafeSelect,
-    'attractions': attractionSelect,
-    'hotel': hotelSelect
-  };
-  return markerImages[type] || markerImages['attractions'];
-};
-
-// 마커 이미지 캐싱
-const markerImageCache = new Map();
-
-const getMarkerImage = (imageUrl, size) => {
-  const cacheKey = `${imageUrl}_${size.width}_${size.height}`;
-  
-  if (markerImageCache.has(cacheKey)) {
-    return markerImageCache.get(cacheKey);
-  }
-  
-  const markerImage = new kakao.maps.MarkerImage(imageUrl, new kakao.maps.Size(size.width, size.height));
-  markerImageCache.set(cacheKey, markerImage);
-  
-  return markerImage;
-};
-
-// 검색 결과 마커 생성
-const createSearchMarker = (place, placeType) => {
-  if (!map) return null;
-  
-  const position = new kakao.maps.LatLng(place.latitude, place.longitude);
-  const markerImageUrl = getSearchMarkerImageUrl(placeType);
-  const markerImage = getMarkerImage(markerImageUrl, { width: 40, height: 40 });
-  
-  const newMarker = new kakao.maps.Marker({
-    position: position,
-    map: map,
-    image: markerImage,
-    title: place.title
-  });
-  
-  newMarker._placeType = placeType;
-  newMarker._origImage = markerImage;
-  newMarker._imageUrl = markerImageUrl;
-
-  kakao.maps.event.addListener(newMarker, 'click', function() {
-    highlightPlace(place, true);
-  });
-  
-  return newMarker;
-};
-
-// 선택된 장소 마커 생성
-const createSelectedMarker = (place, placeType) => {
-  if (!map) return null;
-  
-  const position = new kakao.maps.LatLng(place.latitude, place.longitude);
-  const markerImageUrl = getSelectedMarkerImageUrl(placeType);
-  const markerImage = getMarkerImage(markerImageUrl, { width: 60, height: 60 });
-  
-  const newMarker = new kakao.maps.Marker({
-    position: position,
-    map: map,
-    image: markerImage,
-    title: place.title,
-    zIndex: 100
-  });
-
-  newMarker._placeType = placeType;
-  newMarker._origImage = markerImage;
-  newMarker._imageUrl = markerImageUrl;
-
-  kakao.maps.event.addListener(newMarker, 'click', function() {
-    highlightPlace(place, true);
-  });
-  
-  return newMarker;
-};
-
-// 마커 강조 + 오버레이 표시
-const highlightPlace = async (place, fromMarkerClick = false) => {
-  selectedPlace.value = place;
-  // 카테고리 판별 및 자동 전환
-  let targetType = 'attractions'; // 기본값
-  
-  if (place.categoryCode === 'FD6') {
-    targetType = 'restaurants';
-  } else if (place.categoryCode === 'CE7') {
-    targetType = 'cafes';
-  } else if (place.categoryCode === 'AT4') {
-    targetType = 'attractions';
-  }
-  
-  // 현재 카테고리와 다르면 카테고리 전환
-  if (currentType.value !== targetType) {
-    currentType.value = targetType;
-    // 해당 카테고리의 장소 검색
-    await loadPlaces(targetType, place.latitude, place.longitude);
-    // 검색 완료 후 약간의 지연을 주어 DOM 업데이트 대기
-    await nextTick();
-  }
-  
+// === 자동 정렬 ===
+const drawSort = async () => {
+  selectedPlace.value = null;
   const currentPlaces = placesByDay.value[selectedDay.value];
-  const currentPlace = (currentPlaces || []).find(p => p.placeUrl === place.placeUrl);
-  if(currentPlace){
-
-    // 지도 중심을 해당 장소로 이동 (줌 레벨도 조정)
-    if (place.latitude && place.longitude) {
-      const position = new kakao.maps.LatLng(place.latitude, place.longitude);
-      map.setCenter(position);
-      // 줌 레벨을 5로 설정하여 적절한 거리에서 보기
-      if (map.getLevel() > 5) {
-        map.setLevel(5);
-      }
-    }
-  }
-  // 오른쪽 리스트에서 해당 장소 찾아서 스크롤
-  // if (placeCardRefs.value[place.title] && placeListContainer.value) {
-  //   const element = placeCardRefs.value[place.title];
-  //   const container = placeListContainer.value;
-    
-  //   const elementTop = element.offsetTop;
-  //   const elementHeight = element.offsetHeight;
-  //   const containerHeight = container.clientHeight;
-    
-  //   const scrollPosition = elementTop - (containerHeight / 2) + (elementHeight / 2);
-    
-  //   container.scrollTo({
-  //     top: scrollPosition,
-  //     behavior: 'smooth'
-  //   });
-  // }
-};
-
-// 마커 제거
-const clearAllMarkers = () => {
-  placeMarkers.value.forEach(marker => {
-    kakao.maps.event.removeListener(marker, 'click');
-    marker.setMap(null);
-  });
-  placeMarkers.value = [];
-};
-
-const clearSearchResultMarkers = () => {
-  searchResultMarkers.value.forEach(marker => {
-    kakao.maps.event.removeListener(marker, 'click');
-    marker.setMap(null);
-  });
-  searchResultMarkers.value = [];
-};
-
-// 검색 결과 마커 표시
-const displaySearchResultMarkers = () => {
-  clearSearchResultMarkers();
   
-  const newMarkers = places.value.map(place => {
-    let placeType;
-    if (currentType.value === 'restaurants') {
-      placeType = 'restaurants';
-    } else if (currentType.value === 'cafes') {
-      placeType = 'cafes';
-    } else {
-      placeType = 'attractions';
-    }
-    
-    return createSearchMarker(place, placeType);
-  }).filter(Boolean);
+  const map = getMap();
+  isLoading.value = true;
+  const newLocations = await sortDirection(map, currentPlaces);
+  isLoading.value = false;
   
-  searchResultMarkers.value = newMarkers;
-  console.log(`검색 결과 마커 ${searchResultMarkers.value.length}개 표시`);
-};
-
-// 선택 상태 관리
-const activeMarker = ref(null);
-const activeMarkerAnimation = ref(null);
-
-const animateMarkerBounce = (marker, height = 15, speed = 0.004) => {
-  if (!marker) return;
-
-  const startPos = marker.getPosition();
-  let startTime = null;
-
-  const step = (timestamp) => {
-    if (!startTime) startTime = timestamp;
-    const progress = timestamp - startTime;
-
-    const delta = Math.sin(progress * speed) * height;
-    marker.setPosition(new kakao.maps.LatLng(startPos.getLat() + delta * 0.00001, startPos.getLng()));
-
-    // selectedPlace가 바뀌기 전까지 계속 반복
-    if (activeMarker.value === marker) {
-      activeMarkerAnimation.value = requestAnimationFrame(step);
-    } else {
-      marker.setPosition(startPos); // 선택 해제되면 원위치
-    }
-  };
-
-  activeMarkerAnimation.value = requestAnimationFrame(step);
-};
-
-watch(selectedPlace, async (newPlace, oldPlace) => {
-  if(activeMarker.value) {    // 이미 마커가 있으면
-    try {                     // 해당 마커를 원본 크기로 돌리기
-      const prev = activeMarker.value;
-      // if(prev._origImage) {
-        // prev.setImage(prev._origImage);
-      // } else if (prev._imageUrl) {
-        // prev.setImage(getMarkerImage(prev._origImage, { width: 60, height: 60 }));
-      // }
-      prev.setZIndex(100);
-    } catch (e) {
-      console.warn("prev marker restore failed", e);
-    }
-    activeMarker.value = null;  // 원상 복구 했으므로 켜져 있는 마커는 없다.
+  if (!newLocations || newLocations.length === 0) {
+    console.warn("정렬된 경로가 없습니다.");
+    return;
   }
-
-    // 클릭한 마커 찾기 (selected markers 배열 우선)
-  const clickedMarker = (placeMarkers.value || []).find(m => m.getTitle() === newPlace.title)
-                      || (searchResultMarkers.value || []).find(m => m.getTitle() === newPlace.title);
-   // 애니메이션 취소
-  if(activeMarkerAnimation.value) {
-    const startPos = clickedMarker.getPosition();
-    let startTime = null;
-    const animate = (timestamp) => {
-    if (!startTime) startTime = timestamp;
-      const progress = timestamp - startTime;
-      const delta = Math.sin(progress * 0.004) * 20; // 높이 20, 속도 조절
-      clickedMarker.setPosition(new kakao.maps.LatLng(startPos.getLat() + delta * 0.00001, startPos.getLng()));
-      // selectedPlace가 바뀌면 자동 종료
-      if(activeMarker.value === clickedMarker) {
-        activeMarkerAnimation.value = requestAnimationFrame(animate);
-      }
+  
+  const reorderedPlaces = newLocations.map((nLoc, index) => {
+    const matched = currentPlaces.find(p =>
+      p.title === nLoc.name ||
+      (Math.abs(p.latitude - nLoc.y) < 1e-6 &&
+        Math.abs(p.longitude - nLoc.x) < 1e-6)
+    );
+    
+    if (!matched) return null;
+    
+    return {
+      ...matched,
+      travelOrder: index + 1
     };
-    activeMarkerAnimation.value = requestAnimationFrame(animate);
-  }
-
-  if (clickedMarker) {
-    // 확대할 이미지 생성: 같은 이미지 URL 사용하되 큰 사이즈로
-    const placeType = clickedMarker._placeType || (
-      newPlace.isHotel ? 'hotel' :
-      (newPlace.categoryCode === 'FD6' ? 'restaurants' : (newPlace.categoryCode === 'CE7' ? 'cafes' : 'attractions'))
-    );
-    // const imageUrl = clickedMarker._imageUrl || getSelectedMarkerImageUrl(placeType);
-    // const bigImage = getMarkerImage(imageUrl, { width: 80, height: 80 });
-
-    // clickedMarker.setImage(bigImage);
-    clickedMarker.setZIndex(999); // 선택 마커가 위로 오도록
-    activeMarker.value = clickedMarker;
-
-    // 애니메이션 실행
-    animateMarkerBounce(clickedMarker);
-  }
-
-  // if(isPolyLine) displaySearchResultMarkers();
-
-  await nextTick();
-  if (!newPlace) return;
-  //스크롤
-  // 오른쪽 리스트에서 해당 장소 찾아서 스크롤 
-  const element = placeCardRefs.value[newPlace.title];
-  const container = placeListContainer.value;
-  if (element && container) {
-    // container와 element의 화면상 rect
-    const containerRect = container.getBoundingClientRect();
-    const elementRect = element.getBoundingClientRect();
-
-    // element의 top이 container의 top으로부터 몇 px 떨어져있는지
-    const offsetFromContainerTop = elementRect.top - containerRect.top;
-
-    // 현재 컨테이너의 스크롤 위치를 기준으로 목표 스크롤값 계산
-    const currentScroll = container.scrollTop;
-    const scrollPosition = Math.round(
-      currentScroll + offsetFromContainerTop - (container.clientHeight / 2) + (element.clientHeight / 2)
-    );
-
-    container.scrollTo({
-      top: scrollPosition,
-      behavior: 'smooth'
-    });
-  }
-});
-
-// 선택된 장소 마커 표시
-const updateMapMarkers = () => {
-  deletePoliLine();
-  displaySearchResultMarkers();
-  clearAllMarkers();
-  
-  const currentDayPlaces = placesByDay.value[selectedDay.value] || [];
-  
-  const newMarkers = currentDayPlaces.map(place => {
-    let placeType;
-    if (place.isHotel) {
-      placeType = 'hotel';
-    } else if (place.categoryCode === 'FD6') {
-      placeType = 'restaurants';
-    } else if (place.categoryCode === 'CE7') {
-      placeType = 'cafes';
-    } else {
-      placeType = 'attractions';
-    }
-    selectedPlace.value = null;
-    return createSelectedMarker(place, placeType);
   }).filter(Boolean);
   
-  placeMarkers.value = newMarkers;
-  console.log(`${selectedDay.value}일차 선택된 마커 ${placeMarkers.value.length}개 표시`);
+  previewSorted.value = reorderedPlaces;
+  console.log("정렬 완료:", reorderedPlaces);
+
+  showSortModal.value = true;
 };
 
-// 지도 초기화
-const initMap = (location) => {
-  console.log("지도 초기화 시작:", location);
-  
-  if (!window.kakao || !window.kakao.maps) {
-    console.error("Kakao Maps API가 로드되지 않았습니다!");
-    return;
-  }
-  
-  window.kakao.maps.load(() => {
-    const center = new kakao.maps.LatLng(location.lat, location.lng);
-    map = new kakao.maps.Map(mapContainer.value, { 
-      center, 
-      level: 5 
-    });
-    
-    mapInitialized = true;
-    console.log(`지도 초기화 완료: ${location.name} (${location.lat}, ${location.lng})`);
-    
-    updateMapMarkers();
-    
-    kakao.maps.event.addListener(map, "idle", () => {
-      if (mapIdleTimeout) {
-        clearTimeout(mapIdleTimeout);
-      }
-      
-      mapIdleTimeout = setTimeout(async () => {
-        const center = map.getCenter();
-        const lat = center.getLat();
-        const lng = center.getLng();
-        
-        if (hasSignificantChange(lat, lng, currentType.value) && !isSearching.value) {
-          console.log("지도 이동 - 새 검색:", lat, lng);
-          await loadPlaces(currentType.value, lat, lng);
-        }
-      }, 800);
-    });
-  });
+const applySortedPlaces = () => {
+  placesByDay.value[selectedDay.value] = [...previewSorted.value];
+  console.log("정렬 완료");
+  showSortModal.value = false;
+  if (isPolyLine) clearSearchResultMarkers();
 };
 
-// 좌표 변경 확인
-const hasSignificantChange = (newLat, newLng, newType) => {
-  if (!lastSearchCoords.value.lat || lastSearchCoords.value.type !== newType) {
-    return true;
-  }
-  
-  const latDiff = Math.abs(newLat - lastSearchCoords.value.lat);
-  const lngDiff = Math.abs(newLng - lastSearchCoords.value.lng);
-  
-  return latDiff > 0.008 || lngDiff > 0.008;
+const cancelSortPreview = () => {
+  console.log("정렬 취소");
+  showSortModal.value = false;
 };
 
-// Plan 정보 가져오기
-const loadPlanInfo = async () => {
-  try {
-    const res = await apiClient.get(`/api/plans/select/${planId}`);
-    const plan = res.data;
-    
-    const regionId = plan.regionId || plan.region_id;
-    
-    if (regionId) {
-      const regionRes = await apiClient.get(`/api/regions/${regionId}`);
-      const region = regionRes.data;
-      
-      if (region.startLat && region.startLng) {
-        startLocation.value = {
-          lat: parseFloat(region.startLat),
-          lng: parseFloat(region.startLng),
-          name: region.regionName,
-          type: "출발지"
-        };
-        console.log(`시작 지점: ${startLocation.value.name} (${startLocation.value.lat}, ${startLocation.value.lng})`);
-      }
-    }
-  } catch (err) {
-    console.error("Plan/Region 정보 로드 실패:", err);
-  }
-};
-
-
-// 장소 불러오기
-const loadPlaces = async (type, lat = null, lng = null) => {
-  deletePoliLine();
-  if (isSearching.value) {
-    console.log("⏸ 이미 검색 중...");
-    return;
-  }
-  
-  currentType.value = type;
-  
-  let searchLat = lat;
-  let searchLng = lng;
-  
-  if (!searchLat || !searchLng) {
-    const currentDayPlaces = placesByDay.value[selectedDay.value] || [];
-    if (currentDayPlaces.length > 0) {
-      const lastPlace = currentDayPlaces[currentDayPlaces.length - 1];
-      searchLat = lastPlace.latitude;
-      searchLng = lastPlace.longitude;
-    } else {
-      searchLat = startLocation.value.lat;  
-      searchLng = startLocation.value.lng;
-    }
-  }
-  
-  if (!hasSignificantChange(searchLat, searchLng, type)) {
-    console.log("좌표/타입 변경 없음 - 검색 스킵");
-    return;
-  }
-  
-  console.log(`${type} 검색: (${searchLat}, ${searchLng})`);
-  
-  isSearching.value = true;
-  
-  try {
-    const res = await apiClient.get(`/api/kakao/${type}`, { 
-      params: { lat: searchLat, lng: searchLng },
-      timeout: 10000
-    });
-    
-    const kakaoPlaces = res.data.documents || [];
-    places.value = kakaoPlaces.map((place, index) => ({
-      travelOrder: index + 1,
-      estimatedTravelTime: 0,
-      title: place.place_name,
-      latitude: parseFloat(place.y),
-      longitude: parseFloat(place.x),
-      categoryCode: place.category_group_code,
-      categoryGroupName: place.category_group_name,
-      addressName: place.road_address_name || place.address_name,
-      placeUrl: place.place_url,
-      description: place.category_name,
-      imageUrl: place.image_url || null,
-      planId,
-      startTime: '',
-      endTime: '',
-      showTimeInput: false
-    }));
-    
-    console.log(`${type} ${places.value.length}개 로드 완료`);
-    
-    lastSearchCoords.value = { lat: searchLat, lng: searchLng, type };
-    
-    await nextTick();
-    displaySearchResultMarkers();
-    
-  } catch (err) {
-    console.error("장소 로드 실패:", err);
-    places.value = [];
-  } finally {
-    isSearching.value = false;
-  }
-};
-
-// 지도 선택
-const selectPlace = (p) => {
-  selectedPlace.value = p;
-  if(isPolyLine()) {
-    deletePoliLine();
-    displaySearchResultMarkers();
-  }
-};
-
-// 장소 추가 (일정수정에서 넘어온거 테스트중)
-const addPlace = (p) => {
-  const day = selectedDay.value;
-  
-  // 중복 체크
-  if (!placesByDay.value[day]) {
-    placesByDay.value[day] = [];
-  }
-  
-  if (placesByDay.value[day].find((x) => x.title === p.title)) {
-    console.log(`${p.title}은(는) 이미 추가되어 있습니다.`);
-    return;
-  }
-  
-  // 장소 추가
-  placesByDay.value[day].push({ 
-    ...p, 
-    dayNumber: day,
-    startTime: p.startTime || '',
-    endTime: p.endTime || '',
-    showTimeInput: false,
-    fixed: false
-  });
-  
-  console.log(`${p.title} 추가 완료 (${day}일차)`);
-  updateMapMarkers();
-};
-
-// 장소 제거
-const removePlace = (p) => {
-  const day = selectedDay.value;
-  if (placesByDay.value[day]) {
-    placesByDay.value[day] = placesByDay.value[day].filter((x) => x.title !== p.title);
-    console.log(`${p.title} 제거`);
-    updateMapMarkers();
-    deletePoliLine();
-    displaySearchResultMarkers();
-    setTimeout(() => {
-      lastSearchCoords.value = { lat: null, lng: null, type: null };
-      loadPlaces(currentType.value);
-    }, 300);
-  }
-};
-
-// 고정 버튼 토글
-const toggleFix = (place) => {
-  place.fixed = !place.fixed;
-};
-
-// 드래그 이동 제한
-const onDragMove = (evt) => {
-  const draggedItem = evt.draggedContext.element;
-  const relatedItem = evt.relatedContext.element;
-  const list = placesByDay.value[selectedDay.value] || [];
-  
-  if (draggedItem.fixed) return false;
-  if (relatedItem?.fixed) return false;
-  
-  const fixedIndexes = list
-    .map((p, i) => (p.fixed ? i : -1))
-    .filter((i) => i !== -1);
-  
-  if (fixedIndexes.length === 0) return true;
-  
-  const draggedIndex = evt.draggedContext.index;
-  const targetIndex = evt.relatedContext.index;
-  
-  const inSameBlock = fixedIndexes.every((fi) => {
-    return (
-      (draggedIndex < fi && targetIndex < fi) ||
-      (draggedIndex > fi && targetIndex > fi)
-    );
-  });
-  
-  return inSameBlock;
-};
-
-// 숙소 모달 관련
-const showHotelModal = ref(false);
-const hotels = ref([]);
-const hotelMapContainer = ref(null);
-let hotelMap = null;
-
-const openHotelModal = async () => {
-  showHotelModal.value = true;
-  
-  try {
-    const res = await apiClient.get(`/api/kakao/hotels`, { 
-      params: { 
-        lat: startLocation.value.lat, 
-        lng: startLocation.value.lng 
-      } 
-    });
-    hotels.value = res.data.documents.map((p) => ({
-      title: p.place_name,
-      latitude: parseFloat(p.y),
-      longitude: parseFloat(p.x),
-      categoryGroupName: p.category_group_name,
-      addressName: p.road_address_name || p.address_name,
-      placeUrl: p.place_url,
-    }));
-  } catch (e) {
-    console.error("숙소 로드 실패:", e);
-  }
-};
-
-const closeHotelModal = () => {
-  showHotelModal.value = false;
-};
-
-const addHotel = (hotel) => {
-  const day = selectedDay.value;
-  if (!placesByDay.value[day]) placesByDay.value[day] = [];
-  
-  if (!placesByDay.value[day].find((x) => x.title === hotel.title)) {
-    placesByDay.value[day].push({ 
-      ...hotel,
-      title: hotel.title,
-      placeName: hotel.title,
-      isHotel: true,
-      startTime: '',
-      endTime: ''
-    });
-  }
-  
-  alert(`${hotel.title}이(가) ${day}일차 일정에 추가되었습니다!`);
-  updateMapMarkers();
-  closeHotelModal();
-};
-
-const focusHotelOnMap = (hotel) => {
-  if (!hotelMap) return;
-  const pos = new kakao.maps.LatLng(hotel.latitude, hotel.longitude);
-  hotelMap.panTo(pos);
-};
-
-// Duration 불러오기
-const loadDurations = async () => {
-  try {
-    durations.value = [];
-    const res = await apiClient.get(`/api/plans/${planId}/durations`);
-    const uniqueDays = new Set();
-    let fetched = [];
-    
-    if (res.data && res.data.length > 0) {
-      fetched = res.data
-        .filter((d) => {
-          if (uniqueDays.has(d.day)) return false;
-          uniqueDays.add(d.day);
-          return true;
-        })
-        .map((d) => ({
-          durationId: d.durationId,
-          planId: d.planId,
-          day: d.day,
-        }));
-    } else {
-      fetched = Array.from({ length: totalDays }, (_, i) => ({
-        durationId: i + 1,
-        planId,
-        day: i + 1,
-      }));
-    }
-    
-    durations.value = fetched.sort((a, b) => a.day - b.day);
-    console.log("Duration 로드 완료:", durations.value);
-  } catch (err) {
-    console.error("Duration 로드 실패:", err);
-  }
-};
-
-// 일차 이동
-const goPrevDay = () => {
-  if (selectedDay.value > 1) {
-    selectedDay.value--;
-    deletePoliLine();
-    displaySearchResultMarkers();
-  }
-};
-
-const goNextDay = () => {
-  if (selectedDay.value < durations.value.length) {
-    selectedDay.value++;
-    deletePoliLine();
-    displaySearchResultMarkers();
-  }
-};
-
-const selectDay = (day) => {
-  selectedDay.value = day;
-  deletePoliLine();
-  displaySearchResultMarkers()
-};
-
-// 일차 변경 시 마커 업데이트
+// === Watch ===
 watch(selectedDay, () => {
   updateMapMarkers();
   lastSearchCoords.value = { lat: null, lng: null, type: null };
 });
 
-// 일정 종료
-const endDaySchedule = () => {
-  const day = selectedDay.value;
-  if (completedDays.value.has(day)) {
-    alert("이미 종료된 일정입니다.");
-    return;
-  }
-  
-  if (confirm(`${day}일차 일정을 종료하시겠습니까?\n종료 후에는 수정할 수 없습니다.`)) {
-    completedDays.value.add(day);
-    alert(`${day}일차 일정이 종료되었습니다.`);
-  }
-};
-
-// 현재 일차가 종료되었는지 확인
-const isDayCompleted = computed(() => completedDays.value.has(selectedDay.value));
-
-// 이미지 에러 처리
-const handleImageError = (event, place) => {
-  event.target.style.display = 'none';
-  place.imageUrl = null;
-};
-
-// 카테고리별 아이콘
-const getCategoryIcon = (categoryCode) => {
-  const icons = {
-    'FD6': '🍽️',
-    'CE7': '☕',
-    'AT4': '🏛️',
-  };
-  return icons[categoryCode] || '📍';
-};
-
-// 저장 함수
-// 저장 함수 수정
-const saveAllDaysPlaces = async () => {
-  try {
-    let hasNewPlaces = false;
-    
-    for (const duration of durations.value) {
-      const dayPlaces = placesByDay.value[duration.day] || [];
-      const newPlaces = dayPlaces.filter(p => !p.travelId);
-      
-      if (newPlaces.length === 0) {
-        console.log(`${duration.day}일차: 새로 추가된 장소 없음`);
-        continue;
-      }
-      
-      hasNewPlaces = true;
-      
-      // 시간 검증
-      for (const place of newPlaces) {
-        if (place.startTime && place.endTime) {
-          if (place.endTime <= place.startTime) {
-            alert(`${place.title}의 종료 시간이 시작 시간보다 이릅니다.`);
-            return;
-          }
-        }
-      }
-      
-      const existingCount = dayPlaces.filter(p => p.travelId).length;
-      
-      const mappedPlaces = newPlaces.map((p, i) => ({
-        durationId: duration.durationId,
-        planId,
-        travelOrder: existingCount + i + 1,
-        estimatedTravelTime: p.estimatedTravelTime || 0,
-        placeName: p.title,
-        startTime: p.startTime || null,
-        endTime: p.endTime || null,
-        latitude: p.latitude,
-        longitude: p.longitude,
-        categoryCode: p.categoryCode,
-        categoryGroupName: p.categoryGroupName,
-        addressName: p.addressName,
-        placeUrl: p.placeUrl,
-        description: p.description || '',
-        imagePath: p.imagePath || null,
-        runTime: p.runTime || null,
-      }));
-      
-      console.log(`${duration.day}일차 새로 추가된 ${newPlaces.length}개 장소:`, mappedPlaces);
-      await apiClient.post("/api/places/batch", mappedPlaces);
+watch(selectedPlace, async (newPlace) => {
+  if (activeMarker.value) {
+    try {
+      const prev = activeMarker.value;
+      prev.setZIndex(100);
+    } catch (e) {
+      console.warn("prev marker restore failed", e);
     }
-    
-
-    
-    alert("새로운 장소가 저장되었습니다!");
-    
-    // sessionStorage 클리어
-    sessionStorage.removeItem("editPlanData");
-    sessionStorage.removeItem("editTargetDay");
-    
-    // 일정수정 모드였다면 상세 페이지로
-    if (previousData) {
-      console.log("일정 상세 페이지로 이동");
-      router.push(`/mypage/travel/${planId}`);
-    } else {
-      // 일반 모드였다면 마이페이지로
-      console.log("마이페이지로 이동");
-      let count = Number(sessionStorage.getItem("newPlan")) || 0;
-      count++;
-      sessionStorage.setItem("newPlan", count);
-      
-      router.push("/mypage").then(() => {
-        window.location.reload();
-      });
-    }
-    
-  } catch (err) {
-    console.error("저장 실패:", err);
-    console.error("에러 상세:", err.response?.data);
-    alert("저장에 실패했습니다. 다시 시도해주세요.");
+    activeMarker.value = null;
   }
-};
+
+  const clickedMarker = (placeMarkers.value || []).find(m => m.getTitle() === newPlace?.title)
+                      || (searchResultMarkers.value || []).find(m => m.getTitle() === newPlace?.title);
+
+  if (clickedMarker) {
+    clickedMarker.setZIndex(999);
+    activeMarker.value = clickedMarker;
+  }
+
+  await nextTick();
+  if (!newPlace) return;
+
+  scrollToPlace(newPlace.title);
+});
+
+// === onMounted ===
 onMounted(async () => {
   console.log("🚀 컴포넌트 초기화 시작");
   
   await loadPlanInfo();
-  await loadDurations();
+  await loadDurations(planId, durations.value.length);
   
-  // 테마 추천 로드
   if (selectedTheme.value) {
     await loadThemeRecommendations();
   }
@@ -1422,7 +900,7 @@ onMounted(async () => {
       });
       
       selectedDay.value = targetDay;
-      console.log(`{targetDay}일차로 이동`);
+      console.log(`${targetDay}일차로 이동`);
       
       sessionStorage.removeItem('editPlanData');
       sessionStorage.removeItem('editTargetDay');
@@ -1431,7 +909,13 @@ onMounted(async () => {
     console.log("일반 모드 (일정수정 아님)");
   }
   
-  initMap(startLocation.value);
+  initMap(startLocation.value, (lat, lng) => {
+    if (hasSignificantChange(lat, lng, currentType.value) && !isSearching.value) {
+      console.log("지도 이동 - 새 검색:", lat, lng);
+      loadPlaces(currentType.value, lat, lng);
+    }
+  });
+  
   await nextTick();
   updateMapMarkers();
   await loadPlaces("restaurants");
@@ -1440,70 +924,11 @@ onMounted(async () => {
   console.log("최종 placesByDay:", placesByDay.value);
   console.log("selectedDay:", selectedDay.value);
 });
-
-// 경로 그리기
-const drawRoute = async () => {
-  await direction(map, placesByDay.value[selectedDay.value]);
-  selectedPlace.value = null;
-  if(isPolyLine()) clearSearchResultMarkers();
-};
-
-// 자동 정렬
-
-const isLoading = ref(false);
-const previewSorted = ref([]);    // 자동 정렬된 결과 임시 저장
-
-const drawSort = async () => {
-  selectedPlace.value = null;
-  const currentPlaces = placesByDay.value[selectedDay.value];
-  
-  isLoading.value = true;
-  const newLocations = await sortDirection(map, currentPlaces);
-  isLoading.value = false;
-  
-  if (!newLocations || newLocations.length === 0) {
-    console.warn("정렬된 경로가 없습니다.");
-    return;
-  }
-  
-  const reorderedPlaces = newLocations.map((nLoc, index) => {
-    const matched = currentPlaces.find(p =>
-      p.title === nLoc.name ||
-      (Math.abs(p.latitude - nLoc.y) < 1e-6 &&
-        Math.abs(p.longitude - nLoc.x) < 1e-6)
-    );
-    
-    if (!matched) return null;
-    
-    return {
-      ...matched,
-      travelOrder: index + 1
-    };
-  }).filter(Boolean);
-  
-  previewSorted.value = reorderedPlaces;    // 결과 임시 저장
-  console.log("정렬 완료:", reorderedPlaces);
-
-  showSortModal.value = true; // 모달창 띄우기
-};
-
-const applySortedPlaces = () => {
-  placesByDay.value[selectedDay.value] = [...previewSorted.value];
-  console.log("정렬 완료");
-  showSortModal.value = false;
-  if(isPolyLine) clearSearchResultMarkers();
-};
-
-const cancelSortPreview = () => {
-  console.log("정렬 취소");
-  showSortModal.value = false;
-  
-};
 </script>
 
 <style scoped>
 .final-draw-page {
-  zoom: 0.8; /* 80% 크기 */
+  zoom: 0.8;
 }
 .step-container {
   width: 100%;
@@ -1528,7 +953,6 @@ const cancelSortPreview = () => {
 .dot.purple { background: #d877e1; }
 .dot.brown { background: #d0a473; }
 
-/* 상단 바 */
 .top-bar {
   border-bottom: 1px solid rgba(0,0,0,0.1);
   height: 60px;
@@ -1541,14 +965,12 @@ const cancelSortPreview = () => {
 .back-btn { cursor: pointer; font-weight: 500; }
 .arrive-time { color: #4A5565; font-size: 14px; }
 
-/* 전체 레이아웃 */
 .main-layout {
   display: flex;
   height: calc(100vh - 60px);
   min-height: 800px;
 }
 
-/* 왼쪽 패널 */
 .left-panel {
   width: 22%;
   min-width: 300px;
@@ -1564,10 +986,10 @@ const cancelSortPreview = () => {
   border-bottom: 1px solid rgba(0,0,0,0.1); 
   display: flex;
   flex-direction: column;
-  height: 115px; /* 전체 컨테이너 높이 */
-  gap: 16px;     /* 상하 버튼 간격 */
-
+  height: 115px;
+  gap: 16px;
 }
+
 .action-row { display: flex; gap: 8px; margin-bottom: 12px; }
 
 .left-btn {
@@ -1617,10 +1039,9 @@ const cancelSortPreview = () => {
 
 .middle-btns {
   display: flex;
-  justify-content: space-between; /* 좌우 버튼 분리 */
+  justify-content: space-between;
   gap: 16px;
 }
-
 
 .top-btn {
   width: 100%;
@@ -1638,7 +1059,6 @@ const cancelSortPreview = () => {
   background: white;
   height: 40px;
   width: 110px;
-  /* flex: 0; flex:1 제거! → 버튼이 늘어나지 않게 */
 }
 
 .info-box {
@@ -1695,7 +1115,6 @@ const cancelSortPreview = () => {
   border-left: 3px solid #10B981;
 }
 
-/* 드래그 섹션 (왼쪽) */
 .drag-section {
   display: flex;
   flex-direction: column;
@@ -1735,7 +1154,6 @@ const cancelSortPreview = () => {
   opacity: 0.4;
 }
 
-/* 카드 컨텐츠 (오른쪽) */
 .card-content {
   flex: 1;
   display: flex;
@@ -1785,7 +1203,6 @@ const cancelSortPreview = () => {
   flex-shrink: 0;
 }
 
-/* 시간 토글 섹션 */
 .time-toggle-section {
   display: flex;
   align-items: center;
@@ -1824,7 +1241,6 @@ const cancelSortPreview = () => {
   border-radius: 4px;
 }
 
-/* 시간 입력 스타일 */
 .time-input-container {
   display: flex;
   flex-direction: column;
@@ -1912,7 +1328,6 @@ const cancelSortPreview = () => {
   background: rgba(245, 73, 0, 0.05);
 }
 
-/* 일차 컨트롤 */
 .day-control {
   border-top: 1px solid rgba(0,0,0,0.1);
   padding: 16px;
@@ -1977,7 +1392,6 @@ const cancelSortPreview = () => {
   font-weight: 600;
 }
 
-/* 중앙 지도 */
 .map-section { flex: 1; padding: 24px; }
 
 .map-box {
@@ -2027,7 +1441,6 @@ const cancelSortPreview = () => {
   position: relative;
 }
 
-/* 오른쪽 패널 */
 .right-panel {
   width: 26%;
   min-width: 350px;
@@ -2041,14 +1454,12 @@ const cancelSortPreview = () => {
   padding: 16px;
   border-bottom: 1px solid rgba(0,0,0,0.1);
   font-size: 16px;
-
-  display: flex;                /* 가로 정렬 */
-  justify-content: space-between; /* 좌측은 '검색', 우측은 버튼 */
-  align-items: center;          /* 수직 중앙정렬 */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .theme-section {
-  background: linear-gradient(135deg, #155DFC 0%, #0f47c9 100%);
   border-bottom: 1px solid rgba(0,0,0,0.1);
   transition: all 0.3s ease;
 }
@@ -2057,7 +1468,7 @@ const cancelSortPreview = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: white;
+  color: rgb(0, 0, 0);
   padding: 16px;
   cursor: pointer;
   user-select: none;
@@ -2154,7 +1565,7 @@ const cancelSortPreview = () => {
 }
 
 .rank-badge {
-  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  background: linear-gradient(135deg, #c4e3a6);
   color: #fff;
   font-weight: bold;
   width: 28px;
@@ -2202,7 +1613,6 @@ const cancelSortPreview = () => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 
 .filter-bar {
   display: flex;
@@ -2272,7 +1682,7 @@ const cancelSortPreview = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  /* background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); */
 }
 
 .placeholder-icon {
@@ -2327,7 +1737,6 @@ const cancelSortPreview = () => {
   font-weight: 500;
 }
 
-/* 숙소 모달 */
 .hotel-modal-overlay {
   position: fixed;
   inset: 0;
@@ -2399,7 +1808,6 @@ const cancelSortPreview = () => {
   color: #6a7282;
 }
 
-/* 로딩 오버레이 */
 .loading-overlay {
   position: fixed;
   inset: 0;
@@ -2425,16 +1833,11 @@ const cancelSortPreview = () => {
   100% { transform: rotate(360deg); }
 }
 
-/* 흐림 효과 */
 .main-layout.blurred {
   filter: blur(3px);
   pointer-events: none;
 }
 
-
-
-
-/* 모달 전체 배경 */
 .sort-modal-overlay {
   position: fixed;
   inset: 0;
@@ -2445,7 +1848,6 @@ const cancelSortPreview = () => {
   z-index: 1100;
 }
 
-/* 모달 카드 본체 */
 .sort-modal {
   background: #fff;
   border-radius: 12px;
@@ -2458,7 +1860,6 @@ const cancelSortPreview = () => {
   animation: fadeIn 0.25s ease;
 }
 
-/* 상단 헤더 */
 .sort-header {
   display: flex;
   justify-content: space-between;
@@ -2473,41 +1874,32 @@ const cancelSortPreview = () => {
   font-weight: 600;
   color: #111827;
 }
-/* 모달 본문 */
+
 .sort-body {
   display: flex;
   gap: 20px;
   justify-content: space-between;
   padding: 16px;
-  /* 높이 제한 */
-  max-height: 60vh; /* 모달 최대 높이의 60% */
-  overflow-y: auto; /* 세로 스크롤 */
+  max-height: 60vh;
+  overflow-y: auto;
 }
 
-/* 리스트 구역 (현재 vs 정렬 후) */
 .curr-list,
 .sort-list {
   flex: 1;
 }
 
-/* 리스트 제목 */
 .list-title {
-  text-align: center; /* 제목 중앙 정렬 */
+  text-align: center;
   font-weight: 600;
   margin-top: 8px;
   margin-bottom: 8px;
 }
 
-/* .sort-body > .curr-list >.list-title {
-  
-} */
-
-.sort-body > .sort-list >.list-title {
+.sort-body > .sort-list > .list-title {
   color: #155dfc;
 }
 
-
-/* 카드 스타일 (호텔 카드 느낌으로 통일) */
 .sort-card {
   background: #f9fafb;
   border: 1px solid #e5e7eb;
@@ -2528,13 +1920,6 @@ const cancelSortPreview = () => {
 .fix-card {
   background-color: #4A5565;
 }
-
-
-
-/* .sort-card:hover {
-  border-color: #155dfc;
-  background: #eef4ff;
-} */
 
 .sort_info {
   display: flex;
@@ -2557,7 +1942,6 @@ const cancelSortPreview = () => {
   color: #4b5563;
 }
 
-/* 버튼들 */
 .sort-btn,
 .sort-cancel-btn {
   padding: 10px 20px;
@@ -2586,75 +1970,159 @@ const cancelSortPreview = () => {
   background-color: #e5e7eb;
 }
 
-/* footer 버튼 영역 (중앙 정렬 + 여백 추가) */
 .sort-footer {
   display: flex;
-  justify-content: center; /* 버튼 중앙 정렬 */
+  justify-content: center;
   align-items: center;
-  gap: 12px; /* 버튼 간격 */
-  padding: 20px 0 28px; /* 위아래 여백 (특히 리스트와 간격 확보) */
-  margin-top: 8px; /* 리스트와 살짝 띄우기 */
+  gap: 12px;
+  padding: 20px 0 28px;
+  margin-top: 8px;
   border-top: 1px solid #e5e7eb;
   background-color: #f9fafb;
 }
 
-
-/* 모달 등장 애니메이션 */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.custom-overlay {
+.top-count {
+  color: #3C8BEA;
+}
+
+.badge {
+  background-color: #E3F2FF;
+  color: #1A73E8;
+}
+
+.toggle-btn {
+  background-color: #E3F2FF;
+  color: #1A73E8;
+}
+
+.category-img {
+  margin-top: 10px;
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+.theme-img{
+  margin-top: 10px;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+/* 진행바 애니메이션 */
+.progress-fill {
   position: relative;
+  overflow: hidden;
+}
+
+/* 반짝이는 효과 추가 */
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* 또는 펄스 효과 (선택) */
+.progress-fill {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+/* 카카오맵 모달 */
+.kakao-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.kakao-modal {
+  width: 90vw;
+  max-width: 1000px;
+  height: 85vh;
   background: white;
-  border: 2px solid #3B82F6;
-  border-radius: 10px;
-  padding: 8px 12px;
-  font-size: 13px;
-  color: #333;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
-  text-align: left;
-  width: 200px;
-  transition: all 0.2s ease;
-  animation: fadeIn 0.2s ease-out;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.overlay-header {
+.kakao-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
 }
 
-.overlay-header strong {
-  color: #1E40AF;
+.kakao-header h3 {
+  font-size: 18px;
   font-weight: 600;
-  font-size: 14px;
+  color: #111827;
+  margin: 0;
 }
 
-.overlay-close {
+.kakao-body {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.kakao-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* 상세보기 버튼 스타일 */
+.detail-btn {
   background: transparent;
   border: none;
-  color: #666;
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.overlay-close:hover {
-  color: #000;
-}
-
-.overlay-body {
-  color: #555;
+  color: #155DFC;
   font-size: 12px;
-  line-height: 1.4;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  transition: color 0.2s;
+  text-decoration:none;
+}
+
+.detail-btn:hover {
+  color: #0f47c9;
 }
 </style>

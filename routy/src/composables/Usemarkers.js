@@ -1,4 +1,3 @@
-// useMarkers.js 수정
 import { ref } from 'vue';
 
 // 마커 이미지 import
@@ -66,10 +65,7 @@ export function useMarkers() {
     });
     
     if (onClickCallback) {
-      kakao.maps.event.addListener(newMarker, 'click', () => {
-        // 마커 클릭임을 표시하기 위해 두 번째 파라미터를 true로 전달
-        onClickCallback(place, true);
-      });
+      kakao.maps.event.addListener(newMarker, 'click', () => onClickCallback(place));
     }
     
     return newMarker;
@@ -92,10 +88,7 @@ export function useMarkers() {
     });
     
     if (onClickCallback) {
-      kakao.maps.event.addListener(newMarker, 'click', () => {
-        // 마커 클릭임을 표시하기 위해 두 번째 파라미터를 true로 전달
-        onClickCallback(place, true);
-      });
+      kakao.maps.event.addListener(newMarker, 'click', () => onClickCallback(place));
     }
     
     return newMarker;
