@@ -61,22 +61,21 @@
 
       <!-- 별점 평가 -->
       <div class="section">
-  <label>별점 평가 (10점 만점)</label>
-  <div class="stars">
-    <span
-  v-for="i in 5"
-  :key="i"
-  class="star"
-  @mousemove="handleStarHover($event, i)"
-  @mouseleave="hoverRating = 0"
-  @click="confirmRating($event, i)"
-  :class="getStarClass(i)"
->
-  ★
-</span>
-<span class="score">{{ displayRating }}/10점</span>
-  </div>
-</div>
+        <label>별점 평가 (10점 만점)</label>
+        <div class="stars">
+          <img
+            v-for="i in 5"
+            :key="i"
+            class="star-img"
+            :src="getStarImage(i)"
+            @mousemove="handleStarHover($event, i)"
+            @mouseleave="hoverRating = 0"
+            @click="confirmRating($event, i)"
+          />
+          <span class="score">{{ displayRating }}/10점</span>
+        </div>
+      </div>
+
    <div
         class="itinerary-section"
         v-if="computedDayList?.length"
@@ -159,6 +158,9 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import apiClient from "@/utils/axios";
+import starFull from "@/assets/images/icons/star.png"
+import starHalf from "@/assets/images/icons/star-half.png"
+import starEmpty from "@/assets/images/icons/star-empty.png"
 
 const objectUrls = new Set();
 
@@ -421,6 +423,14 @@ onMounted(async () => {
    objectUrls.forEach((u) => URL.revokeObjectURL(u));
    objectUrls.clear();
  });
+
+function getStarImage(index) {
+  const state = getStarClass(index)
+
+  if (state === "full") return starFull
+  if (state === "half") return starHalf
+  return starEmpty
+}
 </script>
 
 <style scoped>
@@ -539,31 +549,40 @@ input[type="file"] {
 .stars {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 26px;
-  cursor: pointer;
-  user-select: none;
+  gap: 1;
 }
 
-.star {
-  position: relative;
-  display: inline-block;
-  line-height: 1;
-  color: #d1d5db; /* 기본 회색 (빈 별) */
+.star-img {
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  user-select: none;
   transition: transform 0.15s ease;
 }
 
-.star:hover {
+.star-img:hover {
   transform: scale(1.1);
 }
 
+/* .star {
+  position: relative;
+  display: inline-block;
+  line-height: 1;
+  color: #d1d5db; 
+  transition: transform 0.15s ease;
+} */
+
+/* .star:hover {
+  transform: scale(1.1);
+} */
+
 /* 가득 채워진 별 */
-.star.full {
-  color: #facc15; /* 노란색 */
-}
+/* .star.full {
+  color: #facc15; 
+} */
 
 /* 반쪽 채워진 별 (왼쪽 절반만) */
-.star.half::before {
+/* .star.half::before {
   content: '★';
   position: absolute;
   left: 0;
@@ -571,7 +590,7 @@ input[type="file"] {
   width: 50%;
   overflow: hidden;
   color: #facc15;
-}
+} */
 
 /* 점수 텍스트 */
 .score {

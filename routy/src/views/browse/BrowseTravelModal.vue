@@ -36,7 +36,8 @@
             :disabled="readOnly"
             v-if="!readOnly"
           >
-            ❤️ 좋아요 {{ likeCount }}
+          <img src="@/assets/images/icons/heart.svg" class="icon" />
+            좋아요 {{ likeCount }}
           </button>
 
           <!-- 읽기 전용 모드일 때는 클릭 불가한 비활성화 상태로 표시 -->
@@ -45,7 +46,8 @@
             class="like-btn disabled"
             disabled
           >
-            ❤️ 좋아요 {{ likeCount }}
+          <img src="@/assets/images/icons/heart.svg" class="icon" />
+            좋아요 {{ likeCount }}
           </button>
         </div>
 
@@ -90,8 +92,13 @@
               <div class="review-date">{{ route.review.createdAt }}</div>
             </div>
           </div>
-          <div class="rating">
-            <span v-for="n in 5" :key="n" class="star">⭐</span>
+          <div class="rating-stars" v-if="reviewRating >= 0">
+            <img
+              v-for="i in 5"
+              :key="i"
+              :src="getStarImage(i)"
+              class="star-img"
+            />
           </div>
         </div>
         <div v-if="travel?.review?.images?.length" class="review-images">
@@ -157,7 +164,8 @@
               </div>
 
               <div class="place-address">
-                <span class="address-icon">📍</span>
+                <img src="@/assets/images/icons/location.svg" class="icon" />
+                <!-- <span class="address-icon">📍</span> -->
                 {{ activity.addressName }}
               </div>
 
@@ -205,10 +213,14 @@ import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import apiClient from '@/utils/axios'
 import { useRouter } from 'vue-router'
 import CalendarModal from '@/views/browse/CalendarModal.vue'
+import starFull from "@/assets/images/icons/star.png"
+import starHalf from "@/assets/images/icons/star-half.png"
+import starEmpty from "@/assets/images/icons/star-empty.png"
 
 // ✅ 라우터 & 모달 제어
 const router = useRouter()
 const showModal = ref(true)
+const reviewRating = ref(0);
 
 // ✅ 부모로부터 전달받는 여행 데이터(route)
 const props = defineProps({
@@ -281,6 +293,10 @@ onMounted(async () => {
     const res = await apiClient.get(`/api/plans/public/${props.route.planId}`)
     travel.value = res.data
 
+    if (travel.value.review && travel.value.review.rating != null) {
+      reviewRating.value = travel.value.review.rating;
+    }
+
     // 🔥 reviewImagesRaw → reviewImages 배열 변환 (중요!!)
     if (travel.value.reviewImagesRaw) {
       travel.value.reviewImages = travel.value.reviewImagesRaw.split(',');
@@ -303,15 +319,20 @@ onMounted(async () => {
 // ✅ 북마크 토글
 const toggleBookmark = async () => {
   try {
-    const res = await apiClient.post(`/api/plans/${props.route.planId}/bookmark`)
+    // 북마크 상태 변경
+    await apiClient.post(`/api/plans/${props.route.planId}/bookmark`)
+
+    //  서버 최신 정보 다시 가져오기
+    const res = await apiClient.get(`/api/plans/public/${props.route.planId}`)
     bookmarkCount.value = res.data.bookmarkCount
 
-    // ✅ 부모로 변경된 데이터 전달
+    //  부모 리스트도 최신값 반영
     emit('updateRoute', {
       planId: props.route.planId,
-      likeCount: props.route.likeCount,          // 현재 값 유지
-      bookmarkCount: res.data.bookmarkCount      // 새 값 전달
+      bookmarkCount: res.data.bookmarkCount,
+      likeCount: res.data.likeCount
     })
+
   } catch (err) {
     console.error('북마크 요청 실패:', err)
   }
@@ -371,6 +392,23 @@ const uniqueDays = computed(() => {
     return true
   }) || []
 })
+
+function getStarClass(index) {
+  const current = reviewRating.value; // 0~10 점수
+  const fullCut = index * 2;          // full star 기준
+  const halfCut = (index - 1) * 2 + 1; // half star 기준
+
+  if (current >= fullCut) return "full";
+  if (current >= halfCut) return "half";
+  return "empty";
+}
+
+function getStarImage(index) {
+  const state = getStarClass(index);
+  if (state === "full") return starFull;
+  if (state === "half") return starHalf;
+  return starEmpty;
+}
 </script>
 
 
@@ -488,7 +526,7 @@ const uniqueDays = computed(() => {
 .stat-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .stat-icon {
@@ -498,6 +536,7 @@ const uniqueDays = computed(() => {
 .stat-label {
   font-size: 14px;
   color: #0a0a0a;
+  font-weight: 600;
 }
 
 .stat-value {
@@ -862,11 +901,10 @@ const uniqueDays = computed(() => {
 .like-btn {
   background: transparent;
   border: none;
-  font-size: 18px;
+  font-size: 14px;
+  font-weight: 600;  
+  color: #0a0a0a; 
   cursor: pointer;
-  transition: transform 0.1s ease;
-
-  /* ⭐ 핵심 */
   display: flex;
   align-items: center;
   gap: 6px;
@@ -954,5 +992,25 @@ const uniqueDays = computed(() => {
   font-weight: 600;
 }
 
+.icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
+}
 
+.star-icon {
+  width: 20px;      
+  height: 20px;
+  object-fit: contain;
+}
+
+.rating-stars {
+  display: flex;
+  gap: 2px;
+}
+.star-img {
+  width: 20px;
+  height: 20px;
+}
 </style>
