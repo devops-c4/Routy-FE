@@ -112,7 +112,7 @@ const applyFilter = () => {
 //  1. 지역 목록 불러오기
 const fetchRegions = async () => {
   try {
-    const response = await apiClient.get('http://localhost:8080/api/plans/regions')
+    const response = await apiClient.get('/api/plans/regions')
     regions.value = response.data
   } catch (error) {
     console.error('지역 목록 불러오기 실패:', error)
@@ -121,42 +121,53 @@ const fetchRegions = async () => {
 
 // 2. 공개 일정 목록 불러오기 (페이지 단위)
 const fetchPublicPlans = async (append = false) => {
-  if (loading.value) return
-  loading.value = true
+  if (loading.value) return;
+  loading.value = true;
 
   try {
-    const res = await apiClient.get('http://localhost:8080/api/plans/public', {
+    const res = await apiClient.get('/api/plans/public', {
       params: {
-        page: page.value,
-        size,
         sort: sortType.value,
         regionId: selectedRegion.value,
         days: selectedDays.value,
       },
-    })
+    });
 
-    const data = res.data.content || res.data
+    // 1️⃣ ★ RAW JSON 전체 출력
+    console.log("🔥 RAW RESPONSE:", res.data);
 
-    const parsedData = data.map(plan => {
+    const data = res.data.content || res.data;
+
+    // 2️⃣ ★ content 파싱 전 reviewImages 그대로 보기
+    data.forEach((plan, idx) => {
+      console.log(`📌 BEFORE PARSE [${idx}] reviewImages:`, plan.reviewImages);
+    });
+
+    // 3️⃣ ★ PARSE 후 확인
+    const parsedData = data.map((plan, idx) => {
+      console.log(`👉 PARSING [${idx}] RAW reviewImages:`, plan.reviewImages);
+
       return {
         ...plan,
-        reviewImages: plan.review?.images || []   // 중요한 부분
-      }
-    })
+        reviewImages: plan.reviewImages || []
+      };
+    });
 
-    console.log("🔥 FETCHED DATA:", parsedData)  // ★ 여기에 찍힌다
+    // 4️⃣ ★ 회수된 최종 데이터 확인
+    console.log("🎉 PARSED DATA:", parsedData);
 
-    if (append) routes.value.push(...parsedData)
-    else routes.value = parsedData
+    if (append) routes.value.push(...parsedData);
+    else routes.value = parsedData;
 
-    hasMore.value = parsedData.length === size
+    hasMore.value = parsedData.length === size;
 
   } catch (err) {
-    console.error('공개 일정 목록 불러오기 실패:', err)
+    console.error('공개 일정 목록 불러오기 실패:', err);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
+
 
 
 
@@ -179,21 +190,26 @@ onMounted(() => {
   fetchPublicPlans()
 })
 
+
 // 모달
 const openModal = async (route) => {
   selectedRoute.value = null
   try {
-    // ✅ 최신 데이터로 다시 요청
-    const res = await apiClient.get(`http://localhost:8080/api/plans/public/${route.planId}`)
+    // 먼저 조회수 증가 요청
+    await apiClient.post(`/api/plans/${route.planId}/view`)
+
+    // 증가된 최신 데이터를 다시 요청 (항상 최신 viewCount)
+    const res = await apiClient.get(`/api/plans/public/${route.planId}`)
     selectedRoute.value = res.data
+
     document.body.style.overflow = 'hidden'
 
-    // ✅ 조회수 증가 요청 (작성자 제외)
-    await apiClient.post(`http://localhost:8080/api/plans/${route.planId}/view`)
-
-    // ✅ 부모 리스트에서 해당 카드 카운트도 즉시 반영
+    //  부모 리스트에서도 최신값으로 동기화
     const target = routes.value.find(r => r.planId === route.planId)
-    if (target) target.viewCount++
+    if (target) {
+      target.viewCount = res.data.viewCount
+    }
+
   } catch (error) {
     console.error('상세 일정 불러오기 실패:', error)
   }
