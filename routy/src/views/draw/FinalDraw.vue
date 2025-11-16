@@ -1233,7 +1233,7 @@ onMounted(async () => {
 }
 
 .time-display {
-  font-size: 12px;
+  font-size: 10px;
   color: #155DFC;
   font-weight: 500;
   background: #EEF4FF;

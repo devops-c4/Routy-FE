@@ -52,18 +52,50 @@ const goSearch = (city) => {
 };
 </script>
 
+<style>
+/* 💡 Scoped가 없으므로 전역에 적용됩니다. */
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+</style>
+
 <style scoped>
+/* 메인 컨테이너 */
+/* 메인 컨테이너 */
 .main-container {
-  position: relative;
   width: 100%;
-  min-height: 955px;
+  min-height: 870px;
   background: linear-gradient(135deg, #eff6ff 0%, white 50%, #f0fdf4 100%);
   font-family: Inter, sans-serif;
   color: #101828;
   display: flex;
   flex-direction: column;
   align-items: center;
+  
+  /* 💡 혹시 모를 오버플로우를 컨테이너 레벨에서 숨김 */
+  overflow-x: hidden;
 }
+
+/* 검색창 */
+.search-box {
+  width: 100%;
+  max-width: 768px;
+  margin: 0 auto;
+  background: white;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+}
+
 
 /* 메인 섹션 */
 .main-section {
@@ -77,19 +109,6 @@ const goSearch = (city) => {
   margin-top: -20px;
   margin-bottom: 40px;
   color: #101828;
-}
-
-/* 검색창 */
-.search-box {
-  width: 768px;
-  margin: 0 auto;
-  background: white;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
 }
 
 .search-input {
