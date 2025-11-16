@@ -2,7 +2,9 @@
   <div class="chat-page">
     <div class="chat-header">
       <h1>Rooting</h1>
+      <div class="float-wrapper">
       <img src="../../assets/images/chatbot/chatbot2.png" alt="chatbot" />
+      </div>
     </div>
 
     <div class="chat-box" ref="chatBox">
@@ -262,4 +264,20 @@ button {
   width: 100px; /* 이미지 크기 조절 */
   height: 100px;
 }
+
+.float-wrapper {
+  display: inline-block;
+  animation: floatUpDown 2.2s ease-in-out infinite alternate;
+}
+
+/* 위아래 부드럽게 움직임 */
+@keyframes floatUpDown {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-12px); /* 위로 조금 이동 */
+  }
+}
+
 </style>
